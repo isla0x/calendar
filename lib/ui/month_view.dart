@@ -40,11 +40,11 @@ class _MonthViewState extends State<MonthView> {
     _sheetKey = key;
   }
 
-  void _toggle(double minSize) {
+  void _toggle(double minSize, double maxSize) {
     if (!_sheet.isAttached) return;
-    final open = _sheet.size > (minSize + 1) / 2;
+    final open = _sheet.size > (minSize + maxSize) / 2;
     _sheet.animateTo(
-      open ? minSize : 1.0,
+      open ? minSize : maxSize,
       duration: const Duration(milliseconds: 260),
       curve: Curves.easeOutCubic,
     );
@@ -69,6 +69,8 @@ class _MonthViewState extends State<MonthView> {
         final cellH = math.max(50.0, math.min(104.0, raw));
         final gridBottom = 30 + rows * cellH + gap * (rows - 1) + 8;
         final minSize = (1 - gridBottom / c.maxHeight).clamp(0.2, 0.9).toDouble();
+        // 펼쳐도 위쪽 "월/주/일" 줄이 가려지지 않게 살짝 남겨요.
+        final maxSize = 1 - 6 / c.maxHeight;
         final sheetKey = 'daysheet-$rows-${gridBottom.round()}';
         _syncSheet(sheetKey);
 
@@ -131,10 +133,10 @@ class _MonthViewState extends State<MonthView> {
                 controller: _sheet,
                 initialChildSize: minSize,
                 minChildSize: minSize,
-                maxChildSize: 1.0,
+                maxChildSize: maxSize,
                 snap: true,
                 builder: (context, scroll) =>
-                    _DaySheet(scroll: scroll, onToggle: () => _toggle(minSize)),
+                    _DaySheet(scroll: scroll, onToggle: () => _toggle(minSize, maxSize)),
               ),
             ),
           ],
@@ -502,7 +504,7 @@ class _DaySheet extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 6),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
@@ -539,7 +541,7 @@ class _DaySheet extends StatelessWidget {
           else ...[
             for (final e in evs)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: EventTile(event: e, onTap: () => openDetail(context, e)),
               ),
             const SizedBox(height: 130),

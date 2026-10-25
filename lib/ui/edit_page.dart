@@ -370,7 +370,7 @@ class _EventEditPageState extends State<EventEditPage> {
           width: c == null ? null : 34,
           height: 34,
           padding: c == null ? const EdgeInsets.symmetric(horizontal: 12) : null,
-          alignment: Alignment.center,
+          alignment: c == null ? null : Alignment.center,
           decoration: BoxDecoration(
             color: c == null ? p.surface : fill,
             borderRadius: BorderRadius.circular(17),
@@ -618,10 +618,14 @@ class _EventEditPageState extends State<EventEditPage> {
                                 child: Container(
                                   height: 32,
                                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    _tags.isEmpty ? '+ 태그 추가' : '편집',
-                                    style: ts(context, 13, weight: FontWeight.w600, color: p.muted),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _tags.isEmpty ? '+ 태그 추가' : '편집',
+                                        style: ts(context, 13, weight: FontWeight.w600, color: p.muted),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
