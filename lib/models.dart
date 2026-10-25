@@ -120,6 +120,28 @@ class Ev {
   }
 }
 
+/// 반복 방식
+enum RepeatKind { daily, weekdays, weekly }
+
+/// 반복 일정 설정. [until] 은 반복이 끝나는 마지막 날(그날 포함, 날짜만). 없으면 계속 반복해요.
+class Repeat {
+  const Repeat(this.kind, {this.until});
+
+  final RepeatKind kind;
+  final DateTime? until;
+
+  String get label {
+    switch (kind) {
+      case RepeatKind.daily:
+        return '매일';
+      case RepeatKind.weekdays:
+        return '평일마다';
+      case RepeatKind.weekly:
+        return '매주';
+    }
+  }
+}
+
 /// 시간 구간
 class Span {
   const Span(this.a, this.b);

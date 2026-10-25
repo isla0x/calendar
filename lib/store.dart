@@ -383,6 +383,7 @@ class CalendarStore extends ChangeNotifier {
     bool allDay = false,
     String? location,
     List<String> tags = const <String>[],
+    Repeat? repeat,
   }) async {
     try {
       await repo.create(
@@ -393,6 +394,7 @@ class CalendarStore extends ChangeNotifier {
         allDay: allDay,
         location: location,
         tags: tags,
+        repeat: repeat,
       );
       await _refresh(force: true);
       return true;

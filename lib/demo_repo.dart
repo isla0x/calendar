@@ -189,22 +189,50 @@ class DemoRepo implements CalendarRepo {
     bool allDay = false,
     String? location,
     List<String> tags = const <String>[],
+    Repeat? repeat,
   }) async {
     final c = _calById(calendarId ?? 'personal');
     final n = _seq++;
-    _evs.add(Ev(
-      id: 'n$n',
-      instanceId: 'n$n',
-      calendarId: c.id,
-      calendarName: c.name,
-      title: title,
-      start: start,
-      end: end,
-      allDay: allDay,
-      color: c.color,
-      location: location,
-      tags: tags,
-    ));
+    final len = end.difference(start);
+
+    Ev make(DateTime s, DateTime e, String inst) => Ev(
+          id: 'n$n',
+          instanceId: inst,
+          calendarId: c.id,
+          calendarName: c.name,
+          title: title,
+          start: s,
+          end: e,
+          allDay: allDay,
+          color: c.color,
+          location: location,
+          tags: tags,
+          recurring: repeat != null,
+        );
+
+    if (repeat == null) {
+      _evs.add(make(start, end, 'n$n'));
+      return;
+    }
+    // 샘플 모드: 반복 일정을 날짜마다 풀어서 넣어요 (끝이 없으면 120일까지).
+    final first = dayOnly(start);
+    final last = repeat.until ?? addDays(first, 120);
+    var d = first;
+    var guard = 0;
+    while (!d.isAfter(last) && guard < 400) {
+      final wd = d.weekday;
+      final ok = switch (repeat.kind) {
+        RepeatKind.daily => true,
+        RepeatKind.weekdays => wd <= 5,
+        RepeatKind.weekly => wd == first.weekday,
+      };
+      if (ok) {
+        final s = DateTime(d.year, d.month, d.day, start.hour, start.minute);
+        _evs.add(make(s, s.add(len), 'n$n@${dayKey(d)}'));
+      }
+      d = addDays(d, 1);
+      guard++;
+    }
   }
 
   @override

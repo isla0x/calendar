@@ -122,6 +122,7 @@ class DeviceRepo implements CalendarRepo {
     bool allDay = false,
     String? location,
     List<String> tags = const <String>[],
+    Repeat? repeat,
   }) async {
     var cid = calendarId;
     if (cid == null) {
@@ -140,7 +141,30 @@ class DeviceRepo implements CalendarRepo {
       endDate: end,
       isAllDay: allDay,
       location: location,
+      recurrenceRule: _rule(repeat),
     );
+  }
+
+  /// 앱의 반복 설정을 기기 캘린더의 반복 규칙으로 바꿔요. (끝나는 날은 그날 23:59:59 까지 포함)
+  static RecurrenceRule? _rule(Repeat? r) {
+    if (r == null) return null;
+    final u = r.until;
+    final DateTime? untilUtc =
+        u == null ? null : DateTime(u.year, u.month, u.day, 23, 59, 59).toUtc();
+    if (r.kind == RepeatKind.daily) {
+      return DailyRecurrence(end: untilUtc == null ? null : UntilEnd(untilUtc));
+    }
+    final b = StringBuffer('FREQ=WEEKLY');
+    if (r.kind == RepeatKind.weekdays) b.write(';BYDAY=MO,TU,WE,TH,FR');
+    if (untilUtc != null) {
+      b.write(
+        ';UNTIL=${untilUtc.year}${two(untilUtc.month)}${two(untilUtc.day)}'
+        'T${two(untilUtc.hour)}${two(untilUtc.minute)}${two(untilUtc.second)}Z',
+      );
+    }
+    final rule = RecurrenceRule.fromRruleString(b.toString());
+    if (rule == null) throw StateError('반복 규칙을 만들지 못했어요');
+    return rule;
   }
 
   @override

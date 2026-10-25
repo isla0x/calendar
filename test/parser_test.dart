@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yeobaek/parser.dart';
+import 'package:yeobaek/models.dart';
 
 void main() {
   // 2026-10-26 월요일 14:10
@@ -234,6 +235,43 @@ void main() {
       final q = parse('C# 공부');
       expect(q.tags, isEmpty);
       expect(q.title, 'C# 공부');
+    });
+  });
+
+  group('반복', () {
+    test('10/26~11/13 09:00-18:00 프로젝트 → 매일 반복', () {
+      final q = parse('10/26~11/13 09:00-18:00 교보증권 프로젝트');
+      expect(q.title, '교보증권 프로젝트');
+      expect(q.repeat, RepeatKind.daily);
+      expect(q.isRange, false);
+      expect(q.allDay, false);
+      expect(q.start, DateTime(2026, 10, 26, 9, 0));
+      expect(q.end, DateTime(2026, 10, 26, 18, 0));
+      expect(q.lastDay, DateTime(2026, 11, 13));
+      expect(q.repeatRule?.until, DateTime(2026, 11, 13));
+    });
+
+    test('매일 9시~6시 운동', () {
+      final q = parse('매일 오전 9시 운동');
+      expect(q.title, '운동');
+      expect(q.repeat, RepeatKind.daily);
+      expect(q.start.hour, 9);
+      expect(q.lastDay, isNull);
+    });
+
+    test('평일마다 / 매주', () {
+      expect(parse('평일마다 7시 러닝').repeat, RepeatKind.weekdays);
+      expect(parse('매주 월요일 10시 회의').repeat, RepeatKind.weekly);
+    });
+
+    test('시각 없는 기간은 반복이 아니라 종일 하루짜리', () {
+      final q = parse('9/18~10/28 프로젝트');
+      expect(q.repeat, isNull);
+      expect(q.isRange, true);
+    });
+
+    test('반복 글을 지우면 다시 반복 없음', () {
+      expect(parse('운동 3시').repeat, isNull);
     });
   });
 }

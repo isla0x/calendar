@@ -250,6 +250,59 @@ class _QuickAddPageState extends State<QuickAddPage> {
     }
   }
 
+  Future<void> _pickRepeat(QuickParse q) async {
+    final cur = q.repeat;
+    final r = await showAppSheet<String>(
+      context: context,
+      builder: (ctx) {
+        final p = Pal.of(ctx);
+        Widget row(String key, String label, String? sub, bool on) => Tap(
+              onTap: () => Navigator.of(ctx).pop(key),
+              child: SizedBox(
+                height: 58,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(label, style: ts(ctx, 16, weight: FontWeight.w600)),
+                          if (sub != null)
+                            Text(sub, style: ts(ctx, 12, color: p.muted, height: 16 / 12)),
+                        ],
+                      ),
+                    ),
+                    if (on) Icon(Icons.check_rounded, size: 22, color: p.ink),
+                  ],
+                ),
+              ),
+            );
+        return SheetFrame(
+          title: '반복',
+          subtitle: '끝나는 날을 적으면 그날까지만 반복해요 (예: 10/26~11/13)',
+          child: Column(
+            children: [
+              row('none', '반복 안 함', null, cur == null),
+              row('daily', '매일', '예) 매일 9시~6시', cur == RepeatKind.daily),
+              row('weekdays', '평일마다', '월~금', cur == RepeatKind.weekdays),
+              row('weekly', '매주', '시작하는 날의 요일마다', cur == RepeatKind.weekly),
+            ],
+          ),
+        );
+      },
+    );
+    if (r == null || !mounted) return;
+    final hit = q.hits.where((h) => h.kind == HitKind.repeat).toList();
+    if (r == 'none') {
+      if (hit.isNotEmpty) _removeRange(hit.first.start, hit.first.end);
+      // 기간 + 시각은 자동으로 "매일" 이라서, 반복을 끄려면 종일(기간)로 바꿔요.
+      return;
+    }
+    final word = r == 'daily' ? '매일' : (r == 'weekdays' ? '평일마다' : '매주');
+    _rewrite({HitKind.repeat}, word);
+  }
+
   Future<void> _pickCalendar(List<CalInfo> list, CalInfo? current) async {
     final id = await showCalendarSheet(context, list: list, currentId: current?.id);
     if (id != null && mounted) setState(() => _calId = id);
@@ -289,6 +342,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
       allDay: q.allDay,
       location: _location.isEmpty ? null : _location,
       tags: q.tags,
+      repeat: q.repeatRule,
     );
     if (!mounted) return;
     if (ok) {
@@ -336,6 +390,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
       if (q.hasTime) parts.add('시간');
       if (q.hasDuration) parts.add('길이');
       if (q.allDay) parts.add('종일');
+      if (q.repeat != null) parts.add('반복');
       hint = parts.isEmpty ? '' : '${parts.join(' · ')} 자동으로 읽었어요';
     }
 
@@ -473,7 +528,13 @@ class _QuickAddPageState extends State<QuickAddPage> {
                         _Chip(
                           icon: Icons.schedule_rounded,
                           text: q.allDay ? '종일' : rangeText(q.start, q.end),
-                          onTap: last == null ? () => _pickTime(q) : null,
+                          onTap: !q.isRange ? () => _pickTime(q) : null,
+                        ),
+                        _Chip(
+                          icon: Icons.repeat_rounded,
+                          text: q.repeatRule?.label ?? '반복',
+                          dashed: q.repeat == null,
+                          onTap: () => _pickRepeat(q),
                         ),
                         if (cal != null && calColors != null)
                           _Chip(

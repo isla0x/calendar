@@ -29,6 +29,7 @@ class _Repo implements CalendarRepo {
     bool allDay = false,
     String? location,
     List<String> tags = const <String>[],
+    Repeat? repeat,
   }) async {}
   @override
   Future<void> update(

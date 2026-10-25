@@ -1,7 +1,8 @@
 import 'dates.dart';
+import 'models.dart';
 
 /// 한 줄 입력에서 찾아낸 부분의 종류 (색 표시용)
-enum HitKind { date, time, duration, tag }
+enum HitKind { date, time, duration, tag, repeat }
 
 /// 입력 글자에서 [start, end) 부분이 날짜 / 시간 / 길이로 읽혔다는 표시
 class Hit {
@@ -24,6 +25,7 @@ class QuickParse {
     required this.hits,
     this.tags = const <String>[],
     this.lastDay,
+    this.repeat,
   });
 
   final String title;
@@ -46,7 +48,14 @@ class QuickParse {
   /// 이때 [start] 는 첫날 0시, [end] 는 마지막 날 다음 날 0시이고 종일 일정이에요.
   final DateTime? lastDay;
 
-  bool get isRange => lastDay != null;
+  /// "매일", "평일마다", "매주" 처럼 반복으로 썼을 때. 기간 + 시각(예: 10/26~11/13 9시~6시)도 "매일" 이에요.
+  /// 반복이면 [lastDay] 는 반복이 끝나는 날이고, [start]~[end] 는 첫날 하루치예요.
+  final RepeatKind? repeat;
+
+  /// 여러 날에 걸친 종일 일정(기간)인지. 반복은 기간이 아니에요.
+  bool get isRange => lastDay != null && repeat == null;
+
+  Repeat? get repeatRule => repeat == null ? null : Repeat(repeat!, until: lastDay);
 
   bool get isEmpty => title.isEmpty && !hasDate && !hasTime && !hasDuration;
 }
@@ -55,6 +64,7 @@ class QuickParse {
 // 도우미
 
 const String _mask = '\u0001';
+final RegExp _reRepeat = RegExp(r'(매일|매주|평일(?:마다)?|주중)');
 const String _period = r'(오전|오후|아침|점심|저녁|밤|새벽)';
 const String _after = r'(?=$|[^가-힣]|에|은|는|부|까)';
 
@@ -561,6 +571,16 @@ QuickParse parseQuick(
   final int? rangeEnd = tg?.endMin;
   if (tg != null) w.claim(tg.s, tg.e, HitKind.time);
 
+  RepeatKind? repeatKind;
+  final rp = _reRepeat.firstMatch(w.s);
+  if (rp != null) {
+    final word = rp.group(1)!;
+    repeatKind = word == '매일'
+        ? RepeatKind.daily
+        : (word == '매주' ? RepeatKind.weekly : RepeatKind.weekdays);
+    w.claim(rp.start, rp.end, HitKind.repeat);
+  }
+
   final dur = _findDuration(w.s);
   final int? durMin = dur?.minutes;
   if (dur != null) w.claim(dur.s, dur.e, HitKind.duration);
@@ -584,14 +604,19 @@ QuickParse parseQuick(
   title = title.replaceAll(RegExp(r'^[\s,.\-~·:]+|[\s,.\-~·:]+$'), '');
 
   final day = firstDay ?? dayOnly(defaultDay);
-  // 기간(여러 날)은 항상 종일 일정이에요.
-  final allDay = lastDay != null || allDayWord || (startMin == null && durMin == null);
+  // 기간 + 시각("10/26~11/13 9시~6시") 은 "그 기간 동안 매일 그 시간" 으로 읽어요.
+  if (repeatKind == null && lastDay != null && startMin != null && !allDayWord) {
+    repeatKind = RepeatKind.daily;
+  }
+  // 반복이 아닌 기간(여러 날)은 종일 일정이에요.
+  final span = lastDay != null && repeatKind == null;
+  final allDay = span || allDayWord || (startMin == null && durMin == null);
 
   DateTime start;
   DateTime end;
   if (allDay) {
     start = day;
-    end = addDays(lastDay ?? day, 1);
+    end = addDays((span ? lastDay : null) ?? day, 1);
   } else {
     int sMin;
     int eMin;
@@ -621,6 +646,7 @@ QuickParse parseQuick(
     hits: List<Hit>.unmodifiable(w.hits),
     tags: List<String>.unmodifiable(tags),
     lastDay: lastDay,
+    repeat: repeatKind,
   );
 }
 

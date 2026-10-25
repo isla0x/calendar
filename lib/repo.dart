@@ -23,6 +23,7 @@ abstract class CalendarRepo {
     bool allDay = false,
     String? location,
     List<String> tags = const <String>[],
+    Repeat? repeat,
   });
 
   Future<void> move(Ev e, DateTime start, DateTime end);

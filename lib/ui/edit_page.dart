@@ -267,7 +267,7 @@ class _EventEditPageState extends State<EventEditPage> {
         summaryColor = p.good;
         summaryIcon = Icons.check_rounded;
       } else {
-        summary = dur;
+        summary = '$dur · 여러 날에 걸친 하나의 일정이에요 (매일 반복이 아니에요)';
       }
     }
 
