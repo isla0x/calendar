@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../dates.dart';
 import '../models.dart';
 import '../parser.dart';
+import '../skins.dart';
 import '../store.dart';
 import '../tags.dart';
 import '../theme.dart';
@@ -66,6 +67,11 @@ class ParsedController extends TextEditingController {
   }
 }
 
+class _ColorPick {
+  const _ColorPick(this.color);
+  final Color? color;
+}
+
 class _TimeResult {
   const _TimeResult(this.allDay, this.startMin, this.minutes);
   final bool allDay;
@@ -93,6 +99,9 @@ class QuickAddPage extends StatefulWidget {
 }
 
 class _QuickAddPageState extends State<QuickAddPage> {
+  /// 이 일정에만 따로 고른 색 (없으면 캘린더 색)
+  Color? _color;
+
   final ParsedController _ctl = ParsedController();
   final FocusNode _focus = FocusNode();
   String? _calId;
@@ -250,6 +259,49 @@ class _QuickAddPageState extends State<QuickAddPage> {
     }
   }
 
+  Future<void> _pickColor(Color? calColor) async {
+    final r = await showAppSheet<_ColorPick>(
+      context: context,
+      builder: (ctx) {
+        final p = Pal.of(ctx);
+        Widget swatch(Color? c) {
+          final on = _color == c ||
+              (c != null && _color != null && _color!.toARGB32() == c.toARGB32());
+          final fill = c ?? calColor ?? p.soft;
+          return Tap(
+            onTap: () => Navigator.of(ctx).pop(_ColorPick(c)),
+            label: c == null ? '캘린더 색' : '색 고르기',
+            child: Container(
+              width: 44,
+              height: 44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: fill,
+                shape: BoxShape.circle,
+                border: Border.all(color: on ? p.ink : p.line, width: on ? 2.5 : 1),
+              ),
+              child: c == null
+                  ? Icon(Icons.block_rounded, size: 18, color: p.ink.withValues(alpha: 0.55))
+                  : (on ? Icon(Icons.check_rounded, size: 20, color: p.ink) : null),
+            ),
+          );
+        }
+
+        return SheetFrame(
+          title: '일정 색',
+          subtitle: '이 일정만 다른 색으로 보여요. 첫 번째 칸은 캘린더 색이에요.',
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [swatch(null), for (final c in Skin.palette) swatch(c)],
+          ),
+        );
+      },
+    );
+    if (r == null || !mounted) return;
+    setState(() => _color = r.color);
+  }
+
   Future<void> _pickRepeat(QuickParse q) async {
     final cur = q.repeat;
     final r = await showAppSheet<String>(
@@ -343,6 +395,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
       location: _location.isEmpty ? null : _location,
       tags: q.tags,
       repeat: q.repeatRule,
+      color: _color,
     );
     if (!mounted) return;
     if (ok) {
@@ -536,6 +589,13 @@ class _QuickAddPageState extends State<QuickAddPage> {
                           dashed: q.repeat == null,
                           onTap: () => _pickRepeat(q),
                         ),
+                        _Chip(
+                          dot: _color,
+                          icon: _color == null ? Icons.palette_outlined : null,
+                          text: _color == null ? '색' : '색 고름',
+                          dashed: _color == null,
+                          onTap: () => _pickColor(cal?.color),
+                        ),
                         if (cal != null && calColors != null)
                           _Chip(
                             dot: cal.color,
@@ -581,7 +641,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
                     ),
                   ),
                   if (hasText)
-                    _Preview(q: q, title: title, conflicts: conflicts),
+                    _Preview(q: q, title: title, conflicts: conflicts, onTime: _setTime),
                   if (suggestions.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
@@ -697,15 +757,88 @@ class _Chip extends StatelessWidget {
 }
 
 /// 그날의 모습과 겹치는 일정 확인
-class _Preview extends StatelessWidget {
-  const _Preview({required this.q, required this.title, required this.conflicts});
+class _Preview extends StatefulWidget {
+  const _Preview({
+    required this.q,
+    required this.title,
+    required this.conflicts,
+    required this.onTime,
+  });
 
   final QuickParse q;
   final String title;
   final List<Ev> conflicts;
 
+  /// 시간 바를 손으로 끌면 (시작 분, 길이 분) 으로 알려줘요.
+  final void Function(int startMin, int minutes) onTime;
+
+  @override
+  State<_Preview> createState() => _PreviewState();
+}
+
+enum _Grab { move, start, end }
+
+class _PreviewState extends State<_Preview> {
+  QuickParse get q => widget.q;
+  String get title => widget.title;
+  List<Ev> get conflicts => widget.conflicts;
+
   static const int _rs = 9 * 60;
   static const int _re = 22 * 60;
+  static const int _snap = 15;
+
+  // 끌기 상태
+  _Grab _grab = _Grab.move;
+  double _x0 = 0;
+  int _s0 = 0;
+  int _e0 = 0;
+  double _w = 1;
+
+  int _minAt(double x) => _rs + (x / _w * (_re - _rs)).round();
+  int _snapped(int m) => (m / _snap).round() * _snap;
+
+  void _dragStart(double x, int sMin, int eMin) {
+    _s0 = sMin;
+    _e0 = eMin;
+    _x0 = x;
+    final l = (math.max(_rs, math.min(_re, sMin)) - _rs) / (_re - _rs) * _w;
+    final r = (math.max(_rs, math.min(_re, eMin)) - _rs) / (_re - _rs) * _w;
+    const edge = 24.0;
+    if ((x - l).abs() <= edge && (x - l).abs() <= (x - r).abs()) {
+      _grab = _Grab.start;
+    } else if ((x - r).abs() <= edge) {
+      _grab = _Grab.end;
+    } else if (x > l && x < r) {
+      _grab = _Grab.move;
+    } else {
+      // 바깥을 누르면 그 자리로 옮겨요 (길이는 그대로)
+      _grab = _Grab.move;
+      final len = eMin - sMin;
+      _s0 = _snapped(_minAt(x) - len ~/ 2);
+      _e0 = _s0 + len;
+      _x0 = x;
+      _apply(x);
+    }
+  }
+
+  void _apply(double x) {
+    final d = ((x - _x0) / _w * (_re - _rs)).round();
+    var s = _s0;
+    var e = _e0;
+    switch (_grab) {
+      case _Grab.move:
+        final len = _e0 - _s0;
+        s = _snapped(_s0 + d).clamp(_rs, math.max(_rs, _re - len)).toInt();
+        e = s + len;
+      case _Grab.start:
+        s = _snapped(_s0 + d).clamp(_rs, math.max(_rs, _e0 - _snap)).toInt();
+      case _Grab.end:
+        e = _snapped(_e0 + d).clamp(_s0 + _snap, math.max(_s0 + _snap, _re)).toInt();
+    }
+    if (s != q.start.hour * 60 + q.start.minute || e - s != q.end.difference(q.start).inMinutes) {
+      widget.onTime(s, e - s);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -859,9 +992,39 @@ class _Preview extends StatelessWidget {
                     ),
                   ),
                 ));
-                return SizedBox(
-                  height: 36,
-                  child: Stack(clipBehavior: Clip.none, children: kids),
+                _w = w;
+                // 손잡이: 양 끝을 끌면 시작·끝이, 가운데를 끌면 통째로 움직여요.
+                for (final hx in [math.min(l, w - bw) + 6, math.min(l, w - bw) + bw - 9]) {
+                  kids.add(Positioned(
+                    left: hx,
+                    top: 8,
+                    width: 3,
+                    height: 20,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: p.dash,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ));
+                }
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onHorizontalDragStart: (d) {
+                    final s0 = q.start.hour * 60 + q.start.minute;
+                    _dragStart(d.localPosition.dx, s0, s0 + q.end.difference(q.start).inMinutes);
+                  },
+                  onHorizontalDragUpdate: (d) => _apply(d.localPosition.dx),
+                  onTapDown: (d) {
+                    final x = d.localPosition.dx;
+                    final s0 = q.start.hour * 60 + q.start.minute;
+                    final e0 = s0 + q.end.difference(q.start).inMinutes;
+                    _dragStart(x, s0, e0);
+                  },
+                  child: SizedBox(
+                    height: 36,
+                    child: Stack(clipBehavior: Clip.none, children: kids),
+                  ),
                 );
               },
             ),

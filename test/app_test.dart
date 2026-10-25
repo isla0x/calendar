@@ -229,6 +229,37 @@ void main() {
     expect(back.color, isNot(const Color(0xFFF3A98C)));
   });
 
+  testWidgets('새 일정을 만들 때 고른 색이 그대로 붙어요', (tester) async {
+    final store = await open(tester);
+    final ok = await store.addEvent(
+      title: '색 테스트',
+      start: DateTime(2026, 10, 27, 9),
+      end: DateTime(2026, 10, 27, 10),
+      color: const Color(0xFFB4D88A),
+    );
+    expect(ok, true);
+    final e = store.eventsOn(DateTime(2026, 10, 27)).firstWhere((x) => x.title == '색 테스트');
+    expect(e.color, const Color(0xFFB4D88A));
+  });
+
+  testWidgets('빠른 추가 시간 바를 끌면 시간이 바뀌어요', (tester) async {
+    await open(tester);
+    await tester.tap(find.text('한 줄로 추가 · 예) 내일 3시 치과'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '내일 오전 10시 1시간 드래그');
+    await tester.pumpAndSettle();
+    expect(find.text('오전 10:00–11:00'), findsOneWidget);
+
+    // 바(칠한 칸)의 가운데를 오른쪽으로 끌면 통째로 늦어져요.
+    final label = find.text('드래그 10:00');
+    expect(label, findsOneWidget);
+    final c = tester.getCenter(label);
+    await tester.dragFrom(Offset(c.dx, c.dy + 45), const Offset(120, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('오전 10:00–11:00'), findsNothing);
+    expect(find.textContaining('드래그 1'), findsOneWidget);
+  });
+
   testWidgets('다크 모드에서도 그려져요', (tester) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);

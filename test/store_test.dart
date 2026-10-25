@@ -21,7 +21,7 @@ class _Repo implements CalendarRepo {
   @override
   Future<List<Ev>> events(DateTime from, DateTime to) async => list;
   @override
-  Future<void> create({
+  Future<String?> create({
     String? calendarId,
     required String title,
     required DateTime start,
@@ -30,7 +30,7 @@ class _Repo implements CalendarRepo {
     String? location,
     List<String> tags = const <String>[],
     Repeat? repeat,
-  }) async {}
+  }) async => null;
   @override
   Future<void> update(
     Ev e, {

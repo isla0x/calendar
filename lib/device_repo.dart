@@ -114,7 +114,7 @@ class DeviceRepo implements CalendarRepo {
   }
 
   @override
-  Future<void> create({
+  Future<String?> create({
     String? calendarId,
     required String title,
     required DateTime start,
@@ -134,7 +134,7 @@ class DeviceRepo implements CalendarRepo {
       }
     }
     if (cid == null) throw StateError('쓸 수 있는 캘린더가 없어요');
-    await _plugin.createEvent(
+    return _plugin.createEvent(
       calendarId: cid,
       title: joinTags(title, tags),
       startDate: start,

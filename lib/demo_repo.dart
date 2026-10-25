@@ -181,7 +181,7 @@ class DemoRepo implements CalendarRepo {
   }
 
   @override
-  Future<void> create({
+  Future<String?> create({
     String? calendarId,
     required String title,
     required DateTime start,
@@ -212,7 +212,7 @@ class DemoRepo implements CalendarRepo {
 
     if (repeat == null) {
       _evs.add(make(start, end, 'n$n'));
-      return;
+      return 'n$n';
     }
     // 샘플 모드: 반복 일정을 날짜마다 풀어서 넣어요 (끝이 없으면 120일까지).
     final first = dayOnly(start);
@@ -233,6 +233,7 @@ class DemoRepo implements CalendarRepo {
       d = addDays(d, 1);
       guard++;
     }
+    return 'n$n';
   }
 
   @override

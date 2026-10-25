@@ -15,7 +15,8 @@ abstract class CalendarRepo {
   /// from ~ to 와 겹치는 일정
   Future<List<Ev>> events(DateTime from, DateTime to);
 
-  Future<void> create({
+  /// 만든 일정의 id 를 돌려줘요 (일정별 색을 기억해 두는 데 써요).
+  Future<String?> create({
     String? calendarId,
     required String title,
     required DateTime start,

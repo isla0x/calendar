@@ -384,9 +384,10 @@ class CalendarStore extends ChangeNotifier {
     String? location,
     List<String> tags = const <String>[],
     Repeat? repeat,
+    Color? color,
   }) async {
     try {
-      await repo.create(
+      final id = await repo.create(
         calendarId: calendarId,
         title: title,
         start: start,
@@ -396,6 +397,7 @@ class CalendarStore extends ChangeNotifier {
         tags: tags,
         repeat: repeat,
       );
+      if (color != null && id != null) await _colors.set(id, color);
       await _refresh(force: true);
       return true;
     } catch (e) {
