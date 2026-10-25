@@ -28,6 +28,7 @@ class Pal {
     required this.busy3,
     required this.good,
     required this.sheet,
+    this.pastel = false,
   });
 
   final bool dark;
@@ -50,6 +51,9 @@ class Pal {
 
   /// 하단 시트 배경
   final Color sheet;
+
+  /// 파스텔 색 조합인지 (일정 강조 블록을 진하게 칠하지 않고 연하게 보여줘요)
+  final bool pastel;
 
   static const Pal light = Pal(
     dark: false,
@@ -122,13 +126,12 @@ class EvColors {
   final Color onSolid;
 }
 
-/// 기기 캘린더 색은 대체로 쨍해서, 채도를 낮추고 밝기를 고르게 맞춘 차분한 색으로 바꿔요.
+/// 기기 캘린더 색은 대체로 쨍해서, 같은 색 계열을 유지한 채 부드러운 파스텔로 바꿔요.
+/// (회색 계열은 그대로 회색으로 둬요)
 Color calmColor(Color c) {
   final h = HSLColor.fromColor(c);
-  return h
-      .withSaturation((h.saturation * 0.62).clamp(0.0, 0.58))
-      .withLightness(h.lightness.clamp(0.42, 0.60))
-      .toColor();
+  final s = h.saturation < 0.12 ? h.saturation : (h.saturation * 0.85).clamp(0.45, 0.68);
+  return h.withSaturation(s).withLightness(0.70).toColor();
 }
 
 EvColors evColors(Color base, Pal p) {
@@ -143,6 +146,21 @@ EvColors evColors(Color base, Pal p) {
           .toColor(),
       solid: hsl.withLightness(0.90).toColor(),
       onSolid: hsl.withLightness(0.20).toColor(),
+    );
+  }
+  if (p.pastel) {
+    return EvColors(
+      strong: base,
+      tint: Color.alphaBlend(base.withAlpha(120), Colors.white),
+      text: hsl
+          .withLightness(0.26)
+          .withSaturation(math.min(hsl.saturation, 0.55))
+          .toColor(),
+      solid: hsl.withLightness(0.80).toColor(),
+      onSolid: hsl
+          .withLightness(0.18)
+          .withSaturation(math.min(hsl.saturation, 0.50))
+          .toColor(),
     );
   }
   return EvColors(

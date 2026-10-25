@@ -48,7 +48,7 @@ void main() {
   Future<CalendarStore> open(WidgetTester tester, Skin skin) async {
     useWebFont = true;
     Skin.current = skin;
-    addTearDown(() => Skin.current = Skin.classic);
+    addTearDown(() => Skin.current = Skin.pastel);
     // iPhone 6.9인치: 1320 × 2868 (논리 440 × 956, 배율 3)
     tester.view.physicalSize = const Size(1320, 2868);
     tester.view.devicePixelRatio = 3;
@@ -78,8 +78,9 @@ void main() {
 
   setUpAll(loadFont);
 
-  // 색 조합 후보마다 같은 화면을 뽑아서 나란히 비교해요. 파일 이름: <조합>-<번호>-<화면>.png
-  for (final skin in [Skin.classic, ...Skin.candidates]) {
+  // 지금 쓰는 색 조합(Skin.current)으로 앱스토어용 화면 6장을 뽑아요.
+  // 파일 이름: <조합>-<번호>-<화면>.png  (다른 조합과 비교하려면 아래 목록에 Skin.classic 을 더하세요)
+  for (final skin in [Skin.pastel]) {
     final id = skin.id;
     final nm = skin.name;
 
@@ -98,6 +99,14 @@ void main() {
       final store = await open(tester, skin);
       store.setView(ViewMode.week);
       await save(tester, '$id-3-week');
+    });
+
+    testWidgets('$nm 한 줄 입력', (tester) async {
+      await open(tester, skin);
+      await tester.tap(find.text('한 줄로 추가 · 예) 내일 3시 치과'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '내일 오후 3시 치과 30분');
+      await save(tester, '$id-4-quick-add');
     });
 
     testWidgets('$nm 일정 상세', (tester) async {
