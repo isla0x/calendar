@@ -87,13 +87,14 @@ void main() {
     expect(tile('영어 공부'), findsOneWidget);
   });
 
-  testWidgets('옆으로 넘기는 버튼으로 달을 바꿔요', (tester) async {
+  testWidgets('밀어서 달을 바꾸면 위쪽 월 표시도 바뀌어요', (tester) async {
     await open(tester);
-    await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+    await tester.fling(find.byType(PageView), const Offset(-300, 0), 1200);
     await tester.pumpAndSettle();
     expect(find.text('11월'), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
-    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+    await tester.fling(find.byType(PageView), const Offset(300, 0), 1200);
+    await tester.fling(find.byType(PageView), const Offset(300, 0), 1200);
     await tester.pumpAndSettle();
     expect(find.text('9월'), findsOneWidget);
   });
