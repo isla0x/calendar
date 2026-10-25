@@ -286,8 +286,15 @@ class DemoRepo implements CalendarRepo {
   }
 
   @override
-  Future<void> delete(Ev e) async {
-    _evs.removeWhere((x) => x.instanceId == e.instanceId);
+  Future<void> delete(Ev e, {DeleteScope scope = DeleteScope.one}) async {
+    switch (scope) {
+      case DeleteScope.one:
+        _evs.removeWhere((x) => x.instanceId == e.instanceId);
+      case DeleteScope.following:
+        _evs.removeWhere((x) => x.id == e.id && !x.start.isBefore(e.start));
+      case DeleteScope.all:
+        _evs.removeWhere((x) => x.id == e.id);
+    }
   }
 
   @override

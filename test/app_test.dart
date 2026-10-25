@@ -258,6 +258,33 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('오전 10:00–11:00'), findsNothing);
     expect(find.textContaining('드래그 1'), findsOneWidget);
+    // 여러 번 끌어도 글에 쉼표가 쌓이지 않아요.
+    await tester.dragFrom(Offset(c.dx + 120, c.dy + 45), const Offset(-60, 0));
+    await tester.pumpAndSettle();
+    final txt = tester.widget<TextField>(find.byType(TextField)).controller!.text;
+    expect(RegExp(r',\s*,').hasMatch(txt), false, reason: txt);
+    expect(txt.contains('드래그'), true);
+  });
+
+  testWidgets('반복 일정은 이 일정만 / 이후 모두 / 전체로 지워요', (tester) async {
+    final store = await open(tester);
+    await store.addEvent(
+      title: '매일 일정',
+      start: DateTime(2026, 10, 27, 9),
+      end: DateTime(2026, 10, 27, 10),
+      repeat: Repeat(RepeatKind.daily, until: DateTime(2026, 10, 30)),
+    );
+    List<Ev> mine() => [
+          for (var d = 27; d <= 30; d++)
+            ...store.eventsOn(DateTime(2026, 10, d)).where((e) => e.title == '매일 일정'),
+        ];
+    expect(mine().length, 4);
+    await store.deleteEvent(mine()[1], scope: DeleteScope.one);
+    expect(mine().length, 3);
+    await store.deleteEvent(mine()[1], scope: DeleteScope.following);
+    expect(mine().length, 1);
+    await store.deleteEvent(mine()[0], scope: DeleteScope.all);
+    expect(mine().length, 0);
   });
 
   testWidgets('다크 모드에서도 그려져요', (tester) async {

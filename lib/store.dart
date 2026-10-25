@@ -507,9 +507,9 @@ class CalendarStore extends ChangeNotifier {
     return keys;
   }
 
-  Future<bool> deleteEvent(Ev e) async {
+  Future<bool> deleteEvent(Ev e, {DeleteScope scope = DeleteScope.one}) async {
     try {
-      await repo.delete(e);
+      await repo.delete(e, scope: scope);
       await _refresh(force: true);
       return true;
     } catch (_) {

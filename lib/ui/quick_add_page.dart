@@ -206,10 +206,34 @@ class _QuickAddPageState extends State<QuickAddPage> {
   }
 
   void _setTime(int startMin, int minutes) {
-    _rewrite(
-      {HitKind.time, HitKind.duration},
-      '${timeWords(startMin ~/ 60, startMin % 60)}, ${durText(Duration(minutes: minutes))}',
+    final ins = '${timeWords(startMin ~/ 60, startMin % 60)}, ${durText(Duration(minutes: minutes))}';
+    final store = StoreScope.of(context);
+    final q = _parse(store);
+    final targets = q.hits
+        .where((h) => h.kind == HitKind.time || h.kind == HitKind.duration)
+        .toList()
+      ..sort((a, b) => a.start.compareTo(b.start));
+    if (targets.isEmpty) {
+      _rewrite({HitKind.time, HitKind.duration}, ins);
+      return;
+    }
+    // 시각·길이 글자와 그 사이의 쉼표를 걷어내고 새 글자를 한 번만 넣어요. (끌 때마다 쉼표가 쌓이지 않게)
+    final t = _ctl.text;
+    final left = t.substring(0, targets.first.start).trimRight();
+    final mid = StringBuffer();
+    for (var i = 1; i < targets.length; i++) {
+      final seg = t.substring(targets[i - 1].end, targets[i].start);
+      if (seg.replaceAll(RegExp(r'[\s,]'), '').isNotEmpty) mid.write(seg);
+    }
+    final rest = (mid.toString() + t.substring(targets.last.end))
+        .replaceFirst(RegExp(r'^[\s,]+'), '')
+        .trim();
+    final nt = [left, ins, rest].where((x) => x.isNotEmpty).join(' ');
+    _ctl.value = TextEditingValue(
+      text: nt,
+      selection: TextSelection.collapsed(offset: nt.length),
     );
+    setState(() {});
   }
 
   Future<void> _pickDate(QuickParse q) async {

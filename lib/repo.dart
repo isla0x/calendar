@@ -42,7 +42,8 @@ abstract class CalendarRepo {
     List<String> tags = const <String>[],
   });
 
-  Future<void> delete(Ev e);
+  /// 일정을 지워요. 반복 일정이면 [scope] 로 이 일정만 / 이후 모두 / 전체를 골라요.
+  Future<void> delete(Ev e, {DeleteScope scope = DeleteScope.one});
 
   /// 일정의 태그를 바꿔요 (기기 캘린더에서는 제목 끝의 "#태그" 를 고쳐요).
   Future<void> setTags(Ev e, List<String> tags);

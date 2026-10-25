@@ -120,6 +120,9 @@ class Ev {
   }
 }
 
+/// 반복 일정을 지울 때 범위
+enum DeleteScope { one, following, all }
+
 /// 반복 방식
 enum RepeatKind { daily, weekdays, weekly }
 

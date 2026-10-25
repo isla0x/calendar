@@ -215,7 +215,14 @@ class DeviceRepo implements CalendarRepo {
   }
 
   @override
-  Future<void> delete(Ev e) async {
+  Future<void> delete(Ev e, {DeleteScope scope = DeleteScope.one}) async {
+    if (e.recurring && scope != DeleteScope.one) {
+      await _plugin.deleteRecurring(
+        e.instanceId,
+        scope == DeleteScope.all ? EventSpan.allEvents : EventSpan.thisAndFollowing,
+      );
+      return;
+    }
     await _plugin.deleteEvent(instanceId: e.instanceId);
   }
 

@@ -47,7 +47,7 @@ class _Repo implements CalendarRepo {
   @override
   Future<void> move(Ev e, DateTime start, DateTime end) async {}
   @override
-  Future<void> delete(Ev e) async {}
+  Future<void> delete(Ev e, {DeleteScope scope = DeleteScope.one}) async {}
   @override
   Future<void> openEditor(Ev e) async {}
 }

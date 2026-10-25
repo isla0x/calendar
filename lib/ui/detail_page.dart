@@ -153,13 +153,42 @@ class _EventDetailPageState extends State<EventDetailPage> {
     final store = StoreScope.of(context);
     final e = _ev;
     if (e.recurring) {
-      final go = await showConfirmSheet(
-        context,
-        title: '반복 일정이에요',
-        body: '이 일정만 지울지, 앞으로의 일정을 모두 지울지는\n기본 편집 화면에서 고를 수 있어요.',
-        yes: '편집 화면 열기',
+      final scope = await showAppSheet<DeleteScope>(
+        context: context,
+        builder: (ctx) => SheetFrame(
+          title: '반복 일정을 지울까요?',
+          subtitle: e.title,
+          child: Column(
+            children: [
+              BigButton(
+                label: '이 일정만',
+                quiet: true,
+                onTap: () => Navigator.of(ctx).pop(DeleteScope.one),
+              ),
+              const SizedBox(height: 10),
+              BigButton(
+                label: '이후 모든 일정',
+                quiet: true,
+                onTap: () => Navigator.of(ctx).pop(DeleteScope.following),
+              ),
+              const SizedBox(height: 10),
+              BigButton(
+                label: '반복 일정 전체',
+                color: Pal.of(ctx).red,
+                onTap: () => Navigator.of(ctx).pop(DeleteScope.all),
+              ),
+            ],
+          ),
+        ),
       );
-      if (go && mounted) await _openNativeEditor();
+      if (scope == null || !mounted) return;
+      final done = await store.deleteEvent(e, scope: scope);
+      if (!mounted) return;
+      if (done) {
+        Navigator.of(context).pop();
+      } else {
+        _snack(store.error ?? '일정을 지우지 못했어요');
+      }
       return;
     }
     final yes = await showConfirmSheet(
