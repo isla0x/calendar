@@ -894,7 +894,7 @@ class _Preview extends StatelessWidget {
   }
 }
 
-/// 시간 고르기 시트: 종일 / 시작 시각 / 길이
+/// 시간 고르기 시트: 종일 / 시작·끝 시각 / 빠른 길이
 class _TimeSheet extends StatefulWidget {
   const _TimeSheet({required this.allDay, required this.startMin, required this.minutes});
 
@@ -913,15 +913,65 @@ class _TimeSheetState extends State<_TimeSheet> {
   late int _startMin = widget.startMin;
   late int _minutes = widget.minutes;
 
+  bool _badEnd = false;
+
   Future<void> _pickStart() async {
     final base = DateTime(2000, 1, 1, (_startMin ~/ 60) % 24, _startMin % 60);
     final t = await showTimeSheet(context, initial: base, title: '시작 시각');
-    if (t != null && mounted) setState(() => _startMin = t.hour * 60 + t.minute);
+    // 시작을 옮기면 길이는 그대로 두고 끝도 같이 움직여요.
+    if (t != null && mounted) {
+      setState(() {
+        _startMin = t.hour * 60 + t.minute;
+        _badEnd = false;
+      });
+    }
+  }
+
+  Future<void> _pickEnd() async {
+    final e = _startMin + _minutes;
+    final base = DateTime(2000, 1, 1, (e ~/ 60) % 24, e % 60);
+    final t = await showTimeSheet(context, initial: base, title: '끝나는 시각');
+    if (t == null || !mounted) return;
+    final total = t.hour * 60 + t.minute;
+    setState(() {
+      if (total <= _startMin) {
+        _badEnd = true; // 같은 날 안에서 시작보다 뒤여야 해요
+      } else {
+        _badEnd = false;
+        _minutes = total - _startMin;
+      }
+    });
+  }
+
+  Widget _timePill(String label, String text, VoidCallback onTap) {
+    final p = Pal.of(context);
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
+          const SizedBox(height: 8),
+          Tap(
+            onTap: onTap,
+            child: Pill(
+              height: 44,
+              ring: true,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(text, style: ts(context, 16, weight: FontWeight.w600)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
+    final endMin = _startMin + _minutes;
     return SheetFrame(
       title: '시간',
       footer: BigButton(
@@ -939,22 +989,31 @@ class _TimeSheetState extends State<_TimeSheet> {
           ),
           if (!_allDay) ...[
             const SizedBox(height: 18),
-            Text('시작 시각', style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
-            const SizedBox(height: 8),
-            Tap(
-              onTap: _pickStart,
-              child: Pill(
-                height: 44,
-                ring: true,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _timePill(
+                  '시작',
                   timeWords((_startMin ~/ 60) % 24, _startMin % 60),
-                  style: ts(context, 16, weight: FontWeight.w600),
+                  _pickStart,
                 ),
-              ),
+                const SizedBox(width: 12),
+                _timePill(
+                  '끝',
+                  '${endMin >= 1440 ? '다음날 ' : ''}${timeWords((endMin ~/ 60) % 24, endMin % 60)}',
+                  _pickEnd,
+                ),
+              ],
             ),
+            if (_badEnd) ...[
+              const SizedBox(height: 8),
+              Text(
+                '끝나는 시각은 시작보다 뒤여야 해요',
+                style: ts(context, 13, color: p.red, height: 17 / 13),
+              ),
+            ],
             const SizedBox(height: 18),
-            Text('길이', style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
+            Text('빠른 길이', style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
