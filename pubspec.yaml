@@ -1,7 +1,7 @@
 name: yeobaek
 description: 여백 — 한눈에 보이고, 비는 시간까지 알려주는 캘린더 앱
 publish_to: "none"
-version: 1.0.0+6
+version: 1.0.0+7
 
 environment:
   sdk: ">=3.5.0 <4.0.0"

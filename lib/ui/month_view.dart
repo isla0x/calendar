@@ -158,7 +158,7 @@ int _lanesFor(double cellHeight) => math.max(1, ((cellHeight - _kChipTop - 2) / 
 
 /// 한 주에 그려지는 일정 띠 하나. 며칠에 걸친 일정은 c0..c1 칸을 이어서 차지해요.
 class _Bar {
-  _Bar(this.ev, this.c0, this.c1, this.contL, this.contR);
+  _Bar(this.ev, this.c0, this.c1, this.contL, this.contR, {this.run = false});
 
   final Ev ev;
   final int c0;
@@ -169,35 +169,64 @@ class _Bar {
   final bool contR;
   int lane = 0;
 
-  bool get span => ev.lastDay.isAfter(ev.firstDay);
+  /// 매일 반복처럼 날마다 따로 있지만 이어서 한 줄로 그리는 일정인지
+  final bool run;
+
+  bool get span => run || ev.lastDay.isAfter(ev.firstDay);
 }
 
 /// 한 주(일~토)의 일정들을 줄(lane)에 배치해요. 여러 날짜 일정이 먼저 위쪽 줄을 차지해요.
 List<_Bar> _layoutWeek(CalendarStore store, List<DateTime> days) {
-  final byKey = <String, _Bar>{};
+  final bars0 = <_Bar>[];
   final cols = <String, List<int>>{};
   final evs = <String, Ev>{};
   for (var i = 0; i < 7; i++) {
     for (final e in store.shownOn(days[i])) {
-      final k = '${e.id}|${e.start.millisecondsSinceEpoch}|${e.end.millisecondsSinceEpoch}';
-      (cols[k] ??= <int>[]).add(i);
-      evs[k] = e;
+      // 반복 일정은 같은 시리즈끼리 한 묶음으로 모아서, 이어진 날들을 한 줄로 그려요.
+      final k = e.recurring
+          ? 'r|${e.id}'
+          : '${e.id}|${e.start.millisecondsSinceEpoch}|${e.end.millisecondsSinceEpoch}';
+      final l = cols[k] ??= <int>[];
+      if (!l.contains(i)) l.add(i);
+      evs[k] ??= e;
     }
   }
+  bool occursOn(Ev e, DateTime d) => store.shownOn(d).any((x) => x.id == e.id);
   for (final k in cols.keys) {
     final e = evs[k]!;
-    final cs = cols[k]!;
-    final c0 = cs.reduce(math.min);
-    final c1 = cs.reduce(math.max);
-    byKey[k] = _Bar(
+    final cs = cols[k]!..sort();
+    if (e.recurring) {
+      var a = cs.first;
+      var prev = a;
+      void flush(int z) {
+        final l = a == 0 && occursOn(e, addDays(days[0], -1));
+        final r = z == 6 && occursOn(e, addDays(days[6], 1));
+        bars0.add(_Bar(e, a, z, l, r, run: z > a || l || r));
+      }
+
+      for (final c in cs.skip(1)) {
+        if (c == prev + 1) {
+          prev = c;
+          continue;
+        }
+        flush(prev);
+        a = c;
+        prev = c;
+      }
+      flush(prev);
+      continue;
+    }
+    final c0 = cs.first;
+    final c1 = cs.last;
+    bars0.add(_Bar(
       e,
       c0,
       c1,
       c0 == 0 && e.firstDay.isBefore(days[0]),
       c1 == 6 && e.lastDay.isAfter(days[6]),
-    );
+    ));
   }
-  final bars = byKey.values.toList()
+  final bars = bars0
     ..sort((a, b) {
       if (a.span != b.span) return a.span ? -1 : 1;
       if (a.span) {

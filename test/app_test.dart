@@ -287,6 +287,22 @@ void main() {
     expect(mine().length, 0);
   });
 
+  testWidgets('매일 반복 일정은 달력에서 이어진 한 줄로 그려져요', (tester) async {
+    final store = await open(tester);
+    await store.addEvent(
+      title: '이어짐',
+      start: DateTime(2026, 10, 27, 9),
+      end: DateTime(2026, 10, 27, 18),
+      repeat: Repeat(RepeatKind.daily, until: DateTime(2026, 10, 30)),
+    );
+    await tester.pumpAndSettle();
+    // 27~30일이 한 줄이라 달력 칸 글자는 하나만 있어요. (아래 목록에는 선택한 날 것만)
+    final inGrid = find.byWidgetPredicate(
+      (w) => w is Text && w.data == '이어짐' && (w.style?.fontSize ?? 0) == 10,
+    );
+    expect(inGrid, findsOneWidget);
+  });
+
   testWidgets('다크 모드에서도 그려져요', (tester) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
