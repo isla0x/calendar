@@ -25,6 +25,14 @@ class Skin {
   /// 지금 앱이 쓰는 조합
   static Skin current = pastel;
 
+  /// 일정마다 따로 고를 수 있는 색 (조합의 일정 색 5개 + 하늘·연두·살구)
+  static List<Color> get palette => [
+        ...current.events,
+        const Color(0xFF86C9EA),
+        const Color(0xFFB4D88A),
+        const Color(0xFFF3A98C),
+      ];
+
   /// 파스텔: 남색·초록·분홍·노랑·보라 계열은 그대로, 전부 부드러운 파스텔로
   static final Skin pastel = Skin(
     id: 'pastel',

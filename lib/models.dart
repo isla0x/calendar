@@ -86,7 +86,7 @@ class Ev {
     return l.isBefore(firstDay) ? firstDay : l;
   }
 
-  Ev copyWith({DateTime? start, DateTime? end, List<String>? tags}) => Ev(
+  Ev copyWith({DateTime? start, DateTime? end, List<String>? tags, Color? color}) => Ev(
         id: id,
         instanceId: instanceId,
         calendarId: calendarId,
@@ -95,7 +95,7 @@ class Ev {
         start: start ?? this.start,
         end: end ?? this.end,
         allDay: allDay,
-        color: color,
+        color: color ?? this.color,
         location: location,
         note: note,
         attendees: attendees,

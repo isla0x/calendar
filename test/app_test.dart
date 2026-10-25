@@ -75,6 +75,18 @@ void main() {
     expect(find.text('브런치'), findsWidgets);
   });
 
+  testWidgets('월간 목록을 위로 끌면 화면 가득 펼쳐져요', (tester) async {
+    await open(tester);
+    final before = tester.getTopLeft(find.text('10월 26일 월요일')).dy;
+    await tester.drag(find.text('10월 26일 월요일'), const Offset(0, -520));
+    await tester.pumpAndSettle();
+    final after = tester.getTopLeft(find.text('10월 26일 월요일')).dy;
+    expect(after, lessThan(before - 200));
+    // 모든 일정이 목록에 보여요.
+    expect(tile('러닝'), findsOneWidget);
+    expect(tile('영어 공부'), findsOneWidget);
+  });
+
   testWidgets('옆으로 넘기는 버튼으로 달을 바꿔요', (tester) async {
     await open(tester);
     await tester.tap(find.byIcon(Icons.chevron_right_rounded));
@@ -170,6 +182,51 @@ void main() {
     expect(find.text('#회의'), findsOneWidget);
     expect(find.text('삭제'), findsOneWidget);
     expect(find.textContaining('겹치지 않는 시간으로 옮기기'), findsOneWidget);
+  });
+
+  testWidgets('일정 편집 화면에서 제목·태그·색을 고쳐요', (tester) async {
+    final store = await open(tester);
+    store.setView(ViewMode.day);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('스프린트 플래닝'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('편집').first);
+    await tester.pumpAndSettle();
+    expect(find.text('일정 편집'), findsOneWidget);
+    expect(find.text('시작'), findsOneWidget);
+    expect(find.text('종일'), findsOneWidget);
+
+    // 제목 고치기
+    await tester.enterText(find.byType(TextField).first, '스프린트 회고');
+    await tester.pumpAndSettle();
+
+    // 태그 창에서 태그 하나 더 붙이기
+    await tester.tap(find.text('#회의'));
+    await tester.pumpAndSettle();
+    expect(find.text('붙인 태그'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).last, '회고');
+    await tester.tap(find.byIcon(Icons.add_rounded));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('완료'));
+    await tester.pumpAndSettle();
+    expect(find.text('#회고'), findsOneWidget);
+
+    await tester.tap(find.text('저장'));
+    await tester.pumpAndSettle();
+    expect(find.text('일정 편집'), findsNothing);
+    final e = store.eventsOn(DateTime(2026, 10, 26)).firstWhere((x) => x.title == '스프린트 회고');
+    expect(e.tags, ['회의', '회고']);
+  });
+
+  testWidgets('일정마다 색을 따로 정해요', (tester) async {
+    final store = await open(tester);
+    final e = store.eventsOn(DateTime(2026, 10, 26)).first;
+    await store.setEventColor(e, const Color(0xFFF3A98C));
+    final again = store.eventsOn(DateTime(2026, 10, 26)).firstWhere((x) => x.id == e.id);
+    expect(again.color, const Color(0xFFF3A98C));
+    await store.setEventColor(e, null);
+    final back = store.eventsOn(DateTime(2026, 10, 26)).firstWhere((x) => x.id == e.id);
+    expect(back.color, isNot(const Color(0xFFF3A98C)));
   });
 
   testWidgets('다크 모드에서도 그려져요', (tester) async {

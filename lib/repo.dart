@@ -27,6 +27,19 @@ abstract class CalendarRepo {
 
   Future<void> move(Ev e, DateTime start, DateTime end);
 
+  /// 일정을 고쳐서 저장해요 (제목·날짜·시간·종일·장소·메모·태그). 반복 일정은 이 일정 하나만 바뀌어요.
+  /// 종일 일정의 [end] 는 마지막 날의 다음 날 00:00 (끝 미포함) 이에요.
+  Future<void> update(
+    Ev e, {
+    required String title,
+    required DateTime start,
+    required DateTime end,
+    required bool allDay,
+    String? location,
+    String? note,
+    List<String> tags = const <String>[],
+  });
+
   Future<void> delete(Ev e);
 
   /// 일정의 태그를 바꿔요 (기기 캘린더에서는 제목 끝의 "#태그" 를 고쳐요).

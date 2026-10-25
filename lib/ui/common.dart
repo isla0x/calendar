@@ -172,3 +172,40 @@ class Dot extends StatelessWidget {
     );
   }
 }
+
+/// 켜고 끄는 스위치 (앱 색에 맞춘 알약 모양)
+class AppSwitch extends StatelessWidget {
+  const AppSwitch({super.key, required this.value, required this.onChanged, this.label});
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    return Tap(
+      onTap: () => onChanged(!value),
+      label: label,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 52,
+        height: 32,
+        padding: const EdgeInsets.all(3),
+        alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+        decoration: BoxDecoration(
+          color: value ? p.ink : p.line,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Container(
+          width: 26,
+          height: 26,
+          decoration: BoxDecoration(
+            color: value ? p.bg : p.surface,
+            shape: BoxShape.circle,
+          ),
+        ),
+      ),
+    );
+  }
+}

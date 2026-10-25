@@ -2,20 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'app_info.dart';
+import 'color_book.dart';
 import 'device_repo.dart';
 import 'skins.dart';
 import 'store.dart';
 import 'theme.dart';
 import 'ui/shell.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const YeobaekApp());
+  final colors = await PrefsColorBook.open();
+  runApp(YeobaekApp(colors: colors));
 }
 
 /// 앱 뿌리. [store] 를 넣으면 그걸 쓰고(테스트용), 아니면 기기 캘린더에 연결해요.
 class YeobaekApp extends StatefulWidget {
-  const YeobaekApp({super.key, this.store, this.ticking = true});
+  const YeobaekApp({super.key, this.store, this.ticking = true, this.colors});
+
+  /// 일정별 색을 기억해 두는 곳 (없으면 앱을 끄면 잊어요)
+  final ColorBook? colors;
 
   final CalendarStore? store;
 
@@ -34,7 +39,7 @@ class _YeobaekAppState extends State<YeobaekApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     _owned = widget.store == null;
-    _store = widget.store ?? CalendarStore(DeviceRepo());
+    _store = widget.store ?? CalendarStore(DeviceRepo(), colors: widget.colors);
     WidgetsBinding.instance.addObserver(this);
     _store.init();
     if (widget.ticking) _store.startClock();

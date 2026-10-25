@@ -152,6 +152,33 @@ class DeviceRepo implements CalendarRepo {
     );
   }
 
+  static Patch<String> _text(String? v) {
+    final t = v?.trim() ?? '';
+    return t.isEmpty ? const Patch<String>.clear() : Patch<String>.set(t);
+  }
+
+  @override
+  Future<void> update(
+    Ev e, {
+    required String title,
+    required DateTime start,
+    required DateTime end,
+    required bool allDay,
+    String? location,
+    String? note,
+    List<String> tags = const <String>[],
+  }) async {
+    await _plugin.updateEvent(
+      instanceId: e.instanceId,
+      title: joinTags(title, tags),
+      startDate: start,
+      endDate: end,
+      isAllDay: allDay,
+      location: _text(location),
+      description: _text(note),
+    );
+  }
+
   @override
   Future<void> setTags(Ev e, List<String> tags) async {
     final title = joinTags(e.title, tags);

@@ -9,6 +9,8 @@ import '../store.dart';
 import '../tags.dart';
 import '../theme.dart';
 import 'common.dart';
+import 'edit_page.dart';
+import 'sheets.dart';
 import 'tag_dialog.dart';
 
 /// 일정 상세: 한눈에 보기, 겹치지 않는 시간으로 옮기기, 편집·삭제·공유
@@ -75,31 +77,25 @@ class _EventDetailPageState extends State<EventDetailPage> {
     m.showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  Future<bool> _confirm(String title, String body, String yes) async {
-    final r = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title, style: ts(ctx, 17, weight: FontWeight.w700)),
-        content: Text(body, style: ts(ctx, 14, weight: FontWeight.w400, height: 1.5)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(yes),
-          ),
-        ],
+  /// 앱 안의 편집 화면
+  Future<void> _openEditor() async {
+    final r = await Navigator.of(context).push<Ev>(
+      MaterialPageRoute<Ev>(
+        fullscreenDialog: true,
+        builder: (_) => EventEditPage(event: _ev),
       ),
     );
-    return r == true;
+    if (r != null && mounted) {
+      final store = StoreScope.of(context);
+      setState(() => _ev = store.findEvent(r.id, start: r.start) ?? r);
+    }
   }
 
-  Future<void> _openEditor() async {
+  /// 기기 기본 편집 화면 (반복 일정 전체를 지울 때처럼 앱에서 못 하는 일)
+  Future<void> _openNativeEditor() async {
     final store = StoreScope.of(context);
     if (store.isDemo) {
-      _snack('샘플 모드에서는 편집할 수 없어요');
+      _snack('샘플 모드에서는 쓸 수 없어요');
       return;
     }
     try {
@@ -157,15 +153,22 @@ class _EventDetailPageState extends State<EventDetailPage> {
     final store = StoreScope.of(context);
     final e = _ev;
     if (e.recurring) {
-      final go = await _confirm(
-        '반복 일정이에요',
-        '이 일정만 지울지, 앞으로의 일정을 모두 지울지는\n기본 편집 화면에서 고를 수 있어요.',
-        '편집 화면 열기',
+      final go = await showConfirmSheet(
+        context,
+        title: '반복 일정이에요',
+        body: '이 일정만 지울지, 앞으로의 일정을 모두 지울지는\n기본 편집 화면에서 고를 수 있어요.',
+        yes: '편집 화면 열기',
       );
-      if (go && mounted) await _openEditor();
+      if (go && mounted) await _openNativeEditor();
       return;
     }
-    final yes = await _confirm('이 일정을 지울까요?', e.title, '지우기');
+    final yes = await showConfirmSheet(
+      context,
+      title: '이 일정을 지울까요?',
+      body: e.title,
+      yes: '지우기',
+      danger: true,
+    );
     if (!yes || !mounted) return;
     final done = await store.deleteEvent(e);
     if (!mounted) return;

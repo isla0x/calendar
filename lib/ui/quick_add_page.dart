@@ -9,6 +9,7 @@ import '../store.dart';
 import '../tags.dart';
 import '../theme.dart';
 import 'common.dart';
+import 'sheets.dart';
 import 'tag_dialog.dart';
 
 /// 입력한 글에서 읽힌 날짜·시간·길이에 배경색을 입혀 보여주는 입력 컨트롤러
@@ -203,12 +204,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
   }
 
   Future<void> _pickDate(QuickParse q) async {
-    final d = await showDatePicker(
-      context: context,
-      initialDate: dayOnly(q.start),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
+    final d = await showDateSheet(context, initial: dayOnly(q.start), title: '날짜');
     if (d == null || !mounted) return;
     final last = q.lastDay;
     if (last != null) {
@@ -221,12 +217,11 @@ class _QuickAddPageState extends State<QuickAddPage> {
   /// 끝나는 날을 골라서 기간 일정으로 만들어요. 시작과 같은 날을 고르면 하루짜리로 돌아가요.
   Future<void> _pickEnd(QuickParse q) async {
     final first = dayOnly(q.start);
-    final d = await showDatePicker(
-      context: context,
-      initialDate: q.lastDay ?? first,
-      firstDate: first,
-      lastDate: DateTime(2100),
-      helpText: '끝나는 날',
+    final d = await showDateSheet(
+      context,
+      initial: q.lastDay ?? first,
+      first: first,
+      title: '끝나는 날',
     );
     if (d != null && mounted) _setRange(first, d);
   }
@@ -239,10 +234,8 @@ class _QuickAddPageState extends State<QuickAddPage> {
   }
 
   Future<void> _pickTime(QuickParse q) async {
-    final r = await showModalBottomSheet<_TimeResult>(
+    final r = await showAppSheet<_TimeResult>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (_) => _TimeSheet(
         allDay: q.allDay,
         startMin: q.allDay ? 9 * 60 : q.start.hour * 60 + q.start.minute,
@@ -258,82 +251,18 @@ class _QuickAddPageState extends State<QuickAddPage> {
   }
 
   Future<void> _pickCalendar(List<CalInfo> list, CalInfo? current) async {
-    final id = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        final p = Pal.of(ctx);
-        final bottom = MediaQuery.of(ctx).padding.bottom;
-        return Container(
-          padding: EdgeInsets.fromLTRB(12, 16, 12, bottom + 12),
-          decoration: BoxDecoration(
-            color: p.sheet,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 420),
-            child: ListView(
-              shrinkWrap: true,
-              children: [
-                for (final c in list)
-                  Tap(
-                    onTap: () => Navigator.of(ctx).pop(c.id),
-                    child: SizedBox(
-                      height: 52,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Row(
-                          children: [
-                            Dot(c.color, size: 10),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                c.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: ts(ctx, 16, weight: FontWeight.w600),
-                              ),
-                            ),
-                            if (current != null && c.id == current.id)
-                              Icon(Icons.check_rounded, size: 20, color: p.ink),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    final id = await showCalendarSheet(context, list: list, currentId: current?.id);
     if (id != null && mounted) setState(() => _calId = id);
   }
 
   Future<void> _askLocation() async {
-    final c = TextEditingController(text: _location);
-    final r = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('장소', style: ts(ctx, 17, weight: FontWeight.w700)),
-        content: TextField(
-          controller: c,
-          autofocus: true,
-          textInputAction: TextInputAction.done,
-          onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
-          decoration: const InputDecoration(hintText: '예) 강남역 2번 출구'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(c.text.trim()),
-            child: const Text('확인'),
-          ),
-        ],
-      ),
+    final r = await showTextSheet(
+      context,
+      title: '장소',
+      subtitle: '어디서 만나나요?',
+      hint: '예) 강남역 2번 출구',
+      initial: _location,
+      icon: Icons.place_outlined,
     );
     if (r != null && mounted) setState(() => _location = r);
   }
@@ -924,35 +853,31 @@ class _TimeSheetState extends State<_TimeSheet> {
   late int _minutes = widget.minutes;
 
   Future<void> _pickStart() async {
-    final t = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: (_startMin ~/ 60) % 24, minute: _startMin % 60),
-    );
+    final base = DateTime(2000, 1, 1, (_startMin ~/ 60) % 24, _startMin % 60);
+    final t = await showTimeSheet(context, initial: base, title: '시작 시각');
     if (t != null && mounted) setState(() => _startMin = t.hour * 60 + t.minute);
   }
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    final bottom = MediaQuery.of(context).padding.bottom;
-    return Container(
-      padding: EdgeInsets.fromLTRB(24, 20, 24, bottom + 20),
-      decoration: BoxDecoration(
-        color: p.sheet,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+    return SheetFrame(
+      title: '시간',
+      footer: BigButton(
+        label: '적용',
+        onTap: () => Navigator.of(context).pop(_TimeResult(_allDay, _startMin, _minutes)),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Expanded(child: Text('종일', style: ts(context, 16, weight: FontWeight.w600))),
-              Switch(value: _allDay, onChanged: (v) => setState(() => _allDay = v)),
+              AppSwitch(value: _allDay, onChanged: (v) => setState(() => _allDay = v), label: '종일'),
             ],
           ),
           if (!_allDay) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 18),
             Text('시작 시각', style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
             const SizedBox(height: 8),
             Tap(
@@ -996,19 +921,6 @@ class _TimeSheetState extends State<_TimeSheet> {
               ],
             ),
           ],
-          const SizedBox(height: 22),
-          Tap(
-            onTap: () => Navigator.of(context).pop(_TimeResult(_allDay, _startMin, _minutes)),
-            child: Container(
-              height: 52,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: p.ink,
-                borderRadius: BorderRadius.circular(26),
-              ),
-              child: Text('적용', style: ts(context, 16, weight: FontWeight.w600, color: p.bg)),
-            ),
-          ),
         ],
       ),
     );

@@ -31,6 +31,17 @@ class _Repo implements CalendarRepo {
     List<String> tags = const <String>[],
   }) async {}
   @override
+  Future<void> update(
+    Ev e, {
+    required String title,
+    required DateTime start,
+    required DateTime end,
+    required bool allDay,
+    String? location,
+    String? note,
+    List<String> tags = const <String>[],
+  }) async {}
+  @override
   Future<void> setTags(Ev e, List<String> tags) async {}
   @override
   Future<void> move(Ev e, DateTime start, DateTime end) async {}

@@ -10,9 +10,32 @@ import 'common.dart';
 import 'event_tile.dart';
 import 'nav.dart';
 
-/// 월간 화면: 달력 + 고른 날의 일정 목록
-class MonthView extends StatelessWidget {
+/// 월간 화면: 달력 + 고른 날의 일정 목록 (목록은 위로 끌어올리면 화면 가득 펼쳐져요)
+class MonthView extends StatefulWidget {
   const MonthView({super.key});
+
+  @override
+  State<MonthView> createState() => _MonthViewState();
+}
+
+class _MonthViewState extends State<MonthView> {
+  final DraggableScrollableController _sheet = DraggableScrollableController();
+
+  @override
+  void dispose() {
+    _sheet.dispose();
+    super.dispose();
+  }
+
+  void _toggle(double minSize) {
+    if (!_sheet.isAttached) return;
+    final open = _sheet.size > (minSize + 1) / 2;
+    _sheet.animateTo(
+      open ? minSize : 1.0,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,53 +54,74 @@ class MonthView extends StatelessWidget {
         // 칸이 클수록 일정 글자가 더 많이 보여요.
         final raw = (c.maxHeight - 30 - 260 - gap * (rows - 1)) / rows;
         final cellH = math.max(50.0, math.min(104.0, raw));
+        final gridBottom = 30 + rows * cellH + gap * (rows - 1) + 8;
+        final minSize = (1 - gridBottom / c.maxHeight).clamp(0.2, 0.9).toDouble();
 
-        return Column(
+        return Stack(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(_kSide, 8, _kSide, 0),
-              child: SizedBox(
-                height: 22,
-                child: Row(
-                  children: [
-                    for (var i = 0; i < 7; i++) ...[
-                      if (i > 0) const SizedBox(width: gap),
-                      Expanded(
-                        child: Center(
-                          child: Text(
-                            kWeekdayKo[(i + 6) % 7],
-                            style: ts(
-                              context,
-                              12,
-                              weight: FontWeight.w600,
-                              color: i == 0 ? p.red : (i == 6 ? p.blue : p.muted),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: _kSide),
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
               child: Column(
                 children: [
-                  for (var r = 0; r < rows; r++) ...[
-                    if (r > 0) const SizedBox(height: gap),
-                    _WeekRow(
-                      start: addDays(gridStart, r * 7),
-                      month: store.month.month,
-                      height: cellH,
-                      gap: gap,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(_kSide, 8, _kSide, 0),
+                    child: SizedBox(
+                      height: 22,
+                      child: Row(
+                        children: [
+                          for (var i = 0; i < 7; i++) ...[
+                            if (i > 0) const SizedBox(width: gap),
+                            Expanded(
+                              child: Center(
+                                child: Text(
+                                  kWeekdayKo[(i + 6) % 7],
+                                  style: ts(
+                                    context,
+                                    12,
+                                    weight: FontWeight.w600,
+                                    color: i == 0 ? p.red : (i == 6 ? p.blue : p.muted),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                  ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: _kSide),
+                    child: Column(
+                      children: [
+                        for (var r = 0; r < rows; r++) ...[
+                          if (r > 0) const SizedBox(height: gap),
+                          _WeekRow(
+                            start: addDays(gridStart, r * 7),
+                            month: store.month.month,
+                            height: cellH,
+                            gap: gap,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            const Expanded(child: _DaySheet()),
+            Positioned.fill(
+              child: DraggableScrollableSheet(
+                key: ValueKey('daysheet-$rows-${gridBottom.round()}'),
+                controller: _sheet,
+                initialChildSize: minSize,
+                minChildSize: minSize,
+                maxChildSize: 1.0,
+                snap: true,
+                builder: (context, scroll) =>
+                    _DaySheet(scroll: scroll, onToggle: () => _toggle(minSize)),
+              ),
+            ),
           ],
         );
       },
@@ -363,21 +407,12 @@ class _DayCell extends StatelessWidget {
       fg = p.bg;
     }
 
-    final lv = inMonth ? store.loadLevel(day) : 0;
-    final tint = lv == 0
-        ? Colors.transparent
-        : (lv == 1 ? p.busy1 : (lv == 2 ? p.busy2 : p.busy3));
-
     return Tap(
       onTap: () => store.select(day),
       child: Container(
         height: height,
         padding: const EdgeInsets.only(top: 4),
         alignment: Alignment.topCenter,
-        decoration: BoxDecoration(
-          color: tint,
-          borderRadius: BorderRadius.circular(12),
-        ),
         child: Container(
           width: 26,
           height: 26,
@@ -397,9 +432,12 @@ class _DayCell extends StatelessWidget {
   }
 }
 
-/// 고른 날의 일정 목록 (아래에서 올라온 듯한 시트)
+/// 고른 날의 일정 목록 (아래에서 올라온 듯한 시트). 위로 끌면 화면 가득 펼쳐져요.
 class _DaySheet extends StatelessWidget {
-  const _DaySheet();
+  const _DaySheet({required this.scroll, required this.onToggle});
+
+  final ScrollController scroll;
+  final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -426,19 +464,30 @@ class _DaySheet extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: [BoxShadow(color: p.line, offset: const Offset(0, -1))],
       ),
-      child: Column(
+      child: ListView(
+        controller: scroll,
+        padding: EdgeInsets.zero,
+        physics: const AlwaysScrollableScrollPhysics(parent: ClampingScrollPhysics()),
         children: [
-          Container(
-            width: 36,
-            height: 4,
-            margin: const EdgeInsets.only(top: 8),
-            decoration: BoxDecoration(
-              color: p.dark ? p.dash : Color.alphaBlend(p.dash.withAlpha(140), p.surface),
-              borderRadius: BorderRadius.circular(2),
+          Tap(
+            onTap: onToggle,
+            label: '목록 크게 보기',
+            child: SizedBox(
+              height: 24,
+              child: Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: p.dark ? p.dash : Color.alphaBlend(p.dash.withAlpha(140), p.surface),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
@@ -460,28 +509,26 @@ class _DaySheet extends StatelessWidget {
               ],
             ),
           ),
-          Expanded(
-            child: evs.isEmpty
-                ? Padding(
-                    padding: const EdgeInsets.only(top: 28),
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      child: Text(
-                        filter != null
-                            ? '이 날은 #$filter 일정이 없어요'
-                            : (isPast ? '이 날은 일정이 없었어요' : '비어 있는 날이에요'),
-                        style: ts(context, 14, color: p.muted),
-                      ),
-                    ),
-                  )
-                : ListView(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 130),
-                    children: [
-                      for (final e in evs)
-                        EventTile(event: e, onTap: () => openDetail(context, e)),
-                    ],
-                  ),
-          ),
+          if (evs.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 28, bottom: 200),
+              child: Center(
+                child: Text(
+                  filter != null
+                      ? '이 날은 #$filter 일정이 없어요'
+                      : (isPast ? '이 날은 일정이 없었어요' : '비어 있는 날이에요'),
+                  style: ts(context, 14, color: p.muted),
+                ),
+              ),
+            )
+          else ...[
+            for (final e in evs)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: EventTile(event: e, onTap: () => openDetail(context, e)),
+              ),
+            const SizedBox(height: 130),
+          ],
         ],
       ),
     );

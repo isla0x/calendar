@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
+import 'color_book.dart';
 import 'dates.dart';
 import 'demo_repo.dart';
 import 'models.dart';
@@ -11,8 +12,9 @@ enum ViewMode { month, week, day }
 
 /// 앱 상태 + 일정 계산(비는 시간, 바쁨 단계 등)
 class CalendarStore extends ChangeNotifier {
-  CalendarStore(this.repo, {DateTime Function()? clock})
-      : _clock = clock ?? DateTime.now {
+  CalendarStore(this.repo, {DateTime Function()? clock, ColorBook? colors})
+      : _clock = clock ?? DateTime.now,
+        _colors = colors ?? MemoryColorBook() {
     final t = dayOnly(_clock());
     selected = t;
     month = DateTime(t.year, t.month);
@@ -24,6 +26,9 @@ class CalendarStore extends ChangeNotifier {
 
   CalendarRepo repo;
   final DateTime Function() _clock;
+
+  /// 일정마다 따로 고른 색
+  final ColorBook _colors;
 
   PermState perm = PermState.unknown;
 
@@ -120,7 +125,7 @@ class CalendarStore extends ChangeNotifier {
     notifyListeners();
     try {
       calendars = await repo.calendars();
-      _events = await repo.events(from, to);
+      _events = _tint(await repo.events(from, to));
       _from = from;
       _to = to;
       _index();
@@ -130,6 +135,14 @@ class CalendarStore extends ChangeNotifier {
     }
     loading = false;
     notifyListeners();
+  }
+
+  /// 일정마다 따로 고른 색이 있으면 그 색으로 바꿔요.
+  List<Ev> _tint(List<Ev> list) {
+    return [
+      for (final e in list)
+        if (_colors.of(e.id) case final c?) e.copyWith(color: c) else e,
+    ];
   }
 
   void _index() {
@@ -178,7 +191,7 @@ class CalendarStore extends ChangeNotifier {
 
   /// 기간을 정해서 일정을 읽어와요 (검색용). 공휴일은 빼요.
   Future<List<Ev>> eventsBetween(DateTime from, DateTime to) async {
-    final list = await repo.events(from, to);
+    final list = _tint(await repo.events(from, to));
     final out = list.where((e) => !e.holiday).toList();
     out.sort((a, b) {
       final c = a.start.compareTo(b.start);
@@ -401,6 +414,46 @@ class CalendarStore extends ChangeNotifier {
       return false;
     }
   }
+
+  /// 일정을 고쳐서 저장해요. 성공하면 true.
+  Future<bool> updateEvent(
+    Ev e, {
+    required String title,
+    required DateTime start,
+    required DateTime end,
+    required bool allDay,
+    String? location,
+    String? note,
+    List<String> tags = const <String>[],
+  }) async {
+    try {
+      await repo.update(
+        e,
+        title: title,
+        start: start,
+        end: end,
+        allDay: allDay,
+        location: location,
+        note: note,
+        tags: tags,
+      );
+      await _refresh(force: true);
+      return true;
+    } catch (_) {
+      error = '일정을 저장하지 못했어요';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// 이 일정만 다른 색으로 (null 이면 캘린더 색으로 되돌려요)
+  Future<void> setEventColor(Ev e, Color? color) async {
+    await _colors.set(e.id, color);
+    await _refresh(force: true);
+  }
+
+  /// 이 일정에 따로 고른 색 (없으면 null)
+  Color? customColorOf(Ev e) => _colors.of(e.id);
 
   Future<bool> setEventTags(Ev e, List<String> tags) async {
     try {

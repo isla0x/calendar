@@ -126,6 +126,46 @@ void main() {
       await save(tester, '$id-5-detail');
     });
 
+    testWidgets('$nm 일정 편집', (tester) async {
+      final store = await open(tester, skin);
+      store.setView(ViewMode.day);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('스프린트 플래닝'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('편집').first);
+      await save(tester, '$id-8-edit');
+    });
+
+    testWidgets('$nm 태그 창', (tester) async {
+      final store = await open(tester, skin);
+      store.setView(ViewMode.day);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('스프린트 플래닝'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('편집').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('#회의'));
+      await save(tester, '$id-9-tags');
+    });
+
+    testWidgets('$nm 목록 펼침', (tester) async {
+      await open(tester, skin, project: true);
+      await tester.drag(find.text('10월 26일 월요일'), const Offset(0, -900));
+      await save(tester, '$id-10-expanded');
+    });
+
+    testWidgets('$nm 날짜 창', (tester) async {
+      final store = await open(tester, skin);
+      store.setView(ViewMode.day);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('스프린트 플래닝'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('편집').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('10월 26일 월'));
+      await save(tester, '$id-11-date');
+    });
+
     testWidgets('$nm 다크 모드', (tester) async {
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
       addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);

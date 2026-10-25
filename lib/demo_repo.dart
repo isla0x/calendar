@@ -214,6 +214,43 @@ class DemoRepo implements CalendarRepo {
   }
 
   @override
+  Future<void> update(
+    Ev e, {
+    required String title,
+    required DateTime start,
+    required DateTime end,
+    required bool allDay,
+    String? location,
+    String? note,
+    List<String> tags = const <String>[],
+  }) async {
+    final i = _evs.indexWhere((x) => x.instanceId == e.instanceId);
+    if (i < 0) return;
+    final o = _evs[i];
+    final loc = (location ?? '').trim();
+    final nt = (note ?? '').trim();
+    _evs[i] = Ev(
+      id: o.id,
+      instanceId: o.instanceId,
+      calendarId: o.calendarId,
+      calendarName: o.calendarName,
+      title: title,
+      start: start,
+      end: end,
+      allDay: allDay,
+      color: o.color,
+      location: loc.isEmpty ? null : loc,
+      note: nt.isEmpty ? null : nt,
+      attendees: o.attendees,
+      recurring: o.recurring,
+      readOnly: o.readOnly,
+      holiday: o.holiday,
+      reminders: o.reminders,
+      tags: tags,
+    );
+  }
+
+  @override
   Future<void> setTags(Ev e, List<String> tags) async {
     final i = _evs.indexWhere((x) => x.instanceId == e.instanceId);
     if (i >= 0) _evs[i] = _evs[i].copyWith(tags: tags);
