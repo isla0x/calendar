@@ -42,8 +42,8 @@ void main() {
 
   testWidgets('월간 달력 칸에 일정 글자가 그대로 보여요', (tester) async {
     await open(tester);
-    // 27일 일정은 아래 목록(26일)에는 없고, 달력 칸에만 글자로 보여요.
-    expect(find.text('디자인 리뷰'), findsOneWidget);
+    // 27일 일정은 아래 목록(26일)에는 없고, 달력 칸에만 글자로 보여요. (매주 있는 일정이라 여러 칸)
+    expect(find.text('디자인 리뷰'), findsWidgets);
     expect(tile('디자인 리뷰'), findsNothing);
   });
 
@@ -138,8 +138,11 @@ void main() {
   });
 
   testWidgets('일정을 누르면 상세 화면이 열려요', (tester) async {
-    await open(tester);
-    await tester.tap(tile('스프린트 플래닝'));
+    final store = await open(tester);
+    // 월간 아래 목록은 입력 바에 가려질 수 있어서, 일간 화면에서 눌러요.
+    store.setView(ViewMode.day);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('스프린트 플래닝'));
     await tester.pumpAndSettle();
     expect(find.text('공유하기'), findsOneWidget);
     expect(find.text('#회의'), findsOneWidget);

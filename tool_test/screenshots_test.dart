@@ -16,7 +16,6 @@ import 'package:yeobaek/main.dart';
 import 'package:yeobaek/skins.dart';
 import 'package:yeobaek/store.dart';
 import 'package:yeobaek/theme.dart';
-import 'package:yeobaek/ui/event_tile.dart';
 
 void main() {
   // 2026-10-26 월요일 14:10
@@ -119,11 +118,11 @@ void main() {
     });
 
     testWidgets('$nm 일정 상세', (tester) async {
-      await open(tester, skin);
-      await tester.tap(find.descendant(
-        of: find.byType(EventTile),
-        matching: find.text('스프린트 플래닝'),
-      ));
+      final store = await open(tester, skin);
+      // 월간 아래 목록은 입력 바에 가려질 수 있어서, 일간 화면에서 일정을 눌러요.
+      store.setView(ViewMode.day);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('스프린트 플래닝'));
       await save(tester, '$id-5-detail');
     });
 
