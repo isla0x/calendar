@@ -7,10 +7,29 @@ import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
 import 'common.dart';
+import 'pager.dart';
 
 /// 주간 화면: 7일을 가로 막대로 쌓아서 한눈에 비교
 class WeekView extends StatelessWidget {
   const WeekView({super.key});
+
+  // 2000-01-02 는 일요일이라, 여기서부터 센 주 번호로 쪽을 구분해요.
+  static final DateTime _epoch = DateTime(2000, 1, 2);
+
+  @override
+  Widget build(BuildContext context) {
+    return SwipePager(
+      index: (s) => daysBetween(_epoch, weekStartSunday(s.selected)) ~/ 7,
+      onShift: (s, d) => s.shiftWeek(d),
+      builder: (context, i) => _WeekPage(start: addDays(_epoch, i * 7)),
+    );
+  }
+}
+
+class _WeekPage extends StatelessWidget {
+  const _WeekPage({required this.start});
+
+  final DateTime start;
 
   static const int _rs = 9 * 60;
   static const int _re = 22 * 60;
@@ -19,7 +38,6 @@ class WeekView extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final p = Pal.of(context);
-    final start = weekStartSunday(store.selected);
     final days = [for (var i = 0; i < 7; i++) addDays(start, i)];
     final today = store.today;
     final now = store.now;

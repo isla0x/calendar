@@ -89,26 +89,11 @@ class _Header extends StatelessWidget {
 
     String small;
     String big;
-    String prevLabel;
-    String nextLabel;
-    void shift(int d) {
-      if (store.view == ViewMode.month) {
-        store.shiftMonth(d);
-      } else if (store.view == ViewMode.week) {
-        store.shiftWeek(d);
-      } else {
-        store.shiftDay(d);
-      }
-    }
 
     if (store.view == ViewMode.month) {
-      prevLabel = '이전 달';
-      nextLabel = '다음 달';
       small = '${store.month.year}년';
       big = '${store.month.month}월';
     } else if (store.view == ViewMode.week) {
-      prevLabel = '이전 주';
-      nextLabel = '다음 주';
       final a = weekStartSunday(store.selected);
       final b = addDays(a, 6);
       small = a.month == b.month
@@ -116,8 +101,6 @@ class _Header extends StatelessWidget {
           : '${a.year}년 ${a.month}월 – ${b.month}월';
       big = '${a.day}일 – ${b.day}일';
     } else {
-      prevLabel = '전날';
-      nextLabel = '다음 날';
       final d = store.selected;
       final h = store.holidayOn(d);
       small = h == null ? wdFull(d) : '${wdFull(d)} · $h';
@@ -152,18 +135,6 @@ class _Header extends StatelessWidget {
                           style: ts(context, 34, weight: FontWeight.w700, height: 40 / 34),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    _NavButton(
-                      icon: Icons.chevron_left_rounded,
-                      label: prevLabel,
-                      onTap: () => shift(-1),
-                    ),
-                    const SizedBox(width: 6),
-                    _NavButton(
-                      icon: Icons.chevron_right_rounded,
-                      label: nextLabel,
-                      onTap: () => shift(1),
                     ),
                   ],
                 ),
@@ -260,33 +231,6 @@ class _TagFilterBar extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// 옆으로 넘기는 버튼 (밀어서 넘기는 대신)
-class _NavButton extends StatelessWidget {
-  const _NavButton({required this.icon, required this.label, required this.onTap});
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    return Tap(
-      onTap: onTap,
-      label: label,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: p.soft,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, size: 24, color: p.ink),
       ),
     );
   }

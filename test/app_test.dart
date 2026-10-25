@@ -319,6 +319,29 @@ void main() {
     expect(store.month, DateTime(2026, 11));
   });
 
+  testWidgets('주간·일간 화면도 옆으로 밀어서 넘겨요', (tester) async {
+    final store = await open(tester);
+    expect(find.byTooltip('다음 달'), findsNothing);
+    store.setView(ViewMode.week);
+    await tester.pumpAndSettle();
+    final w0 = store.selected;
+    await tester.fling(find.byType(PageView), const Offset(-300, 0), 1200);
+    await tester.pumpAndSettle();
+    expect(store.selected, w0.add(const Duration(days: 7)));
+    await tester.fling(find.byType(PageView), const Offset(300, 0), 1200);
+    await tester.pumpAndSettle();
+    expect(store.selected, w0);
+
+    store.setView(ViewMode.day);
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(PageView), const Offset(-300, 0), 1200);
+    await tester.pumpAndSettle();
+    expect(store.selected, w0.add(const Duration(days: 1)));
+    store.shiftDay(-1);
+    await tester.pumpAndSettle();
+    expect(store.selected, w0);
+  });
+
   testWidgets('다크 모드에서도 그려져요', (tester) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);

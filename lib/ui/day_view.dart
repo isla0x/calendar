@@ -8,31 +8,54 @@ import '../store.dart';
 import '../theme.dart';
 import 'common.dart';
 import 'nav.dart';
+import 'pager.dart';
 
 /// 일간(오늘) 화면: 주 띠 + 남은 여유 카드 + 시간표
 class DayView extends StatelessWidget {
   const DayView({super.key});
 
+  static final DateTime _epoch = DateTime(2000, 1, 1);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const _WeekStrip(),
+        Expanded(
+          child: SwipePager(
+            index: (s) => daysBetween(_epoch, s.selected),
+            onShift: (s, d) => s.shiftDay(d),
+            builder: (context, i) => _DayPage(day: addDays(_epoch, i)),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 하루치 내용 (남은 여유 카드 + 시간표). 옆으로 밀면 이 쪽이 넘어가요.
+class _DayPage extends StatelessWidget {
+  const _DayPage({required this.day});
+
+  final DateTime day;
+
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final day = store.selected;
     final isToday = sameDay(day, store.today);
     final now = store.now;
 
     final all = store.eventsOn(day);
     final timed = all.where((e) => !e.allDay).toList();
     final allDay = all.where((e) => e.allDay).toList();
-    final pastCount =
-        isToday ? timed.where((e) => !e.end.isAfter(now)).length : 0;
+    final pastCount = isToday ? timed.where((e) => !e.end.isAfter(now)).length : 0;
 
     return Column(
       children: [
-        const _WeekStrip(),
-        const _FlowCard(),
+        _FlowCard(day: day),
         if (pastCount > 0) _PastChip(count: pastCount) else const SizedBox(height: 8),
         if (allDay.isNotEmpty) _AllDayRow(events: allDay),
-        const Expanded(child: _Timeline()),
+        Expanded(child: _Timeline(day: day)),
       ],
     );
   }
@@ -130,7 +153,9 @@ class _StripCell extends StatelessWidget {
 // 남은 여유 카드
 
 class _FlowCard extends StatelessWidget {
-  const _FlowCard();
+  const _FlowCard({required this.day});
+
+  final DateTime day;
 
   static const int _rs = 7 * 60;
   static const int _re = 23 * 60;
@@ -139,7 +164,6 @@ class _FlowCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final p = Pal.of(context);
-    final day = store.selected;
     final today = store.today;
     final isToday = sameDay(day, today);
     final isPast = day.isBefore(today);
@@ -439,7 +463,9 @@ void _assignColumns(List<_Placed> items) {
 }
 
 class _Timeline extends StatelessWidget {
-  const _Timeline();
+  const _Timeline({required this.day});
+
+  final DateTime day;
 
   static const double hourH = 46;
   static const double labelW = 48;
@@ -448,7 +474,6 @@ class _Timeline extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final p = Pal.of(context);
-    final day = store.selected;
     final today = store.today;
     final isToday = sameDay(day, today);
     final isPast = day.isBefore(today);
