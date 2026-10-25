@@ -221,7 +221,7 @@ class _DaySheet extends StatelessWidget {
             height: 4,
             margin: const EdgeInsets.only(top: 8),
             decoration: BoxDecoration(
-              color: p.dark ? p.dash : const Color(0xFFD5D1C7),
+              color: p.dark ? p.dash : Color.alphaBlend(p.dash.withAlpha(140), p.surface),
               borderRadius: BorderRadius.circular(2),
             ),
           ),

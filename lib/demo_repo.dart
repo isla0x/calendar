@@ -1,8 +1,7 @@
-import 'package:flutter/painting.dart';
-
 import 'dates.dart';
 import 'models.dart';
 import 'repo.dart';
+import 'skins.dart';
 
 class _T {
   const _T(this.h1, this.h2, this.title, this.cal, [this.loc]);
@@ -19,16 +18,17 @@ class DemoRepo implements CalendarRepo {
     _build(dayOnly((clock ?? DateTime.now)()));
   }
 
-  static const List<CalInfo> _cals = [
-    CalInfo(id: 'work', name: '업무', color: Color(0xFF5E71D4)),
-    CalInfo(id: 'personal', name: '개인', color: Color(0xFF3F9777), isPrimary: true),
-    CalInfo(id: 'meet', name: '약속', color: Color(0xFFCA688F)),
-    CalInfo(id: 'fit', name: '운동', color: Color(0xFFBF9533)),
-    CalInfo(id: 'study', name: '공부', color: Color(0xFF8361D1)),
+  /// 일정 색은 지금 고른 색 조합(Skin)을 따라가요.
+  final List<CalInfo> _cals = [
+    CalInfo(id: 'work', name: '업무', color: Skin.current.events[0]),
+    CalInfo(id: 'personal', name: '개인', color: Skin.current.events[1], isPrimary: true),
+    CalInfo(id: 'meet', name: '약속', color: Skin.current.events[2]),
+    CalInfo(id: 'fit', name: '운동', color: Skin.current.events[3]),
+    CalInfo(id: 'study', name: '공부', color: Skin.current.events[4]),
     CalInfo(
       id: 'holiday',
       name: '대한민국 공휴일',
-      color: Color(0xFFA64A4A),
+      color: Skin.current.holiday,
       readOnly: true,
     ),
   ];

@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'skins.dart';
+
 /// 앱에 넣어 둔 글꼴(IBM Plex Sans KR)을 쓸지 여부. 테스트에서는 false 로 둬요.
 bool useWebFont = true;
 
@@ -91,8 +93,9 @@ class Pal {
     sheet: Color(0xFF17171B),
   );
 
-  static Pal of(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? darkPal : light;
+  static Pal of(BuildContext context) => Theme.of(context).brightness == Brightness.dark
+      ? Skin.current.dark
+      : Skin.current.light;
 }
 
 /// 일정 색 하나로부터 만드는 색 묶음

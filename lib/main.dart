@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'app_info.dart';
 import 'device_repo.dart';
+import 'skins.dart';
 import 'store.dart';
 import 'theme.dart';
 import 'ui/shell.dart';
@@ -60,8 +61,8 @@ class _YeobaekAppState extends State<YeobaekApp> with WidgetsBindingObserver {
       child: MaterialApp(
         title: kAppName,
         debugShowCheckedModeBanner: false,
-        theme: buildTheme(Pal.light),
-        darkTheme: buildTheme(Pal.darkPal),
+        theme: buildTheme(Skin.current.light),
+        darkTheme: buildTheme(Skin.current.dark),
         themeMode: ThemeMode.system,
         locale: const Locale('ko', 'KR'),
         supportedLocales: const [Locale('ko', 'KR')],

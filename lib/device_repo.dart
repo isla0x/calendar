@@ -4,6 +4,7 @@ import 'package:flutter/painting.dart';
 import 'dates.dart';
 import 'models.dart';
 import 'repo.dart';
+import 'skins.dart';
 import 'theme.dart';
 
 /// 실제 기기 캘린더(iOS 캘린더, 구글 캘린더 등)를 읽고 쓰는 저장소
@@ -13,13 +14,7 @@ class DeviceRepo implements CalendarRepo {
   final DeviceCalendar _plugin;
   Map<String, CalInfo> _cal = <String, CalInfo>{};
 
-  static const List<Color> _fallback = [
-    Color(0xFF5E71D4),
-    Color(0xFF3F9777),
-    Color(0xFFCA688F),
-    Color(0xFFBF9533),
-    Color(0xFF8361D1),
-  ];
+  static List<Color> get _fallback => Skin.current.events;
 
   @override
   bool get isDemo => false;
