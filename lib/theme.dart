@@ -1,9 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-/// 테스트에서는 false 로 두어요(웹폰트를 내려받지 않도록).
+/// 앱에 넣어 둔 글꼴(IBM Plex Sans KR)을 쓸지 여부. 테스트에서는 false 로 둬요.
 bool useWebFont = true;
 
 /// 앱 전체 색. 목업의 라이트 / 다크 값 그대로예요.
@@ -161,13 +160,7 @@ TextStyle ts(
     fontFeatures: const [FontFeature.tabularFigures()],
     decoration: TextDecoration.none,
   );
-  if (useWebFont) {
-    try {
-      return GoogleFonts.getFont('IBM Plex Sans KR', textStyle: style);
-    } catch (_) {
-      return style;
-    }
-  }
+  if (useWebFont) return style.copyWith(fontFamily: 'IBMPlexSansKR');
   return style;
 }
 
