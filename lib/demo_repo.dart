@@ -20,15 +20,15 @@ class DemoRepo implements CalendarRepo {
   }
 
   static const List<CalInfo> _cals = [
-    CalInfo(id: 'work', name: '업무', color: Color(0xFF4F6BFF)),
-    CalInfo(id: 'personal', name: '개인', color: Color(0xFF22A877), isPrimary: true),
-    CalInfo(id: 'meet', name: '약속', color: Color(0xFFE8508C)),
-    CalInfo(id: 'fit', name: '운동', color: Color(0xFFF2A900)),
-    CalInfo(id: 'study', name: '공부', color: Color(0xFF8A5CF5)),
+    CalInfo(id: 'work', name: '업무', color: Color(0xFF5E71D4)),
+    CalInfo(id: 'personal', name: '개인', color: Color(0xFF3F9777), isPrimary: true),
+    CalInfo(id: 'meet', name: '약속', color: Color(0xFFCA688F)),
+    CalInfo(id: 'fit', name: '운동', color: Color(0xFFBF9533)),
+    CalInfo(id: 'study', name: '공부', color: Color(0xFF8361D1)),
     CalInfo(
       id: 'holiday',
       name: '대한민국 공휴일',
-      color: Color(0xFFC22E2E),
+      color: Color(0xFFA64A4A),
       readOnly: true,
     ),
   ];

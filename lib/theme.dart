@@ -58,9 +58,9 @@ class Pal {
     line: Color(0xFFE6E3DC),
     soft: Color(0xFFECEAE3),
     dash: Color(0xFFBDB8AB),
-    red: Color(0xFFC22E2E),
-    blue: Color(0xFF3A56C8),
-    now: Color(0xFFD63A18),
+    red: Color(0xFFB84B4B),
+    blue: Color(0xFF4A62B5),
+    now: Color(0xFFC0563C),
     nowFg: Color(0xFFFFFFFF),
     shadow: Color(0x2416161A),
     busy1: Color(0x0916161A),
@@ -79,9 +79,9 @@ class Pal {
     line: Color(0xFF2A2A31),
     soft: Color(0xFF1F1F25),
     dash: Color(0xFF4A4A54),
-    red: Color(0xFFFF8A8A),
-    blue: Color(0xFF9DB0FF),
-    now: Color(0xFFFF7A5C),
+    red: Color(0xFFF29A9A),
+    blue: Color(0xFFA5B4F2),
+    now: Color(0xFFF2866B),
     nowFg: Color(0xFF1A0B07),
     shadow: Color(0x80000000),
     busy1: Color(0x0AFFFFFF),
@@ -119,6 +119,15 @@ class EvColors {
   final Color onSolid;
 }
 
+/// 기기 캘린더 색은 대체로 쨍해서, 채도를 낮추고 밝기를 고르게 맞춘 차분한 색으로 바꿔요.
+Color calmColor(Color c) {
+  final h = HSLColor.fromColor(c);
+  return h
+      .withSaturation((h.saturation * 0.62).clamp(0.0, 0.58))
+      .withLightness(h.lightness.clamp(0.42, 0.60))
+      .toColor();
+}
+
 EvColors evColors(Color base, Pal p) {
   final hsl = HSLColor.fromColor(base);
   if (p.dark) {
@@ -137,7 +146,7 @@ EvColors evColors(Color base, Pal p) {
     strong: base,
     tint: Color.alphaBlend(base.withAlpha(38), Colors.white),
     text: hsl.withLightness(0.30).toColor(),
-    solid: hsl.withLightness(0.36).toColor(),
+    solid: hsl.withLightness(0.36).withSaturation(hsl.saturation * 0.85).toColor(),
     onSolid: Colors.white,
   );
 }

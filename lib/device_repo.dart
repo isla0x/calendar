@@ -4,6 +4,7 @@ import 'package:flutter/painting.dart';
 import 'dates.dart';
 import 'models.dart';
 import 'repo.dart';
+import 'theme.dart';
 
 /// 실제 기기 캘린더(iOS 캘린더, 구글 캘린더 등)를 읽고 쓰는 저장소
 class DeviceRepo implements CalendarRepo {
@@ -13,11 +14,11 @@ class DeviceRepo implements CalendarRepo {
   Map<String, CalInfo> _cal = <String, CalInfo>{};
 
   static const List<Color> _fallback = [
-    Color(0xFF4F6BFF),
-    Color(0xFF22A877),
-    Color(0xFFE8508C),
-    Color(0xFFF2A900),
-    Color(0xFF8A5CF5),
+    Color(0xFF5E71D4),
+    Color(0xFF3F9777),
+    Color(0xFFCA688F),
+    Color(0xFFBF9533),
+    Color(0xFF8361D1),
   ];
 
   @override
@@ -51,7 +52,7 @@ class DeviceRepo implements CalendarRepo {
       out.add(CalInfo(
         id: c.id,
         name: c.name,
-        color: c.color ?? _fallback[i % _fallback.length],
+        color: c.color == null ? _fallback[i % _fallback.length] : calmColor(c.color!),
         readOnly: c.readOnly,
         isPrimary: c.isPrimary,
         account: c.accountName,
@@ -100,7 +101,7 @@ class DeviceRepo implements CalendarRepo {
         start: s,
         end: t,
         allDay: e.isAllDay,
-        color: e.color ?? cal?.color ?? _fallback[0],
+        color: e.color != null ? calmColor(e.color!) : (cal?.color ?? _fallback[0]),
         location: e.location,
         note: e.description,
         attendees: e.attendees?.length ?? 0,
