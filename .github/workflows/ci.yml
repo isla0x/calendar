@@ -36,3 +36,37 @@ jobs:
         run: bash tools/bootstrap.sh
       - run: flutter pub get
       - run: flutter build ios --release --no-codesign
+
+  # 커밋 메시지에 [shots]가 들어 있거나 수동으로 실행했을 때, 앱스토어용 스크린샷을 만들어
+  # screenshots 브랜치에 올려요.
+  screenshots:
+    if: contains(github.event.head_commit.message, '[shots]') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: 플랫폼 폴더 준비
+        run: bash tools/bootstrap.sh
+      - name: 스크린샷 만들기
+        run: bash tools/ci_report.sh screenshots flutter test tool_test/screenshots_test.dart
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: build/screenshots/*.png
+      - name: screenshots 브랜치에 올리기
+        run: |
+          set -e
+          mkdir -p /tmp/shots && cp build/screenshots/*.png /tmp/shots/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan screenshots
+          git rm -rf --quiet . || true
+          cp /tmp/shots/*.png .
+          git add *.png
+          git commit -q -m "스크린샷 ${GITHUB_SHA::7}"
+          git push -f origin screenshots
