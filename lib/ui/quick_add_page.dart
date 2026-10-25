@@ -1,0 +1,901 @@
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+
+import '../dates.dart';
+import '../models.dart';
+import '../parser.dart';
+import '../store.dart';
+import '../theme.dart';
+import 'common.dart';
+
+/// 입력한 글에서 읽힌 날짜·시간·길이에 배경색을 입혀 보여주는 입력 컨트롤러
+class ParsedController extends TextEditingController {
+  ParsedController({super.text});
+
+  QuickParse Function(String text)? parser;
+  Color highlight = const Color(0xFFECEAE3);
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    final t = text;
+    final parse = parser;
+    final hits = (parse == null || t.isEmpty) ? const <Hit>[] : parse(t).hits;
+    final comp = (withComposing && value.isComposingRangeValid) ? value.composing : TextRange.empty;
+    if (hits.isEmpty && comp.isCollapsed) {
+      return TextSpan(style: style, text: t);
+    }
+
+    final cuts = <int>{0, t.length};
+    for (final h in hits) {
+      cuts.add(h.start);
+      cuts.add(h.end);
+    }
+    if (!comp.isCollapsed) {
+      cuts.add(comp.start);
+      cuts.add(comp.end);
+    }
+    final pts = cuts.where((i) => i >= 0 && i <= t.length).toList()..sort();
+
+    final base = style ?? const TextStyle();
+    final spans = <InlineSpan>[];
+    for (var i = 0; i + 1 < pts.length; i++) {
+      final a = pts[i];
+      final b = pts[i + 1];
+      if (a == b) continue;
+      var st = base;
+      for (final h in hits) {
+        if (h.start <= a && b <= h.end) {
+          st = st.merge(TextStyle(backgroundColor: highlight));
+          break;
+        }
+      }
+      if (!comp.isCollapsed && comp.start <= a && b <= comp.end) {
+        st = st.merge(const TextStyle(decoration: TextDecoration.underline));
+      }
+      spans.add(TextSpan(text: t.substring(a, b), style: st));
+    }
+    return TextSpan(style: style, children: spans);
+  }
+}
+
+class _TimeResult {
+  const _TimeResult(this.allDay, this.startMin, this.minutes);
+  final bool allDay;
+  final int startMin;
+  final int minutes;
+}
+
+List<Ev> _conflicts(CalendarStore store, QuickParse q) {
+  if (q.allDay) return const <Ev>[];
+  final day = dayOnly(q.start);
+  return store
+      .eventsOn(day)
+      .where((e) => !e.allDay && e.start.isBefore(q.end) && e.end.isAfter(q.start))
+      .toList();
+}
+
+/// "새 일정" 화면: 한 줄로 쓰면 날짜·시간·길이를 읽어서 보여줘요.
+class QuickAddPage extends StatefulWidget {
+  const QuickAddPage({super.key, this.initialText = ''});
+
+  final String initialText;
+
+  @override
+  State<QuickAddPage> createState() => _QuickAddPageState();
+}
+
+class _QuickAddPageState extends State<QuickAddPage> {
+  final ParsedController _ctl = ParsedController();
+  final FocusNode _focus = FocusNode();
+  String? _calId;
+  String _location = '';
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctl.text = widget.initialText;
+    _ctl.selection = TextSelection.collapsed(offset: _ctl.text.length);
+  }
+
+  @override
+  void dispose() {
+    _ctl.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  QuickParse _parse(CalendarStore s) =>
+      parseQuick(_ctl.text, now: s.now, defaultDay: s.selected);
+
+  List<CalInfo> _writable(CalendarStore s) =>
+      s.calendars.where((c) => !c.readOnly && !isHolidayName(c.name)).toList();
+
+  CalInfo? _calendar(CalendarStore s) {
+    final list = _writable(s);
+    if (list.isEmpty) return null;
+    for (final c in list) {
+      if (c.id == _calId) return c;
+    }
+    for (final c in list) {
+      if (c.isPrimary) return c;
+    }
+    return list.first;
+  }
+
+  // ---------------------------------------------------------------- 글 고치기
+
+  void _rewrite(Set<HitKind> kinds, String insert) {
+    final store = StoreScope.of(context);
+    final q = _parse(store);
+    final t = rewriteHits(_ctl.text, q.hits, kinds, insert);
+    _ctl.value = TextEditingValue(
+      text: t,
+      selection: TextSelection.collapsed(offset: t.length),
+    );
+    setState(() {});
+  }
+
+  void _setDate(DateTime d) {
+    final t = StoreScope.of(context).today;
+    final text = (d.year == t.year && !d.isBefore(t))
+        ? '${d.month}월 ${d.day}일'
+        : '${d.year}년 ${d.month}월 ${d.day}일';
+    _rewrite({HitKind.date}, text);
+  }
+
+  void _setTime(int startMin, int minutes) {
+    _rewrite(
+      {HitKind.time, HitKind.duration},
+      '${timeWords(startMin ~/ 60, startMin % 60)}, ${durText(Duration(minutes: minutes))}',
+    );
+  }
+
+  Future<void> _pickDate(QuickParse q) async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: dayOnly(q.start),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (d != null && mounted) _setDate(d);
+  }
+
+  Future<void> _pickTime(QuickParse q) async {
+    final r = await showModalBottomSheet<_TimeResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _TimeSheet(
+        allDay: q.allDay,
+        startMin: q.allDay ? 9 * 60 : q.start.hour * 60 + q.start.minute,
+        minutes: q.allDay ? 60 : math.max(15, q.end.difference(q.start).inMinutes),
+      ),
+    );
+    if (r == null || !mounted) return;
+    if (r.allDay) {
+      _rewrite({HitKind.time, HitKind.duration}, '종일');
+    } else {
+      _setTime(r.startMin, r.minutes);
+    }
+  }
+
+  Future<void> _pickCalendar(List<CalInfo> list, CalInfo? current) async {
+    final id = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final p = Pal.of(ctx);
+        final bottom = MediaQuery.of(ctx).padding.bottom;
+        return Container(
+          padding: EdgeInsets.fromLTRB(12, 16, 12, bottom + 12),
+          decoration: BoxDecoration(
+            color: p.sheet,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 420),
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                for (final c in list)
+                  Tap(
+                    onTap: () => Navigator.of(ctx).pop(c.id),
+                    child: SizedBox(
+                      height: 52,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Row(
+                          children: [
+                            Dot(c.color, size: 10),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                c.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: ts(ctx, 16, weight: FontWeight.w600),
+                              ),
+                            ),
+                            if (current != null && c.id == current.id)
+                              Icon(Icons.check_rounded, size: 20, color: p.ink),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (id != null && mounted) setState(() => _calId = id);
+  }
+
+  Future<void> _askLocation() async {
+    final c = TextEditingController(text: _location);
+    final r = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('장소', style: ts(ctx, 17, weight: FontWeight.w700)),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
+          decoration: const InputDecoration(hintText: '예) 강남역 2번 출구'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(c.text.trim()),
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
+    if (r != null && mounted) setState(() => _location = r);
+  }
+
+  void _applySlot(Slot s) {
+    _setDate(s.start);
+    _setTime(s.start.hour * 60 + s.start.minute, s.end.difference(s.start).inMinutes);
+  }
+
+  // ---------------------------------------------------------------- 저장
+
+  Future<void> _save() async {
+    if (_saving) return;
+    final store = StoreScope.of(context);
+    if (_ctl.text.trim().isEmpty) return;
+    final q = _parse(store);
+    final cal = _calendar(store);
+    setState(() => _saving = true);
+    final ok = await store.addEvent(
+      calendarId: cal?.id,
+      title: q.title.isEmpty ? '새 일정' : q.title,
+      start: q.start,
+      end: q.end,
+      allDay: q.allDay,
+      location: _location.isEmpty ? null : _location,
+    );
+    if (!mounted) return;
+    if (ok) {
+      store.select(q.start);
+      Navigator.of(context).pop();
+    } else {
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(store.error ?? '일정을 저장하지 못했어요')),
+      );
+    }
+  }
+
+  // ---------------------------------------------------------------- 화면
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final p = Pal.of(context);
+    final top = MediaQuery.of(context).padding.top;
+
+    _ctl.parser = (t) => parseQuick(t, now: store.now, defaultDay: store.selected);
+    _ctl.highlight = p.soft;
+
+    final q = _parse(store);
+    final hasText = _ctl.text.trim().isNotEmpty;
+    final cal = _calendar(store);
+    final writable = _writable(store);
+    final title = q.title.isEmpty ? '새 일정' : q.title;
+    final conflicts = hasText ? _conflicts(store, q) : const <Ev>[];
+    final calColors = cal == null ? null : evColors(cal.color, p);
+
+    String hint;
+    if (!hasText) {
+      hint = '날짜 · 시간 · 길이를 같이 쓰면 자동으로 읽어요';
+    } else {
+      final parts = <String>[];
+      if (q.hasDate) parts.add('날짜');
+      if (q.hasTime) parts.add('시간');
+      if (q.hasDuration) parts.add('길이');
+      if (q.allDay) parts.add('종일');
+      hint = parts.isEmpty ? '' : '${parts.join(' · ')} 자동으로 읽었어요';
+    }
+
+    final suggestions = (hasText && !q.allDay)
+        ? store
+            .suggestAcrossDays(q.end.difference(q.start), dayOnly(q.start))
+            .where((s) => s.start != q.start)
+            .toList()
+        : const <Slot>[];
+
+    return Scaffold(
+      backgroundColor: p.bg,
+      resizeToAvoidBottomInset: true,
+      body: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(8, top + 4, 12, 0),
+            child: SizedBox(
+              height: 44,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 76,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Tap(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          child: Text('취소', style: ts(context, 16)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Center(
+                      child: Text('새 일정', style: ts(context, 17, weight: FontWeight.w700)),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 76,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Tap(
+                        onTap: (hasText && !_saving) ? _save : null,
+                        child: Opacity(
+                          opacity: (hasText && !_saving) ? 1 : 0.35,
+                          child: Pill(
+                            height: 36,
+                            color: p.ink,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              '추가',
+                              style: ts(context, 15, weight: FontWeight.w600, color: p.bg),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: const EdgeInsets.only(bottom: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 14, 24, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextField(
+                          controller: _ctl,
+                          focusNode: _focus,
+                          autofocus: true,
+                          keyboardType: TextInputType.text,
+                          textInputAction: TextInputAction.done,
+                          minLines: 1,
+                          maxLines: 4,
+                          cursorColor: p.ink,
+                          onChanged: (_) => setState(() {}),
+                          onSubmitted: (_) => _save(),
+                          style: ts(
+                            context,
+                            26,
+                            weight: FontWeight.w600,
+                            height: 38 / 26,
+                            letterSpacing: -0.78,
+                          ),
+                          decoration: InputDecoration.collapsed(
+                            hintText: '내일 오후 3시 치과 30분',
+                            hintStyle: ts(
+                              context,
+                              26,
+                              weight: FontWeight.w600,
+                              height: 38 / 26,
+                              letterSpacing: -0.78,
+                              color: p.dash,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          hint,
+                          style: ts(context, 13, color: p.muted, height: 17 / 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _Chip(
+                          icon: Icons.calendar_today_rounded,
+                          text: dateChip(q.start),
+                          onTap: () => _pickDate(q),
+                        ),
+                        _Chip(
+                          icon: Icons.schedule_rounded,
+                          text: q.allDay ? '종일' : rangeText(q.start, q.end),
+                          onTap: () => _pickTime(q),
+                        ),
+                        if (cal != null && calColors != null)
+                          _Chip(
+                            dot: cal.color,
+                            text: cal.name,
+                            fill: calColors.tint,
+                            fg: calColors.text,
+                            onTap: writable.length > 1 ? () => _pickCalendar(writable, cal) : null,
+                          ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _Chip(
+                          icon: Icons.place_outlined,
+                          text: _location.isEmpty ? '장소' : _location,
+                          dashed: _location.isEmpty,
+                          onTap: _askLocation,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (hasText)
+                    _Preview(q: q, title: title, conflicts: conflicts),
+                  if (suggestions.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            conflicts.isNotEmpty ? '이 시간이 어렵다면' : '비어 있는 다른 시간',
+                            style: ts(context, 13, weight: FontWeight.w600, color: p.muted, height: 17 / 13),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final s in suggestions)
+                                Tap(
+                                  onTap: () => _applySlot(s),
+                                  child: Pill(
+                                    height: 36,
+                                    ring: true,
+                                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                                    child: Text(
+                                      _slotLabel(store, s),
+                                      style: ts(context, 14, weight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _slotLabel(CalendarStore store, Slot s) {
+    final far = daysBetween(store.today, s.start) >= 7;
+    final head = far ? '${s.start.month}/${s.start.day} ' : '';
+    return '$head${wd(s.start)} ${hm(s.start)}';
+  }
+}
+
+/// 날짜·시간·캘린더·장소 칩
+class _Chip extends StatelessWidget {
+  const _Chip({
+    required this.text,
+    required this.onTap,
+    this.icon,
+    this.dot,
+    this.fill,
+    this.fg,
+    this.dashed = false,
+  });
+
+  final String text;
+  final VoidCallback? onTap;
+  final IconData? icon;
+  final Color? dot;
+  final Color? fill;
+  final Color? fg;
+  final bool dashed;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    final color = fg ?? (dashed ? p.muted : p.ink);
+    final row = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) Icon(icon, size: 16, color: color),
+        if (dot != null) Dot(dot!, size: 8),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: ts(context, 14, weight: FontWeight.w600, color: color),
+          ),
+        ),
+      ],
+    );
+    final Widget body = dashed
+        ? DashedBox(
+            radius: 18,
+            child: Container(
+              height: 36,
+              constraints: const BoxConstraints(maxWidth: 300),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: row,
+            ),
+          )
+        : Container(
+            height: 36,
+            constraints: const BoxConstraints(maxWidth: 300),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: fill ?? p.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: fill == null ? Border.all(color: p.line) : null,
+            ),
+            child: row,
+          );
+    return Tap(onTap: onTap, child: body);
+  }
+}
+
+/// 그날의 모습과 겹치는 일정 확인
+class _Preview extends StatelessWidget {
+  const _Preview({required this.q, required this.title, required this.conflicts});
+
+  final QuickParse q;
+  final String title;
+  final List<Ev> conflicts;
+
+  static const int _rs = 9 * 60;
+  static const int _re = 22 * 60;
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final p = Pal.of(context);
+    final day = dayOnly(q.start);
+    final others = store.eventsOn(day).where((e) => !e.allDay).toList();
+    final bad = conflicts.isNotEmpty;
+
+    Widget status;
+    if (q.allDay) {
+      status = Text(
+        others.isEmpty ? '이 날은 일정이 없어요' : '이 날 일정 ${others.length}개',
+        style: ts(context, 13, weight: FontWeight.w600, color: p.muted),
+      );
+    } else {
+      final c = bad ? p.red : p.good;
+      status = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(bad ? Icons.error_outline_rounded : Icons.check_rounded, size: 16, color: c),
+          const SizedBox(width: 4),
+          Text(
+            bad ? '겹치는 일정 ${conflicts.length}개' : '겹치는 일정 없음',
+            style: ts(context, 13, weight: FontWeight.w600, color: c),
+          ),
+        ],
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      decoration: BoxDecoration(
+        color: p.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: p.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${wdFull(day)} ${day.day}일',
+                style: ts(context, 15, weight: FontWeight.w700),
+              ),
+              status,
+            ],
+          ),
+          if (!q.allDay) ...[
+            const SizedBox(height: 40),
+            LayoutBuilder(
+              builder: (context, c) {
+                final w = c.maxWidth;
+                double fx(int min) {
+                  final v = math.max(_rs, math.min(_re, min));
+                  return (v - _rs) / (_re - _rs) * w;
+                }
+
+                final kids = <Widget>[
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: p.soft,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ];
+                for (final h in const [12, 15, 18, 21]) {
+                  kids.add(Positioned(
+                    left: fx(h * 60),
+                    top: 0,
+                    bottom: 0,
+                    width: 1,
+                    child: ColoredBox(color: p.line),
+                  ));
+                }
+                for (final e in others) {
+                  final l = fx(minOfDay(e.start, day));
+                  final r = fx(minOfDay(e.end, day));
+                  if (r - l < 2) continue;
+                  kids.add(Positioned(
+                    left: l,
+                    top: 5,
+                    width: r - l,
+                    height: 26,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: e.color,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                  ));
+                }
+                final sMin = minOfDay(q.start, day);
+                final eMin = minOfDay(q.end, day);
+                final l = fx(sMin);
+                final bw = math.max(12.0, fx(eMin) - l);
+                kids.add(Positioned(
+                  left: math.min(l, w - bw),
+                  top: -3,
+                  width: bw,
+                  height: 42,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: p.surface,
+                      borderRadius: BorderRadius.circular(7),
+                      border: Border.all(color: p.ink, width: 2),
+                    ),
+                  ),
+                ));
+                final cx = math.max(48.0, math.min(w - 48, l + bw / 2));
+                kids.add(Positioned(
+                  left: cx,
+                  top: -34,
+                  child: FractionalTranslation(
+                    translation: const Offset(-0.5, 0),
+                    child: Container(
+                      height: 24,
+                      constraints: const BoxConstraints(maxWidth: 200),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(
+                        color: p.ink,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              '$title ${hm(q.start)}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: ts(context, 12, weight: FontWeight.w600, color: p.bg),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ));
+                return SizedBox(
+                  height: 36,
+                  child: Stack(clipBehavior: Clip.none, children: kids),
+                );
+              },
+            ),
+            const SizedBox(height: 6),
+            LayoutBuilder(
+              builder: (context, c) {
+                final w = c.maxWidth;
+                final st = ts(context, 11, color: p.muted, height: 14 / 11);
+                Widget at(int hour) => Positioned(
+                      left: w * (hour * 60 - _rs) / (_re - _rs),
+                      top: 0,
+                      child: FractionalTranslation(
+                        translation: const Offset(-0.5, 0),
+                        child: Text('$hour시', style: st),
+                      ),
+                    );
+                return SizedBox(
+                  height: 14,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [at(9), at(12), at(15), at(18), at(21)],
+                  ),
+                );
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// 시간 고르기 시트: 종일 / 시작 시각 / 길이
+class _TimeSheet extends StatefulWidget {
+  const _TimeSheet({required this.allDay, required this.startMin, required this.minutes});
+
+  final bool allDay;
+  final int startMin;
+  final int minutes;
+
+  @override
+  State<_TimeSheet> createState() => _TimeSheetState();
+}
+
+class _TimeSheetState extends State<_TimeSheet> {
+  static const List<int> _durs = [15, 30, 45, 60, 90, 120, 180];
+
+  late bool _allDay = widget.allDay;
+  late int _startMin = widget.startMin;
+  late int _minutes = widget.minutes;
+
+  Future<void> _pickStart() async {
+    final t = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: (_startMin ~/ 60) % 24, minute: _startMin % 60),
+    );
+    if (t != null && mounted) setState(() => _startMin = t.hour * 60 + t.minute);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    final bottom = MediaQuery.of(context).padding.bottom;
+    return Container(
+      padding: EdgeInsets.fromLTRB(24, 20, 24, bottom + 20),
+      decoration: BoxDecoration(
+        color: p.sheet,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text('종일', style: ts(context, 16, weight: FontWeight.w600))),
+              Switch(value: _allDay, onChanged: (v) => setState(() => _allDay = v)),
+            ],
+          ),
+          if (!_allDay) ...[
+            const SizedBox(height: 12),
+            Text('시작 시각', style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
+            const SizedBox(height: 8),
+            Tap(
+              onTap: _pickStart,
+              child: Pill(
+                height: 44,
+                ring: true,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  timeWords((_startMin ~/ 60) % 24, _startMin % 60),
+                  style: ts(context, 16, weight: FontWeight.w600),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text('길이', style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final m in _durs)
+                  Tap(
+                    onTap: () => setState(() => _minutes = m),
+                    child: Pill(
+                      height: 36,
+                      ring: _minutes != m,
+                      color: _minutes == m ? p.ink : p.surface,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: Text(
+                        durText(Duration(minutes: m)),
+                        style: ts(
+                          context,
+                          14,
+                          weight: FontWeight.w600,
+                          color: _minutes == m ? p.bg : p.ink,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 22),
+          Tap(
+            onTap: () => Navigator.of(context).pop(_TimeResult(_allDay, _startMin, _minutes)),
+            child: Container(
+              height: 52,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: p.ink,
+                borderRadius: BorderRadius.circular(26),
+              ),
+              child: Text('적용', style: ts(context, 16, weight: FontWeight.w600, color: p.bg)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

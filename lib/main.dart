@@ -1,0 +1,77 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
+import 'app_info.dart';
+import 'device_repo.dart';
+import 'store.dart';
+import 'theme.dart';
+import 'ui/shell.dart';
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const YeobaekApp());
+}
+
+/// 앱 뿌리. [store] 를 넣으면 그걸 쓰고(테스트용), 아니면 기기 캘린더에 연결해요.
+class YeobaekApp extends StatefulWidget {
+  const YeobaekApp({super.key, this.store, this.ticking = true});
+
+  final CalendarStore? store;
+
+  /// false 면 "지금" 시각을 주기적으로 갱신하지 않아요(테스트용).
+  final bool ticking;
+
+  @override
+  State<YeobaekApp> createState() => _YeobaekAppState();
+}
+
+class _YeobaekAppState extends State<YeobaekApp> with WidgetsBindingObserver {
+  late final CalendarStore _store;
+  late final bool _owned;
+
+  @override
+  void initState() {
+    super.initState();
+    _owned = widget.store == null;
+    _store = widget.store ?? CalendarStore(DeviceRepo());
+    WidgetsBinding.instance.addObserver(this);
+    _store.init();
+    if (widget.ticking) _store.startClock();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _store.stopClock();
+    if (_owned) _store.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 설정 앱에 다녀오거나 다른 앱에서 일정을 고친 뒤 돌아오면 다시 읽어요.
+    if (state == AppLifecycleState.resumed) _store.reload();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StoreScope(
+      store: _store,
+      child: MaterialApp(
+        title: kAppName,
+        debugShowCheckedModeBanner: false,
+        theme: buildTheme(Pal.light),
+        darkTheme: buildTheme(Pal.darkPal),
+        themeMode: ThemeMode.system,
+        locale: const Locale('ko', 'KR'),
+        supportedLocales: const [Locale('ko', 'KR')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: const HomeShell(),
+      ),
+    );
+  }
+}
