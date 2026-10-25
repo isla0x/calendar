@@ -40,6 +40,7 @@ class Ev {
     this.readOnly = false,
     this.holiday = false,
     this.reminders = const <Duration>[],
+    this.tags = const <String>[],
   });
 
   final String id;
@@ -63,9 +64,29 @@ class Ev {
   final bool holiday;
   final List<Duration> reminders;
 
+  /// 제목에 "#태그" 로 적어 둔 태그들 ([title] 에는 태그가 빠져 있어요)
+  final List<String> tags;
+
   Duration get duration => end.difference(start);
 
-  Ev copyWith({DateTime? start, DateTime? end}) => Ev(
+  /// 일정이 걸쳐 있는 첫날 (날짜만)
+  DateTime get firstDay => DateTime(start.year, start.month, start.day);
+
+  /// 일정이 걸쳐 있는 마지막 날 (날짜만). 종일 일정은 끝이 "다음 날 00:00" 이라 하루 앞으로 봐요.
+  DateTime get lastDay {
+    final DateTime l;
+    if (allDay) {
+      l = addDays(DateTime(end.year, end.month, end.day), -1);
+    } else if (end.isAfter(start)) {
+      final x = end.subtract(const Duration(microseconds: 1));
+      l = DateTime(x.year, x.month, x.day);
+    } else {
+      l = firstDay;
+    }
+    return l.isBefore(firstDay) ? firstDay : l;
+  }
+
+  Ev copyWith({DateTime? start, DateTime? end, List<String>? tags}) => Ev(
         id: id,
         instanceId: instanceId,
         calendarId: calendarId,
@@ -82,6 +103,7 @@ class Ev {
         readOnly: readOnly,
         holiday: holiday,
         reminders: reminders,
+        tags: tags ?? this.tags,
       );
 
   /// '10월 26일 월요일 14:30 – 15:30' 같은 한 줄 설명

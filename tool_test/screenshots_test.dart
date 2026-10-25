@@ -16,6 +16,7 @@ import 'package:yeobaek/main.dart';
 import 'package:yeobaek/skins.dart';
 import 'package:yeobaek/store.dart';
 import 'package:yeobaek/theme.dart';
+import 'package:yeobaek/ui/event_tile.dart';
 
 void main() {
   // 2026-10-26 월요일 14:10
@@ -45,7 +46,7 @@ void main() {
     }
   }
 
-  Future<CalendarStore> open(WidgetTester tester, Skin skin) async {
+  Future<CalendarStore> open(WidgetTester tester, Skin skin, {bool project = false}) async {
     useWebFont = true;
     Skin.current = skin;
     addTearDown(() => Skin.current = Skin.pastel);
@@ -57,7 +58,7 @@ void main() {
     tester.view.padding = pad;
     tester.view.viewPadding = pad;
     addTearDown(tester.view.reset);
-    final store = CalendarStore(DemoRepo(clock: () => now), clock: () => now);
+    final store = CalendarStore(DemoRepo(clock: () => now, project: project), clock: () => now);
     await tester.pumpWidget(
       RepaintBoundary(key: key, child: YeobaekApp(store: store, ticking: false)),
     );
@@ -78,14 +79,14 @@ void main() {
 
   setUpAll(loadFont);
 
-  // 지금 쓰는 색 조합(Skin.current)으로 앱스토어용 화면 6장을 뽑아요.
+  // 지금 쓰는 색 조합(Skin.current)으로 앱스토어용 화면 7장을 뽑아요.
   // 파일 이름: <조합>-<번호>-<화면>.png  (다른 조합과 비교하려면 아래 목록에 Skin.classic 을 더하세요)
   for (final skin in [Skin.pastel]) {
     final id = skin.id;
     final nm = skin.name;
 
     testWidgets('$nm 월간', (tester) async {
-      await open(tester, skin);
+      await open(tester, skin, project: true);
       await save(tester, '$id-1-month');
     });
 
@@ -105,13 +106,24 @@ void main() {
       await open(tester, skin);
       await tester.tap(find.text('한 줄로 추가 · 예) 내일 3시 치과'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), '내일 오후 3시 치과 30분');
+      await tester.enterText(find.byType(TextField), '내일 오후 3시 치과 30분 #건강');
       await save(tester, '$id-4-quick-add');
+    });
+
+    testWidgets('$nm 기간 입력', (tester) async {
+      await open(tester, skin, project: true);
+      await tester.tap(find.text('한 줄로 추가 · 예) 내일 3시 치과'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '2026.11.2~2026.12.18 새 프로젝트 #일');
+      await save(tester, '$id-7-range');
     });
 
     testWidgets('$nm 일정 상세', (tester) async {
       await open(tester, skin);
-      await tester.tap(find.text('스프린트 플래닝'));
+      await tester.tap(find.descendant(
+        of: find.byType(EventTile),
+        matching: find.text('스프린트 플래닝'),
+      ));
       await save(tester, '$id-5-detail');
     });
 

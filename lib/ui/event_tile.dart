@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../dates.dart';
 import '../models.dart';
+import '../tags.dart';
 import '../theme.dart';
 import 'common.dart';
 
@@ -49,6 +50,7 @@ class EventTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = Pal.of(context);
     final sub = _sub;
+    final subStyle = ts(context, 13, weight: FontWeight.w400, color: p.muted, height: 17 / 13);
     return Tap(
       onTap: onTap,
       child: SizedBox(
@@ -88,12 +90,24 @@ class EventTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: ts(context, 16, weight: FontWeight.w600, height: 20 / 16),
                     ),
-                    if (sub.isNotEmpty)
-                      Text(
-                        sub,
+                    if (sub.isNotEmpty || event.tags.isNotEmpty)
+                      Text.rich(
+                        TextSpan(
+                          style: subStyle,
+                          children: [
+                            for (final t in event.tags)
+                              TextSpan(
+                                text: '#$t ',
+                                style: TextStyle(
+                                  color: tagColor(t, dark: p.dark),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            TextSpan(text: sub),
+                          ],
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: ts(context, 13, weight: FontWeight.w400, color: p.muted, height: 17 / 13),
                       ),
                   ],
                 ),

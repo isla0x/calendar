@@ -6,8 +6,10 @@ import '../dates.dart';
 import '../models.dart';
 import '../parser.dart';
 import '../store.dart';
+import '../tags.dart';
 import '../theme.dart';
 import 'common.dart';
+import 'tag_dialog.dart';
 
 /// 입력한 글에서 읽힌 날짜·시간·길이에 배경색을 입혀 보여주는 입력 컨트롤러
 class ParsedController extends TextEditingController {
@@ -149,6 +151,50 @@ class _QuickAddPageState extends State<QuickAddPage> {
     _rewrite({HitKind.date}, text);
   }
 
+  /// "9월 18일~10월 28일" 처럼 기간 글을 만들어요. 다시 읽어도 같은 날짜가 나오는 짧은 글을 쓰고,
+  /// 아니면 연도까지 써요.
+  String _rangeText(DateTime a, DateTime b) {
+    final store = StoreScope.of(context);
+    final short = '${a.month}월 ${a.day}일~${b.month}월 ${b.day}일';
+    final r = parseQuick(short, now: store.now, defaultDay: store.selected);
+    final last = r.lastDay;
+    if (last != null && sameDay(r.start, a) && sameDay(last, b)) return short;
+    return '${a.year}년 ${a.month}월 ${a.day}일~${b.year}년 ${b.month}월 ${b.day}일';
+  }
+
+  void _setRange(DateTime a, DateTime b) {
+    if (!b.isAfter(a)) {
+      _setDate(a);
+      return;
+    }
+    _rewrite({HitKind.date}, _rangeText(a, b));
+  }
+
+  void _removeRange(int a, int b) {
+    final t = _ctl.text;
+    final nt = (t.substring(0, a) + t.substring(b)).replaceAll(RegExp(r' {2,}'), ' ').trim();
+    _ctl.value = TextEditingValue(
+      text: nt,
+      selection: TextSelection.collapsed(offset: nt.length),
+    );
+    setState(() {});
+  }
+
+  void _addTags(List<String> add) {
+    if (add.isEmpty) return;
+    final q = _parse(StoreScope.of(context));
+    var t = _ctl.text.trimRight();
+    for (final tag in add) {
+      if (q.tags.contains(tag)) continue;
+      t = t.isEmpty ? '#$tag' : '$t #$tag';
+    }
+    _ctl.value = TextEditingValue(
+      text: t,
+      selection: TextSelection.collapsed(offset: t.length),
+    );
+    setState(() {});
+  }
+
   void _setTime(int startMin, int minutes) {
     _rewrite(
       {HitKind.time, HitKind.duration},
@@ -163,7 +209,33 @@ class _QuickAddPageState extends State<QuickAddPage> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-    if (d != null && mounted) _setDate(d);
+    if (d == null || !mounted) return;
+    final last = q.lastDay;
+    if (last != null) {
+      _setRange(d, last.isBefore(d) ? d : last);
+    } else {
+      _setDate(d);
+    }
+  }
+
+  /// 끝나는 날을 골라서 기간 일정으로 만들어요. 시작과 같은 날을 고르면 하루짜리로 돌아가요.
+  Future<void> _pickEnd(QuickParse q) async {
+    final first = dayOnly(q.start);
+    final d = await showDatePicker(
+      context: context,
+      initialDate: q.lastDay ?? first,
+      firstDate: first,
+      lastDate: DateTime(2100),
+      helpText: '끝나는 날',
+    );
+    if (d != null && mounted) _setRange(first, d);
+  }
+
+  Future<void> _askTag() async {
+    final store = StoreScope.of(context);
+    final r = await showTagDialog(context, known: store.knownTags().take(12).toList());
+    if (r == null || !mounted) return;
+    _addTags(r);
   }
 
   Future<void> _pickTime(QuickParse q) async {
@@ -287,10 +359,15 @@ class _QuickAddPageState extends State<QuickAddPage> {
       end: q.end,
       allDay: q.allDay,
       location: _location.isEmpty ? null : _location,
+      tags: q.tags,
     );
     if (!mounted) return;
     if (ok) {
-      store.select(q.start);
+      // 기간 일정이 오늘을 지나고 있으면 오늘로, 아니면 시작일로 가요.
+      final last = q.lastDay;
+      final t = store.today;
+      final inside = last != null && !t.isBefore(q.start) && !t.isAfter(last);
+      store.select(inside ? t : q.start);
       Navigator.of(context).pop();
     } else {
       setState(() => _saving = false);
@@ -318,13 +395,15 @@ class _QuickAddPageState extends State<QuickAddPage> {
     final title = q.title.isEmpty ? '새 일정' : q.title;
     final conflicts = hasText ? _conflicts(store, q) : const <Ev>[];
     final calColors = cal == null ? null : evColors(cal.color, p);
+    final last = q.lastDay;
+    final tagHits = q.hits.where((h) => h.kind == HitKind.tag).toList();
 
     String hint;
     if (!hasText) {
       hint = '날짜 · 시간 · 길이를 같이 쓰면 자동으로 읽어요';
     } else {
       final parts = <String>[];
-      if (q.hasDate) parts.add('날짜');
+      if (q.hasDate) parts.add(q.isRange ? '기간' : '날짜');
       if (q.hasTime) parts.add('시간');
       if (q.hasDuration) parts.add('길이');
       if (q.allDay) parts.add('종일');
@@ -450,13 +529,22 @@ class _QuickAddPageState extends State<QuickAddPage> {
                       children: [
                         _Chip(
                           icon: Icons.calendar_today_rounded,
-                          text: dateChip(q.start),
+                          text: last == null
+                              ? dateChip(q.start)
+                              : '${q.start.month}월 ${q.start.day}일 ~ ${last.month}월 ${last.day}일',
                           onTap: () => _pickDate(q),
                         ),
+                        if (q.allDay)
+                          _Chip(
+                            icon: Icons.date_range_rounded,
+                            text: last == null ? '끝나는 날' : '${daysBetween(q.start, q.end)}일 동안',
+                            dashed: last == null,
+                            onTap: () => _pickEnd(q),
+                          ),
                         _Chip(
                           icon: Icons.schedule_rounded,
                           text: q.allDay ? '종일' : rangeText(q.start, q.end),
-                          onTap: () => _pickTime(q),
+                          onTap: last == null ? () => _pickTime(q) : null,
                         ),
                         if (cal != null && calColors != null)
                           _Chip(
@@ -480,6 +568,24 @@ class _QuickAddPageState extends State<QuickAddPage> {
                           text: _location.isEmpty ? '장소' : _location,
                           dashed: _location.isEmpty,
                           onTap: _askLocation,
+                        ),
+                        for (final h in tagHits)
+                          _Chip(
+                            icon: Icons.close_rounded,
+                            text: _ctl.text.substring(h.start, h.end),
+                            fg: tagColor(_ctl.text.substring(h.start + 1, h.end), dark: p.dark),
+                            fill: Color.alphaBlend(
+                              tagColor(_ctl.text.substring(h.start + 1, h.end), dark: p.dark)
+                                  .withAlpha(34),
+                              p.surface,
+                            ),
+                            onTap: () => _removeRange(h.start, h.end),
+                          ),
+                        _Chip(
+                          icon: Icons.tag_rounded,
+                          text: '태그',
+                          dashed: true,
+                          onTap: _askTag,
                         ),
                       ],
                     ),
@@ -618,11 +724,18 @@ class _Preview extends StatelessWidget {
     final day = dayOnly(q.start);
     final others = store.eventsOn(day).where((e) => !e.allDay).toList();
     final bad = conflicts.isNotEmpty;
+    final last = q.lastDay;
 
     Widget status;
     if (q.allDay) {
+      final String msg;
+      if (last != null) {
+        msg = '${daysBetween(q.start, q.end)}일 동안';
+      } else {
+        msg = others.isEmpty ? '이 날은 일정이 없어요' : '이 날 일정 ${others.length}개';
+      }
       status = Text(
-        others.isEmpty ? '이 날은 일정이 없어요' : '이 날 일정 ${others.length}개',
+        msg,
         style: ts(context, 13, weight: FontWeight.w600, color: p.muted),
       );
     } else {
@@ -655,7 +768,9 @@ class _Preview extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${wdFull(day)} ${day.day}일',
+                last == null
+                    ? '${wdFull(day)} ${day.day}일'
+                    : '${q.start.month}월 ${q.start.day}일 – ${last.month}월 ${last.day}일',
                 style: ts(context, 15, weight: FontWeight.w700),
               ),
               status,

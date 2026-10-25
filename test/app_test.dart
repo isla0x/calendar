@@ -3,19 +3,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yeobaek/demo_repo.dart';
 import 'package:yeobaek/main.dart';
+import 'package:yeobaek/models.dart';
 import 'package:yeobaek/store.dart';
 import 'package:yeobaek/theme.dart';
+import 'package:yeobaek/ui/event_tile.dart';
 
 void main() {
   // 2026-10-26 월요일 14:10
   final now = DateTime(2026, 10, 26, 14, 10);
 
-  Future<CalendarStore> open(WidgetTester tester) async {
+  /// 아래 목록(EventTile)에 있는 일정 제목 (월간 달력 칸의 글자와 구분하려고)
+  Finder tile(String title) =>
+      find.descendant(of: find.byType(EventTile), matching: find.text(title));
+
+  Future<CalendarStore> open(WidgetTester tester, {bool project = false}) async {
     useWebFont = false;
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
-    final store = CalendarStore(DemoRepo(clock: () => now), clock: () => now);
+    final store = CalendarStore(DemoRepo(clock: () => now, project: project), clock: () => now);
     await tester.pumpWidget(YeobaekApp(store: store, ticking: false));
     await tester.pumpAndSettle();
     return store;
@@ -26,12 +32,36 @@ void main() {
     expect(find.text('10월'), findsOneWidget);
     expect(find.text('2026년'), findsOneWidget);
     expect(find.text('10월 26일 월요일'), findsOneWidget);
-    expect(find.text('스프린트 플래닝'), findsOneWidget);
+    expect(tile('스프린트 플래닝'), findsOneWidget);
 
     store.select(DateTime(2026, 10, 28));
     await tester.pumpAndSettle();
     expect(find.text('10월 28일 수요일'), findsOneWidget);
-    expect(find.text('스프린트 리뷰'), findsOneWidget);
+    expect(tile('스프린트 리뷰'), findsOneWidget);
+  });
+
+  testWidgets('월간 달력 칸에 일정 글자가 그대로 보여요', (tester) async {
+    await open(tester);
+    // 27일 일정은 아래 목록(26일)에는 없고, 달력 칸에만 글자로 보여요.
+    expect(find.text('디자인 리뷰'), findsOneWidget);
+    expect(tile('디자인 리뷰'), findsNothing);
+  });
+
+  testWidgets('기간 일정은 주마다 이어진 띠로 보여요', (tester) async {
+    await open(tester, project: true);
+    expect(find.text('프로젝트 A'), findsWidgets);
+    expect(tile('프로젝트 A'), findsOneWidget);
+  });
+
+  testWidgets('옆으로 넘기는 버튼으로 달을 바꿔요', (tester) async {
+    await open(tester);
+    await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+    await tester.pumpAndSettle();
+    expect(find.text('11월'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+    await tester.pumpAndSettle();
+    expect(find.text('9월'), findsOneWidget);
   });
 
   testWidgets('일간 화면: 남은 여유 3시간 50분', (tester) async {
@@ -82,11 +112,37 @@ void main() {
     expect(added.first.end, DateTime(2026, 10, 27, 15, 30));
   });
 
+  testWidgets('한 줄 입력: 기간(9/18~10/28)과 #태그', (tester) async {
+    final store = await open(tester);
+    await tester.tap(find.text('한 줄로 추가 · 예) 내일 3시 치과'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), '9/18~10/28 프로젝트 #일');
+    await tester.pumpAndSettle();
+    expect(find.text('9월 18일 ~ 10월 28일'), findsOneWidget);
+    expect(find.text('9월 18일 – 10월 28일'), findsOneWidget);
+    expect(find.text('41일 동안'), findsWidgets);
+    expect(find.text('#일'), findsOneWidget);
+
+    await tester.tap(find.text('추가'));
+    await tester.pumpAndSettle();
+    List<Ev> on(DateTime d) => store.eventsOn(d).where((e) => e.title == '프로젝트').toList();
+    expect(on(DateTime(2026, 9, 17)), isEmpty);
+    expect(on(DateTime(2026, 9, 18)).length, 1);
+    expect(on(DateTime(2026, 10, 1)).length, 1);
+    expect(on(DateTime(2026, 10, 28)).length, 1);
+    expect(on(DateTime(2026, 10, 29)), isEmpty);
+    final e = on(DateTime(2026, 10, 1)).first;
+    expect(e.allDay, true);
+    expect(e.tags, ['일']);
+  });
+
   testWidgets('일정을 누르면 상세 화면이 열려요', (tester) async {
     await open(tester);
-    await tester.tap(find.text('스프린트 플래닝'));
+    await tester.tap(tile('스프린트 플래닝'));
     await tester.pumpAndSettle();
     expect(find.text('공유하기'), findsOneWidget);
+    expect(find.text('#회의'), findsOneWidget);
     expect(find.text('삭제'), findsOneWidget);
     expect(find.textContaining('겹치지 않는 시간으로 옮기기'), findsOneWidget);
   });

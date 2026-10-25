@@ -44,73 +44,62 @@ class WeekView extends StatelessWidget {
         cands.length >= 2 &&
         (free[dayKey(best)] ?? 0) != (free[dayKey(busy)] ?? 0);
 
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onHorizontalDragEnd: (d) {
-        final v = d.primaryVelocity ?? 0;
-        if (v < -200) {
-          store.shiftWeek(1);
-        } else if (v > 200) {
-          store.shiftWeek(-1);
-        }
-      },
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 130),
-        children: [
-          if (showCards)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _InsightCard(
-                      label: '가장 여유로운 날',
-                      value: '${wd(best)}요일 · ${freeText(free[dayKey(best)] ?? 0)}',
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _InsightCard(
-                      label: '가장 바쁜 날',
-                      value: (free[dayKey(busy)] ?? 0) <= 0
-                          ? '${wd(busy)}요일 · 여유 없음'
-                          : '${wd(busy)}요일 · 여유 ${freeText(free[dayKey(busy)] ?? 0)}',
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 130),
+      children: [
+        if (showCards)
           Padding(
-            padding: const EdgeInsets.fromLTRB(62, 10, 16, 0),
-            child: LayoutBuilder(
-              builder: (context, c) {
-                final w = c.maxWidth;
-                final st = ts(context, 11, color: p.muted, height: 14 / 11);
-                Widget at(int hour) => Positioned(
-                      left: w * (hour * 60 - _rs) / (_re - _rs),
-                      top: 0,
-                      child: FractionalTranslation(
-                        translation: const Offset(-0.5, 0),
-                        child: Text('$hour시', style: st),
-                      ),
-                    );
-                return SizedBox(
-                  height: 14,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [at(9), at(12), at(15), at(18), at(21)],
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _InsightCard(
+                    label: '가장 여유로운 날',
+                    value: '${wd(best)}요일 · ${freeText(free[dayKey(best)] ?? 0)}',
                   ),
-                );
-              },
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _InsightCard(
+                    label: '가장 바쁜 날',
+                    value: (free[dayKey(busy)] ?? 0) <= 0
+                        ? '${wd(busy)}요일 · 여유 없음'
+                        : '${wd(busy)}요일 · 여유 ${freeText(free[dayKey(busy)] ?? 0)}',
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 6),
-          for (var i = 0; i < 7; i++) ...[
-            if (i > 0) const SizedBox(height: 2),
-            _WeekRow(day: days[i], column: i),
-          ],
+        Padding(
+          padding: const EdgeInsets.fromLTRB(62, 10, 16, 0),
+          child: LayoutBuilder(
+            builder: (context, c) {
+              final w = c.maxWidth;
+              final st = ts(context, 11, color: p.muted, height: 14 / 11);
+              Widget at(int hour) => Positioned(
+                    left: w * (hour * 60 - _rs) / (_re - _rs),
+                    top: 0,
+                    child: FractionalTranslation(
+                      translation: const Offset(-0.5, 0),
+                      child: Text('$hour시', style: st),
+                    ),
+                  );
+              return SizedBox(
+                height: 14,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [at(9), at(12), at(15), at(18), at(21)],
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 6),
+        for (var i = 0; i < 7; i++) ...[
+          if (i > 0) const SizedBox(height: 2),
+          _WeekRow(day: days[i], column: i),
         ],
-      ),
+      ],
     );
   }
 }

@@ -5,6 +5,7 @@ import 'dates.dart';
 import 'models.dart';
 import 'repo.dart';
 import 'skins.dart';
+import 'tags.dart';
 import 'theme.dart';
 
 /// 실제 기기 캘린더(iOS 캘린더, 구글 캘린더 등)를 읽고 쓰는 저장소
@@ -87,12 +88,15 @@ class DeviceRepo implements CalendarRepo {
         t = e.endDate.toLocal();
         if (t.isBefore(s)) t = s;
       }
+      final rawTitle = e.title.trim();
+      final parts = splitTags(rawTitle);
       out.add(Ev(
         id: e.eventId,
         instanceId: e.instanceId,
         calendarId: e.calendarId,
         calendarName: calName,
-        title: e.title.trim().isEmpty ? '(제목 없음)' : e.title,
+        title: rawTitle.isEmpty ? '(제목 없음)' : parts.title,
+        tags: rawTitle.isEmpty ? const <String>[] : parts.tags,
         start: s,
         end: t,
         allDay: e.isAllDay,
@@ -117,6 +121,7 @@ class DeviceRepo implements CalendarRepo {
     required DateTime end,
     bool allDay = false,
     String? location,
+    List<String> tags = const <String>[],
   }) async {
     var cid = calendarId;
     if (cid == null) {
@@ -130,7 +135,7 @@ class DeviceRepo implements CalendarRepo {
     if (cid == null) throw StateError('쓸 수 있는 캘린더가 없어요');
     await _plugin.createEvent(
       calendarId: cid,
-      title: title,
+      title: joinTags(title, tags),
       startDate: start,
       endDate: end,
       isAllDay: allDay,
@@ -145,6 +150,17 @@ class DeviceRepo implements CalendarRepo {
       startDate: start,
       endDate: end,
     );
+  }
+
+  @override
+  Future<void> setTags(Ev e, List<String> tags) async {
+    final title = joinTags(e.title, tags);
+    if (e.recurring) {
+      // 반복 일정은 시리즈 전체의 제목을 고쳐요.
+      await _plugin.updateRecurring(e.instanceId, EventSpan.allEvents, title: title);
+    } else {
+      await _plugin.updateEvent(instanceId: e.instanceId, title: title);
+    }
   }
 
   @override

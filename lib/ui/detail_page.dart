@@ -6,8 +6,10 @@ import 'package:flutter/services.dart';
 import '../dates.dart';
 import '../models.dart';
 import '../store.dart';
+import '../tags.dart';
 import '../theme.dart';
 import 'common.dart';
+import 'tag_dialog.dart';
 
 /// 일정 상세: 한눈에 보기, 겹치지 않는 시간으로 옮기기, 편집·삭제·공유
 class EventDetailPage extends StatefulWidget {
@@ -174,11 +176,35 @@ class _EventDetailPageState extends State<EventDetailPage> {
     }
   }
 
+  Future<void> _editTags() async {
+    if (_busy) return;
+    final store = StoreScope.of(context);
+    final old = _ev;
+    final r = await showTagDialog(
+      context,
+      initial: old.tags,
+      known: store.knownTags().take(12).toList(),
+    );
+    if (r == null || !mounted) return;
+    if (r.length == old.tags.length && r.every(old.tags.contains)) return;
+    setState(() => _busy = true);
+    final ok = await store.setEventTags(old, r);
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      if (ok) {
+        _ev = store.findEvent(old.id, start: old.start) ?? old.copyWith(tags: r);
+      }
+    });
+    if (!ok) _snack(store.error ?? '태그를 바꾸지 못했어요');
+  }
+
   Future<void> _share() async {
     final e = _ev;
     final lines = <String>[e.title, e.whenText()];
     final loc = e.location;
     if (loc != null && loc.trim().isNotEmpty) lines.add(loc.trim());
+    if (e.tags.isNotEmpty) lines.add(e.tags.map((t) => '#$t').join(' '));
     await Clipboard.setData(ClipboardData(text: lines.join('\n')));
     if (mounted) _snack('일정 정보를 복사했어요');
   }
@@ -322,6 +348,62 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           _whenLine(e, today),
                           style: ts(context, 16, color: c.text, height: 20 / 16),
                         ),
+                        if (e.tags.isNotEmpty || !e.readOnly) ...[
+                          const SizedBox(height: 14),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final t in e.tags)
+                                Tap(
+                                  onTap: e.readOnly ? null : _editTags,
+                                  child: Container(
+                                    height: 30,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: p.dark
+                                          ? const Color(0x24FFFFFF)
+                                          : const Color(0xB3FFFFFF),
+                                      borderRadius: BorderRadius.circular(15),
+                                    ),
+                                    child: Text(
+                                      '#$t',
+                                      style: ts(
+                                        context,
+                                        14,
+                                        weight: FontWeight.w600,
+                                        color: tagColor(t, dark: p.dark),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              if (!e.readOnly)
+                                Tap(
+                                  onTap: _editTags,
+                                  label: '태그 바꾸기',
+                                  child: Container(
+                                    height: 30,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(15),
+                                      border: Border.all(color: c.text.withAlpha(90)),
+                                    ),
+                                    child: Text(
+                                      e.tags.isEmpty ? '+ 태그' : '편집',
+                                      style: ts(
+                                        context,
+                                        14,
+                                        weight: FontWeight.w600,
+                                        color: c.text,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
                         if (status != null) ...[
                           const SizedBox(height: 16),
                           Container(

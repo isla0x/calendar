@@ -22,11 +22,15 @@ abstract class CalendarRepo {
     required DateTime end,
     bool allDay = false,
     String? location,
+    List<String> tags = const <String>[],
   });
 
   Future<void> move(Ev e, DateTime start, DateTime end);
 
   Future<void> delete(Ev e);
+
+  /// 일정의 태그를 바꿔요 (기기 캘린더에서는 제목 끝의 "#태그" 를 고쳐요).
+  Future<void> setTags(Ev e, List<String> tags);
 
   /// 기기 기본 일정 편집 화면을 열어요.
   Future<void> openEditor(Ev e);

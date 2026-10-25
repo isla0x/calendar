@@ -143,4 +143,97 @@ void main() {
     expect(q.start, DateTime(2026, 10, 28, 16, 30));
     expect(q.end, DateTime(2026, 10, 28, 17, 15));
   });
+
+  group('기간', () {
+    void expectRange(QuickParse q, DateTime a, DateTime b) {
+      expect(q.isRange, true);
+      expect(q.allDay, true);
+      expect(q.start, a);
+      expect(q.lastDay, b);
+      expect(q.end, DateTime(b.year, b.month, b.day + 1));
+      expect(q.hits.where((h) => h.kind == HitKind.date).length, 1);
+    }
+
+    test('9/18~10/28 프로젝트 (최근에 시작한 기간은 올해로)', () {
+      final q = parse('9/18~10/28 프로젝트');
+      expect(q.title, '프로젝트');
+      expectRange(q, DateTime(2026, 9, 18), DateTime(2026, 10, 28));
+    });
+
+    test('26.09.18~26.10.28 프로젝트', () {
+      final q = parse('26.09.18~26.10.28 프로젝트');
+      expect(q.title, '프로젝트');
+      expectRange(q, DateTime(2026, 9, 18), DateTime(2026, 10, 28));
+    });
+
+    test('2026.9.18~2026.10.28 프로젝트', () {
+      final q = parse('프로젝트 2026.9.18~2026.10.28');
+      expect(q.title, '프로젝트');
+      expectRange(q, DateTime(2026, 9, 18), DateTime(2026, 10, 28));
+    });
+
+    test('9월 18일부터 10월 28일까지 프로젝트', () {
+      final q = parse('9월 18일부터 10월 28일까지 프로젝트');
+      expect(q.title, '프로젝트');
+      expectRange(q, DateTime(2026, 9, 18), DateTime(2026, 10, 28));
+    });
+
+    test('내일~모레 출장', () {
+      final q = parse('내일~모레 출장');
+      expect(q.title, '출장');
+      expectRange(q, DateTime(2026, 10, 27), DateTime(2026, 10, 28));
+    });
+
+    test('먼 과거 같은 날짜는 내년으로, 끝이 더 이르면 다음 해로', () {
+      var q = parse('3월 5일~3월 7일 시험');
+      expectRange(q, DateTime(2027, 3, 5), DateTime(2027, 3, 7));
+      q = parse('12/30~1/2 연말');
+      expectRange(q, DateTime(2026, 12, 30), DateTime(2027, 1, 2));
+    });
+
+    test('범위가 아닌 것: 날짜 하나, 시간 범위, 제목 속 하이픈', () {
+      expect(parse('10월 28일 3시 회의').isRange, false);
+      expect(parse('3시~5시 스터디').isRange, false);
+      final q = parse('내일 - 회의');
+      expect(q.isRange, false);
+      expect(q.title, '회의');
+    });
+
+    test('칩으로 날짜를 바꿀 때 기간 전체가 한 번에 바뀌어요', () {
+      final q = parse('프로젝트 9/18~10/28');
+      final t = rewriteHits('프로젝트 9/18~10/28', q.hits, {HitKind.date}, '10월 1일');
+      expect(t, '프로젝트 10월 1일');
+    });
+  });
+
+  group('태그', () {
+    test('#태그는 제목에서 빠지고 따로 읽혀요', () {
+      final q = parse('치과 #건강 #병원 내일 3시');
+      expect(q.title, '치과');
+      expect(q.tags, ['건강', '병원']);
+      expect(q.start, DateTime(2026, 10, 27, 15, 0));
+      expect(q.hits.where((h) => h.kind == HitKind.tag).length, 2);
+    });
+
+    test('태그 속 숫자는 시간·날짜로 읽지 않아요', () {
+      final q = parse('#2024목표 #3시 회의');
+      expect(q.title, '회의');
+      expect(q.tags, ['2024목표', '3시']);
+      expect(q.hasTime, false);
+      expect(q.hasDate, false);
+    });
+
+    test('같은 태그는 한 번만, 태그만 써도 돼요', () {
+      expect(parse('회의 #일 #일').tags, ['일']);
+      final q = parse('#회의');
+      expect(q.title, '');
+      expect(q.tags, ['회의']);
+    });
+
+    test('# 앞에 글자가 붙어 있으면 태그가 아니에요', () {
+      final q = parse('C# 공부');
+      expect(q.tags, isEmpty);
+      expect(q.title, 'C# 공부');
+    });
+  });
 }

@@ -1,7 +1,7 @@
 import 'dates.dart';
 
 /// 한 줄 입력에서 찾아낸 부분의 종류 (색 표시용)
-enum HitKind { date, time, duration }
+enum HitKind { date, time, duration, tag }
 
 /// 입력 글자에서 [start, end) 부분이 날짜 / 시간 / 길이로 읽혔다는 표시
 class Hit {
@@ -22,6 +22,8 @@ class QuickParse {
     required this.hasTime,
     required this.hasDuration,
     required this.hits,
+    this.tags = const <String>[],
+    this.lastDay,
   });
 
   final String title;
@@ -36,6 +38,15 @@ class QuickParse {
   final bool hasTime;
   final bool hasDuration;
   final List<Hit> hits;
+
+  /// "#태그" 로 쓴 태그들 (제목에는 들어가지 않아요)
+  final List<String> tags;
+
+  /// "9/18~10/28" 처럼 기간으로 썼을 때 마지막 날 (그날 포함). 하루짜리면 null.
+  /// 이때 [start] 는 첫날 0시, [end] 는 마지막 날 다음 날 0시이고 종일 일정이에요.
+  final DateTime? lastDay;
+
+  bool get isRange => lastDay != null;
 
   bool get isEmpty => title.isEmpty && !hasDate && !hasTime && !hasDuration;
 }
@@ -337,6 +348,16 @@ final RegExp _reYmd = RegExp(
         _after +
         r')?(?![\d:])');
 
+// 26.09.18, 26-9-18 (두 자리 연도)
+final RegExp _reYmd2 = RegExp(
+    r'(?<![\d.:/])([23]\d)\s*([./-])\s*(\d{1,2})\s*\2\s*(\d{1,2})(?![\d:./])');
+
+// #태그
+final RegExp _reTag = RegExp(r'(?<![\p{L}\p{N}_])#([\p{L}\p{N}_]+)', unicode: true);
+
+// 기간의 가운데: "~", "-", "에서" (없어도 되지만, 없으면 앞 날짜가 "부터" 로 끝나야 기간이에요)
+final RegExp _reRangeSep = RegExp(r'^\s*(~|-|–|—|에서)?\s*');
+
 final RegExp _reMd = RegExp(r'(?<![\d.])(\d{1,2})\s*월\s*(\d{1,2})\s*일' + _after);
 
 final RegExp _reSlash = RegExp(
@@ -349,10 +370,16 @@ final RegExp _reWeek =
     RegExp(r'(?<![가-힣])(다다음\s*주|다음\s*주|담\s*주|이번\s*주)' + _after);
 
 class _Dt {
-  _Dt(this.date, this.s, this.e);
+  _Dt(this.date, this.s, this.e, {this.hasYear = false, this.md = false});
   final DateTime date;
   final int s;
   final int e;
+
+  /// 글에 연도를 직접 썼는지
+  final bool hasYear;
+
+  /// "10월 28일", "10/28" 처럼 월·일로 쓴 날짜인지
+  final bool md;
 }
 
 int _weekOffset(String? prefix) {
@@ -363,12 +390,14 @@ int _weekOffset(String? prefix) {
   return 0; // 이번주
 }
 
-_Dt? _findDate(String s, DateTime now) {
+_Dt? _findDate(String s, DateTime now, {bool atStart = false}) {
+  Match? find(RegExp re) => atStart ? re.matchAsPrefix(s) : re.firstMatch(s);
+
   final today = dayOnly(now);
   final monday = addDays(today, -(today.weekday - 1));
 
   // 요일: "금요일", "다음주 월요일"
-  var m = _reWeekday.firstMatch(s);
+  Match? m = find(_reWeekday);
   if (m != null) {
     final target = kWeekdayKo.indexOf(m.group(2)!) + 1; // 월=1 ... 일=7
     final off = _weekOffset(m.group(1));
@@ -384,7 +413,7 @@ _Dt? _findDate(String s, DateTime now) {
   }
 
   // 오늘 / 내일 / 모레 ...
-  m = _reRel.firstMatch(s);
+  m = find(_reRel);
   if (m != null) {
     int n;
     switch (m.group(1)) {
@@ -406,7 +435,7 @@ _Dt? _findDate(String s, DateTime now) {
   }
 
   // 3일 후 / 2주 뒤
-  m = _reAfter.firstMatch(s);
+  m = find(_reAfter);
   if (m != null) {
     final n = int.parse(m.group(1)!);
     final days = m.group(2) == '주' ? n * 7 : n;
@@ -414,41 +443,87 @@ _Dt? _findDate(String s, DateTime now) {
   }
 
   // 2026년 11월 3일, 2026-11-03
-  m = _reYmd.firstMatch(s);
+  m = find(_reYmd);
   if (m != null) {
     final d = _mk(int.parse(m.group(1)!), int.parse(m.group(2)!), int.parse(m.group(3)!));
-    if (d != null) return _Dt(d, m.start, _tail(s, m.end));
+    if (d != null) return _Dt(d, m.start, _tail(s, m.end), hasYear: true);
+  }
+
+  // 26.09.18
+  m = find(_reYmd2);
+  if (m != null) {
+    final d = _mk(2000 + int.parse(m.group(1)!), int.parse(m.group(3)!), int.parse(m.group(4)!));
+    if (d != null) return _Dt(d, m.start, _tail(s, m.end), hasYear: true);
   }
 
   // 11월 3일
-  m = _reMd.firstMatch(s);
+  m = find(_reMd);
   if (m != null) {
     final d = _nextOccur(int.parse(m.group(1)!), int.parse(m.group(2)!), today);
-    if (d != null) return _Dt(d, m.start, _tail(s, m.end));
+    if (d != null) return _Dt(d, m.start, _tail(s, m.end), md: true);
   }
 
   // 11/3, 11.3
-  m = _reSlash.firstMatch(s);
+  m = find(_reSlash);
   if (m != null) {
     final d = _nextOccur(int.parse(m.group(1)!), int.parse(m.group(2)!), today);
-    if (d != null) return _Dt(d, m.start, _tail(s, m.end));
+    if (d != null) return _Dt(d, m.start, _tail(s, m.end), md: true);
   }
 
   // 3일
-  m = _reDay.firstMatch(s);
+  m = find(_reDay);
   if (m != null) {
     final d = _nextDayOfMonth(int.parse(m.group(1)!), today);
     if (d != null) return _Dt(d, m.start, _tail(s, m.end));
   }
 
   // 다음주 (요일 없이)
-  m = _reWeek.firstMatch(s);
+  m = find(_reWeek);
   if (m != null) {
     final off = _weekOffset(m.group(1));
     return _Dt(addDays(today, off), m.start, _tail(s, m.end));
   }
 
   return null;
+}
+
+class _Range {
+  _Range(this.first, this.last, this.end);
+  final DateTime first;
+  final DateTime last;
+
+  /// 기간 글이 끝나는 자리 (글 전체 기준)
+  final int end;
+}
+
+/// "9/18~10/28", "9월 18일부터 10월 28일까지" 처럼 첫 날짜 뒤에 끝 날짜가 이어지면 기간으로 읽어요.
+_Range? _findRangeEnd(String s, _Dt a, DateTime now) {
+  final tail = s.substring(a.e);
+  final gap = _reRangeSep.firstMatch(tail);
+  if (gap == null) return null;
+  final hadSep = gap.group(1) != null || s.substring(a.s, a.e).endsWith('부터');
+  if (!hadSep) return null;
+  final b = _findDate(tail.substring(gap.end), now, atStart: true);
+  if (b == null) return null;
+
+  final today = dayOnly(now);
+  var first = a.date;
+  // 연도를 안 쓴 월/일이 올해 이미 지난 날(최근 90일 안)이면, 올해로 봐요. (진행 중인 기간을 넣을 때)
+  if (!a.hasYear && a.md && first.year > today.year) {
+    final prev = _mk(first.year - 1, first.month, first.day);
+    if (prev != null && prev.isBefore(today) && !prev.isBefore(addDays(today, -90))) {
+      first = prev;
+    }
+  }
+  var last = b.date;
+  // 끝 날짜의 연도를 안 썼으면, 시작일 이후로 가장 가까운 그 날짜
+  if (!b.hasYear && b.md) {
+    var c = _mk(first.year, last.month, last.day);
+    if (c != null && c.isBefore(first)) c = _mk(first.year + 1, last.month, last.day);
+    if (c != null) last = c;
+  }
+  if (last.isBefore(first)) return null;
+  return _Range(first, last, a.e + gap.end + b.e);
 }
 
 // ---------------------------------------------------------------------------
@@ -465,6 +540,14 @@ QuickParse parseQuick(
   required DateTime defaultDay,
 }) {
   final w = _Work(input);
+
+  // "#태그" 는 제일 먼저 떼어 둬요 (태그 안의 숫자가 시간·날짜로 읽히지 않게)
+  final tags = <String>[];
+  for (final m in _reTag.allMatches(input).toList()) {
+    final t = m.group(1);
+    if (t != null && !tags.contains(t)) tags.add(t);
+    w.claim(m.start, m.end, HitKind.tag);
+  }
 
   var allDayWord = false;
   final ad = _reAllDay.firstMatch(w.s);
@@ -483,20 +566,32 @@ QuickParse parseQuick(
   if (dur != null) w.claim(dur.s, dur.e, HitKind.duration);
 
   final dt = _findDate(w.s, now);
-  if (dt != null) w.claim(dt.s, dt.e, HitKind.date);
+  DateTime? firstDay = dt?.date;
+  DateTime? lastDay;
+  if (dt != null) {
+    final range = _findRangeEnd(w.s, dt, now);
+    if (range != null) {
+      firstDay = range.first;
+      lastDay = range.last;
+      w.claim(dt.s, range.end, HitKind.date);
+    } else {
+      w.claim(dt.s, dt.e, HitKind.date);
+    }
+  }
 
   // 제목: 읽힌 부분을 빼고 남은 글
   var title = w.s.replaceAll(_mask, ' ').replaceAll(RegExp(r'\s+'), ' ');
   title = title.replaceAll(RegExp(r'^[\s,.\-~·:]+|[\s,.\-~·:]+$'), '');
 
-  final day = dt?.date ?? dayOnly(defaultDay);
-  final allDay = allDayWord || (startMin == null && durMin == null);
+  final day = firstDay ?? dayOnly(defaultDay);
+  // 기간(여러 날)은 항상 종일 일정이에요.
+  final allDay = lastDay != null || allDayWord || (startMin == null && durMin == null);
 
   DateTime start;
   DateTime end;
   if (allDay) {
     start = day;
-    end = addDays(day, 1);
+    end = addDays(lastDay ?? day, 1);
   } else {
     int sMin;
     int eMin;
@@ -524,6 +619,8 @@ QuickParse parseQuick(
     hasTime: startMin != null,
     hasDuration: durMin != null || rangeEnd != null,
     hits: List<Hit>.unmodifiable(w.hits),
+    tags: List<String>.unmodifiable(tags),
+    lastDay: lastDay,
   );
 }
 

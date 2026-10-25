@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../models.dart';
 import '../store.dart';
+import '../tags.dart';
 import '../theme.dart';
 import 'common.dart';
 import 'event_tile.dart';
 import 'nav.dart';
 
-/// 일정 검색: 앞뒤 1년 안에서 제목·장소로 찾아요.
+/// 일정 검색: 앞뒤 1년 안에서 제목·장소·태그로 찾아요.
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
 
@@ -21,6 +22,7 @@ class _SearchPageState extends State<SearchPage> {
   bool _loading = true;
   bool _failed = false;
   String _q = '';
+  String? _tag;
 
   @override
   void initState() {
@@ -56,11 +58,32 @@ class _SearchPageState extends State<SearchPage> {
     }
   }
 
+  /// 찾은 일정들에 붙은 태그 (많이 쓴 순)
+  List<String> get _tags {
+    final count = <String, int>{};
+    for (final e in _all) {
+      for (final t in e.tags) {
+        count[t] = (count[t] ?? 0) + 1;
+      }
+    }
+    final keys = count.keys.toList()
+      ..sort((a, b) {
+        final c = (count[b] ?? 0).compareTo(count[a] ?? 0);
+        return c != 0 ? c : a.compareTo(b);
+      });
+    return keys.take(16).toList();
+  }
+
   List<Ev> get _results {
-    final k = _q.trim().toLowerCase();
-    if (k.isEmpty) return const <Ev>[];
+    final raw = _q.trim().toLowerCase();
+    final k = raw.startsWith('#') ? raw.substring(1) : raw;
+    final tag = _tag;
+    if (k.isEmpty && tag == null) return const <Ev>[];
     final out = _all.where((e) {
+      if (tag != null && !e.tags.contains(tag)) return false;
+      if (k.isEmpty) return true;
       if (e.title.toLowerCase().contains(k)) return true;
+      if (e.tags.any((t) => t.toLowerCase().contains(k))) return true;
       final loc = e.location;
       return loc != null && loc.toLowerCase().contains(k);
     }).toList();
@@ -78,10 +101,10 @@ class _SearchPageState extends State<SearchPage> {
       body = Center(child: Text('불러오는 중…', style: ts(context, 14, color: p.muted)));
     } else if (_failed) {
       body = Center(child: Text('일정을 불러오지 못했어요', style: ts(context, 14, color: p.muted)));
-    } else if (_q.trim().isEmpty) {
+    } else if (_q.trim().isEmpty && _tag == null) {
       body = Center(
         child: Text(
-          '제목이나 장소로 찾아요\n(앞뒤 1년 안의 일정)',
+          '제목·장소·태그로 찾아요\n(앞뒤 1년 안의 일정)',
           textAlign: TextAlign.center,
           style: ts(context, 14, color: p.muted, height: 1.6),
         ),
@@ -105,6 +128,8 @@ class _SearchPageState extends State<SearchPage> {
         ],
       );
     }
+
+    final tags = _loading ? const <String>[] : _tags;
 
     return Scaffold(
       backgroundColor: p.bg,
@@ -156,6 +181,33 @@ class _SearchPageState extends State<SearchPage> {
               ],
             ),
           ),
+          if (tags.isNotEmpty)
+            SizedBox(
+              height: 44,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                itemCount: tags.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, i) {
+                  final t = tags[i];
+                  final on = _tag == t;
+                  final col = tagColor(t, dark: p.dark);
+                  return Tap(
+                    onTap: () => setState(() => _tag = on ? null : t),
+                    child: Pill(
+                      height: 32,
+                      ring: !on,
+                      color: on ? Color.alphaBlend(col.withAlpha(44), p.surface) : null,
+                      child: Text(
+                        '#$t',
+                        style: ts(context, 14, weight: FontWeight.w600, color: col),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
           Expanded(child: body),
         ],
       ),

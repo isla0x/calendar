@@ -369,6 +369,7 @@ class CalendarStore extends ChangeNotifier {
     required DateTime end,
     bool allDay = false,
     String? location,
+    List<String> tags = const <String>[],
   }) async {
     try {
       await repo.create(
@@ -378,6 +379,7 @@ class CalendarStore extends ChangeNotifier {
         end: end,
         allDay: allDay,
         location: location,
+        tags: tags,
       );
       await _refresh(force: true);
       return true;
@@ -398,6 +400,34 @@ class CalendarStore extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  Future<bool> setEventTags(Ev e, List<String> tags) async {
+    try {
+      await repo.setTags(e, tags);
+      await _refresh(force: true);
+      return true;
+    } catch (_) {
+      error = '태그를 바꾸지 못했어요';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// 지금 불러와 둔 일정들에서 쓰인 태그 (많이 쓴 순)
+  List<String> knownTags() {
+    final count = <String, int>{};
+    for (final e in _events) {
+      for (final t in e.tags) {
+        count[t] = (count[t] ?? 0) + 1;
+      }
+    }
+    final keys = count.keys.toList()
+      ..sort((a, b) {
+        final c = (count[b] ?? 0).compareTo(count[a] ?? 0);
+        return c != 0 ? c : a.compareTo(b);
+      });
+    return keys;
   }
 
   Future<bool> deleteEvent(Ev e) async {

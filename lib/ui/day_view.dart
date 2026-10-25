@@ -48,26 +48,15 @@ class _WeekStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final start = weekStartSunday(store.selected);
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onHorizontalDragEnd: (d) {
-        final v = d.primaryVelocity ?? 0;
-        if (v < -200) {
-          store.shiftWeek(1);
-        } else if (v > 200) {
-          store.shiftWeek(-1);
-        }
-      },
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-        child: Row(
-          children: [
-            for (var i = 0; i < 7; i++) ...[
-              if (i > 0) const SizedBox(width: 2),
-              Expanded(child: _StripCell(day: addDays(start, i))),
-            ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Row(
+        children: [
+          for (var i = 0; i < 7; i++) ...[
+            if (i > 0) const SizedBox(width: 2),
+            Expanded(child: _StripCell(day: addDays(start, i))),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -667,23 +656,12 @@ class _Timeline extends StatelessWidget {
           ));
         }
 
-        return GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onHorizontalDragEnd: (d) {
-            final v = d.primaryVelocity ?? 0;
-            if (v < -200) {
-              store.shiftDay(1);
-            } else if (v > 200) {
-              store.shiftDay(-1);
-            }
-          },
-          child: SingleChildScrollView(
-            key: ValueKey('${dayKey(day)}-${store.pastOpen}'),
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 130),
-            child: SizedBox(
-              height: totalH,
-              child: Stack(clipBehavior: Clip.none, children: children),
-            ),
+        return SingleChildScrollView(
+          key: ValueKey('${dayKey(day)}-${store.pastOpen}'),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 130),
+          child: SizedBox(
+            height: totalH,
+            child: Stack(clipBehavior: Clip.none, children: children),
           ),
         );
       },
