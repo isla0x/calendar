@@ -22,10 +22,73 @@ class _MonthViewState extends State<MonthView> {
   DraggableScrollableController _sheet = DraggableScrollableController();
   String _sheetKey = '';
 
+  // 달을 옆으로 넘기는 페이지. 처음 열린 달을 5000쪽으로 놓고 달마다 한 쪽씩이에요.
+  static const int _basePage = 5000;
+  late final DateTime _baseMonth;
+  late final PageController _pages;
+  bool _dragging = false;
+  int? _animTo;
+
+  @override
+  void initState() {
+    super.initState();
+    final m = StoreScope.read(context).month;
+    _baseMonth = DateTime(m.year, m.month);
+    _pages = PageController(initialPage: _basePage);
+  }
+
   @override
   void dispose() {
+    _pages.dispose();
     _sheet.dispose();
     super.dispose();
+  }
+
+  int _pageOf(DateTime m) =>
+      _basePage + (m.year - _baseMonth.year) * 12 + (m.month - _baseMonth.month);
+
+  DateTime _monthOf(int page) =>
+      DateTime(_baseMonth.year, _baseMonth.month + (page - _basePage));
+
+  /// 버튼이나 날짜 선택으로 달이 바뀌면 페이지도 부드럽게 따라가요. (손으로 끄는 중에는 건드리지 않아요)
+  void _syncPage(int target) {
+    if (!_pages.hasClients || _dragging || _animTo == target) return;
+    final cur = _pages.page;
+    if (cur == null || (cur - target).abs() < 0.001) return;
+    _animTo = target;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || !_pages.hasClients) {
+        _animTo = null;
+        return;
+      }
+      final from = _pages.page ?? target.toDouble();
+      if ((target - from).abs() > 1.5) {
+        _pages.jumpToPage(target);
+      } else {
+        await _pages.animateToPage(
+          target,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOutCubic,
+        );
+      }
+      _animTo = null;
+    });
+  }
+
+  /// 손을 떼서 페이지가 자리 잡으면 그 달로 정해요.
+  bool _onScroll(ScrollNotification n) {
+    if (n.metrics.axis != Axis.horizontal) return false;
+    if (n is ScrollStartNotification && n.dragDetails != null) _dragging = true;
+    if (n is ScrollEndNotification) {
+      _dragging = false;
+      final store = StoreScope.read(context);
+      final page = _pages.page;
+      if (page != null) {
+        final delta = page.round() - _pageOf(store.month);
+        if (delta != 0) store.shiftMonth(delta);
+      }
+    }
+    return false;
   }
 
   /// 달력 크기가 바뀌면(달이 바뀌어 줄 수가 달라질 때 등) 목록 시트를 새 컨트롤러로 다시 만들어요.
@@ -73,6 +136,8 @@ class _MonthViewState extends State<MonthView> {
         final maxSize = 1 - 6 / c.maxHeight;
         final sheetKey = 'daysheet-$rows-${gridBottom.round()}';
         _syncSheet(sheetKey);
+        _syncPage(_pageOf(store.month));
+        final gridH = rows * cellH + gap * (rows - 1);
 
         return Stack(
           children: [
@@ -110,18 +175,40 @@ class _MonthViewState extends State<MonthView> {
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: _kSide),
-                    child: Column(
-                      children: [
-                        for (var r = 0; r < rows; r++) ...[
-                          if (r > 0) const SizedBox(height: gap),
-                          _WeekRow(
-                            start: addDays(gridStart, r * 7),
-                            month: store.month.month,
-                            height: cellH,
-                            gap: gap,
-                          ),
-                        ],
-                      ],
+                    child: SizedBox(
+                      height: gridH,
+                      child: NotificationListener<ScrollNotification>(
+                        onNotification: _onScroll,
+                        child: PageView.builder(
+                          controller: _pages,
+                          itemBuilder: (context, i) {
+                            final m = _monthOf(i);
+                            final g0 = weekStartSunday(DateTime(m.year, m.month, 1));
+                            final end = DateTime(m.year, m.month + 1, 0);
+                            final n = daysBetween(g0, end) ~/ 7 + 1;
+                            // 줄 수가 다른 달은 위쪽을 맞춰요 (넘어가는 동안 모자라는 쪽은 잘려 보여요)
+                            return OverflowBox(
+                              alignment: Alignment.topCenter,
+                              minHeight: 0,
+                              maxHeight: double.infinity,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  for (var r = 0; r < n; r++) ...[
+                                    if (r > 0) const SizedBox(height: gap),
+                                    _WeekRow(
+                                      start: addDays(g0, r * 7),
+                                      month: m.month,
+                                      height: cellH,
+                                      gap: gap,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                     ),
                   ),
                 ],

@@ -303,6 +303,22 @@ void main() {
     expect(inGrid, findsOneWidget);
   });
 
+  testWidgets('달력을 옆으로 밀면 다음 달 / 이전 달로 넘어가요', (tester) async {
+    final store = await open(tester);
+    expect(store.month, DateTime(2026, 10));
+    await tester.fling(find.byType(PageView), const Offset(-300, 0), 1200);
+    await tester.pumpAndSettle();
+    expect(store.month, DateTime(2026, 11));
+    await tester.fling(find.byType(PageView), const Offset(300, 0), 1200);
+    await tester.pumpAndSettle();
+    expect(store.month, DateTime(2026, 10));
+    // 버튼으로 넘겨도 페이지가 따라가요.
+    store.shiftMonth(1);
+    await tester.pumpAndSettle();
+    expect(find.byType(PageView), findsOneWidget);
+    expect(store.month, DateTime(2026, 11));
+  });
+
   testWidgets('다크 모드에서도 그려져요', (tester) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
