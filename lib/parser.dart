@@ -362,6 +362,10 @@ final RegExp _reYmd = RegExp(
 final RegExp _reYmd2 = RegExp(
     r'(?<![\d.:/])([23]\d)\s*([./-])\s*(\d{1,2})\s*\2\s*(\d{1,2})(?![\d:./])');
 
+// 261030, 20261030 (숫자만 붙여 쓴 날짜: 연월일)
+final RegExp _reCompact = RegExp(
+    r'(?<![\d.:/-])(?:(20\d{2})|([23]\d))(\d{2})(\d{2})(?![\d:./]|\s*(?:시|분|-\d))');
+
 // #태그
 final RegExp _reTag = RegExp(r'(?<![\p{L}\p{N}_])#([\p{L}\p{N}_]+)', unicode: true);
 
@@ -463,6 +467,14 @@ _Dt? _findDate(String s, DateTime now, {bool atStart = false}) {
   m = find(_reYmd2);
   if (m != null) {
     final d = _mk(2000 + int.parse(m.group(1)!), int.parse(m.group(3)!), int.parse(m.group(4)!));
+    if (d != null) return _Dt(d, m.start, _tail(s, m.end), hasYear: true);
+  }
+
+  // 261030, 20261030
+  m = find(_reCompact);
+  if (m != null) {
+    final y = m.group(1) != null ? int.parse(m.group(1)!) : 2000 + int.parse(m.group(2)!);
+    final d = _mk(y, int.parse(m.group(3)!), int.parse(m.group(4)!));
     if (d != null) return _Dt(d, m.start, _tail(s, m.end), hasYear: true);
   }
 

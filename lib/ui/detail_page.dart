@@ -91,29 +91,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
     }
   }
 
-  /// 기기 기본 편집 화면 (반복 일정 전체를 지울 때처럼 앱에서 못 하는 일)
-  Future<void> _openNativeEditor() async {
-    final store = StoreScope.of(context);
-    if (store.isDemo) {
-      _snack('샘플 모드에서는 쓸 수 없어요');
-      return;
-    }
-    try {
-      await store.repo.openEditor(_ev);
-    } catch (_) {
-      if (mounted) _snack('편집 화면을 열지 못했어요');
-      return;
-    }
-    await store.reload();
-    if (!mounted) return;
-    final fresh = store.findEvent(_ev.id, start: _ev.start);
-    if (fresh == null) {
-      Navigator.of(context).pop();
-    } else {
-      setState(() => _ev = fresh);
-    }
-  }
-
   Future<void> _move(Slot s) async {
     if (_busy) return;
     final store = StoreScope.of(context);

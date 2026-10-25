@@ -238,6 +238,26 @@ void main() {
     });
   });
 
+  group('붙여 쓴 날짜', () {
+    test('261030 20:00 → 2026-10-30 20:00', () {
+      final q = parse('261030 20:00');
+      expect(q.start, DateTime(2026, 10, 30, 20, 0));
+      expect(q.title, '');
+    });
+
+    test('20261030 회의 / 261030~261105 출장', () {
+      expect(parse('20261030 회의').start.day, 30);
+      final q = parse('261030~261105 출장');
+      expect(q.title, '출장');
+      expect(q.start, DateTime(2026, 10, 30));
+      expect(q.lastDay, DateTime(2026, 11, 5));
+    });
+
+    test('날짜가 될 수 없는 숫자는 그대로 둬요', () {
+      expect(parse('주문 269999').hasDate, false);
+    });
+  });
+
   group('반복', () {
     test('10/26~11/13 09:00-18:00 프로젝트 → 매일 반복', () {
       final q = parse('10/26~11/13 09:00-18:00 교보증권 프로젝트');
