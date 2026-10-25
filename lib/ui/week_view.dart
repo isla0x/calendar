@@ -215,8 +215,8 @@ class _WeekRow extends StatelessWidget {
     }
     if (freeLabel.endsWith('여유 없음')) freeLabel = '여유 없음';
 
-    const rs = WeekView._rs;
-    const re = WeekView._re;
+    const rs = _WeekPage._rs;
+    const re = _WeekPage._re;
     final nowMin = now.hour * 60 + now.minute;
 
     return Tap(
