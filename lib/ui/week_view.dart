@@ -65,14 +65,14 @@ class WeekView extends StatelessWidget {
                   Expanded(
                     child: _InsightCard(
                       label: '가장 여유로운 날',
-                      value: '${wd(best!)}요일 · ${freeText(free[dayKey(best)] ?? 0)}',
+                      value: '${wd(best)}요일 · ${freeText(free[dayKey(best)] ?? 0)}',
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: _InsightCard(
                       label: '가장 바쁜 날',
-                      value: (free[dayKey(busy!)] ?? 0) <= 0
+                      value: (free[dayKey(busy)] ?? 0) <= 0
                           ? '${wd(busy)}요일 · 여유 없음'
                           : '${wd(busy)}요일 · 여유 ${freeText(free[dayKey(busy)] ?? 0)}',
                     ),
