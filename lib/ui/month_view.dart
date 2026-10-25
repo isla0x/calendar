@@ -27,9 +27,9 @@ class MonthView extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, c) {
         const gap = 2.0;
-        // 요일 줄(30) 을 빼고, 아래 목록에 최소 200 을 남긴 만큼만 달력 칸을 키워요.
+        // 요일 줄(30) 을 빼고, 아래 목록에 최소 260 을 남긴 만큼만 달력 칸을 키워요.
         // 칸이 클수록 일정 글자가 더 많이 보여요.
-        final raw = (c.maxHeight - 30 - 200 - gap * (rows - 1)) / rows;
+        final raw = (c.maxHeight - 30 - 260 - gap * (rows - 1)) / rows;
         final cellH = math.max(50.0, math.min(104.0, raw));
 
         return Column(
@@ -89,9 +89,9 @@ class MonthView extends StatelessWidget {
 const double _kSide = 10;
 
 /// 날짜 숫자 아래에서 일정 글자가 시작하는 높이, 글자 줄 하나의 높이
-const double _kChipTop = 31;
-const double _kLane = 16;
-const double _kChip = 15;
+const double _kChipTop = 30;
+const double _kLane = 15;
+const double _kChip = 14;
 
 int _lanesFor(double cellHeight) => math.max(1, ((cellHeight - _kChipTop - 2) / _kLane).floor());
 
@@ -245,8 +245,7 @@ class _WeekRow extends StatelessWidget {
                     ? Text(
                         b.ev.title,
                         maxLines: 1,
-                        softWrap: false,
-                        overflow: TextOverflow.clip,
+                        overflow: TextOverflow.ellipsis,
                         style: ts(
                           context,
                           10,

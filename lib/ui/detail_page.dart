@@ -360,21 +360,25 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                   child: Container(
                                     height: 30,
                                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    alignment: Alignment.center,
                                     decoration: BoxDecoration(
                                       color: p.dark
                                           ? const Color(0x24FFFFFF)
                                           : const Color(0xB3FFFFFF),
                                       borderRadius: BorderRadius.circular(15),
                                     ),
-                                    child: Text(
-                                      '#$t',
-                                      style: ts(
-                                        context,
-                                        14,
-                                        weight: FontWeight.w600,
-                                        color: tagColor(t, dark: p.dark),
-                                      ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          '#$t',
+                                          style: ts(
+                                            context,
+                                            14,
+                                            weight: FontWeight.w600,
+                                            color: tagColor(t, dark: p.dark),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
@@ -385,19 +389,23 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                   child: Container(
                                     height: 30,
                                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    alignment: Alignment.center,
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(15),
                                       border: Border.all(color: c.text.withAlpha(90)),
                                     ),
-                                    child: Text(
-                                      e.tags.isEmpty ? '+ 태그' : '편집',
-                                      style: ts(
-                                        context,
-                                        14,
-                                        weight: FontWeight.w600,
-                                        color: c.text,
-                                      ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          e.tags.isEmpty ? '+ 태그' : '편집',
+                                          style: ts(
+                                            context,
+                                            14,
+                                            weight: FontWeight.w600,
+                                            color: c.text,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
