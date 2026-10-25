@@ -45,4 +45,9 @@ for f in android/app/build.gradle.kts android/app/build.gradle; do
   rm -f "$f.bak"
 done
 
+# ---------- 앱 아이콘 ----------
+# assets/icon/icon.png 로 iOS·Android 아이콘을 만들어요.
+flutter pub get
+dart run flutter_launcher_icons
+
 echo "부트스트랩 끝!"
