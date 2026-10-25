@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../dates.dart';
 import '../repo.dart';
 import '../store.dart';
+import '../tags.dart';
 import '../theme.dart';
 import 'common.dart';
 import 'day_view.dart';
@@ -13,6 +14,7 @@ import 'month_view.dart';
 import 'nav.dart';
 import 'permission_page.dart';
 import 'quick_bar.dart';
+import 'tag_dialog.dart';
 import 'week_view.dart';
 
 /// 앱의 첫 화면. 권한이 없으면 안내 화면, 있으면 월/주/일 화면.
@@ -61,6 +63,7 @@ class _Home extends StatelessWidget {
           children: [
             const _Header(),
             const _Switcher(),
+            if (store.tagFilter != null) _TagFilterBar(tag: store.tagFilter!),
             Expanded(child: content),
           ],
         ),
@@ -168,10 +171,23 @@ class _Header extends StatelessWidget {
             ),
           ),
           Tap(
+            onTap: () => showTagFilterSheet(context),
+            label: '태그로 보기',
+            child: SizedBox(
+              width: 40,
+              height: 44,
+              child: Icon(
+                Icons.tag_rounded,
+                size: 24,
+                color: store.tagFilter != null ? tagColor(store.tagFilter!, dark: p.dark) : p.ink,
+              ),
+            ),
+          ),
+          Tap(
             onTap: () => openSearch(context),
             label: '검색',
             child: SizedBox(
-              width: 44,
+              width: 40,
               height: 44,
               child: Icon(Icons.search_rounded, size: 24, color: p.ink),
             ),
@@ -188,6 +204,59 @@ class _Header extends StatelessWidget {
                   child: Text('오늘', style: ts(context, 14, weight: FontWeight.w600)),
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 태그로 걸러보는 중일 때 나오는 줄 (누르면 전체 보기로 돌아가요)
+class _TagFilterBar extends StatelessWidget {
+  const _TagFilterBar({required this.tag});
+
+  final String tag;
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final p = Pal.of(context);
+    final col = tagColor(tag, dark: p.dark);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      child: Row(
+        children: [
+          Tap(
+            onTap: () => store.setTagFilter(null),
+            label: '태그 걸러보기 끄기',
+            child: Container(
+              height: 32,
+              padding: const EdgeInsets.only(left: 12, right: 8),
+              decoration: BoxDecoration(
+                color: Color.alphaBlend(col.withAlpha(44), p.surface),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '#$tag',
+                    style: ts(context, 14, weight: FontWeight.w600, color: col),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(Icons.close_rounded, size: 16, color: col),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '이 태그의 일정만 보는 중',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: ts(context, 13, color: p.muted),
             ),
           ),
         ],

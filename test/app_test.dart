@@ -53,6 +53,28 @@ void main() {
     expect(tile('프로젝트 A'), findsOneWidget);
   });
 
+  testWidgets('태그로 보기: 고른 태그 일정만 보여요', (tester) async {
+    final store = await open(tester);
+    expect(find.text('브런치'), findsWidgets);
+
+    await tester.tap(find.byIcon(Icons.tag_rounded));
+    await tester.pumpAndSettle();
+    expect(find.text('태그로 보기'), findsOneWidget);
+    await tester.tap(find.text('#회의'));
+    await tester.pumpAndSettle();
+
+    expect(store.tagFilter, '회의');
+    expect(find.text('이 태그의 일정만 보는 중'), findsOneWidget);
+    expect(find.text('브런치'), findsNothing);
+    expect(find.text('주간 싱크'), findsWidgets);
+
+    // 필터 줄의 태그를 누르면 전체 보기로 돌아가요.
+    await tester.tap(find.text('#회의'));
+    await tester.pumpAndSettle();
+    expect(store.tagFilter, isNull);
+    expect(find.text('브런치'), findsWidgets);
+  });
+
   testWidgets('옆으로 넘기는 버튼으로 달을 바꿔요', (tester) async {
     await open(tester);
     await tester.tap(find.byIcon(Icons.chevron_right_rounded));

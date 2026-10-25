@@ -75,7 +75,7 @@ class _StripCell extends StatelessWidget {
     final isToday = sameDay(day, store.today);
     final col = day.weekday % 7;
     final hol = store.holidayOn(day) != null;
-    final evs = store.eventsOn(day);
+    final evs = store.shownOn(day);
     final dots = math.min(3, evs.length);
 
     Color letter = p.muted;
@@ -355,7 +355,9 @@ class _AllDayRow extends StatelessWidget {
           runSpacing: 6,
           children: [
             for (final e in events)
-              Tap(
+              Opacity(
+                opacity: StoreScope.of(context).tagMatch(e) ? 1 : 0.28,
+                child: Tap(
                 onTap: () => openDetail(context, e),
                 child: Container(
                   height: 28,
@@ -379,6 +381,7 @@ class _AllDayRow extends StatelessWidget {
                     ],
                   ),
                 ),
+              ),
               ),
           ],
         ),
@@ -716,7 +719,10 @@ class _Block extends StatelessWidget {
             style: ts(context, 13, weight: FontWeight.w600, color: fg, height: 16 / 13),
           );
 
-    return Tap(
+    final match = StoreScope.of(context).tagMatch(event);
+    return Opacity(
+      opacity: match ? 1 : 0.28,
+      child: Tap(
       onTap: () => openDetail(context, event),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -746,6 +752,7 @@ class _Block extends StatelessWidget {
               ),
           ],
         ),
+      ),
       ),
     );
   }

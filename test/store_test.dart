@@ -124,6 +124,21 @@ void main() {
     expect(s.eventsOn(DateTime(2026, 10, 30)).length, 0);
   });
 
+  test('태그로 걸러보기: shownOn 은 고른 태그만, eventsOn 은 전부', () async {
+    final s = await make([
+      _ev('a', DateTime(2026, 10, 27, 10), DateTime(2026, 10, 27, 11)).copyWith(tags: ['회의']),
+      _ev('b', DateTime(2026, 10, 27, 12), DateTime(2026, 10, 27, 13)),
+    ]);
+    expect(s.shownOn(day).length, 2);
+    expect(s.knownTags(), ['회의']);
+    s.setTagFilter('회의');
+    expect(s.shownOn(day).map((e) => e.id).toList(), ['a']);
+    expect(s.eventsOn(day).length, 2);
+    expect(s.tagMatch(s.eventsOn(day).last), false);
+    s.setTagFilter(null);
+    expect(s.shownOn(day).length, 2);
+  });
+
   test('Ev.firstDay / lastDay: 종일은 끝 날짜를 하루 앞으로, 자정에 끝나면 그 전날', () {
     final allDay = _ev('p', DateTime(2026, 9, 18), DateTime(2026, 10, 29), allDay: true);
     expect(allDay.firstDay, DateTime(2026, 9, 18));

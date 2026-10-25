@@ -117,7 +117,7 @@ List<_Bar> _layoutWeek(CalendarStore store, List<DateTime> days) {
   final cols = <String, List<int>>{};
   final evs = <String, Ev>{};
   for (var i = 0; i < 7; i++) {
-    for (final e in store.eventsOn(days[i])) {
+    for (final e in store.shownOn(days[i])) {
       final k = '${e.id}|${e.start.millisecondsSinceEpoch}|${e.end.millisecondsSinceEpoch}';
       (cols[k] ??= <int>[]).add(i);
       evs[k] = e;
@@ -406,7 +406,8 @@ class _DaySheet extends StatelessWidget {
     final store = StoreScope.of(context);
     final p = Pal.of(context);
     final day = store.selected;
-    final evs = store.eventsOn(day);
+    final evs = store.shownOn(day);
+    final filter = store.tagFilter;
     final isPast = day.isBefore(store.today);
     final isToday = sameDay(day, store.today);
     final holiday = store.holidayOn(day);
@@ -466,7 +467,9 @@ class _DaySheet extends StatelessWidget {
                     child: Align(
                       alignment: Alignment.topCenter,
                       child: Text(
-                        isPast ? '이 날은 일정이 없었어요' : '비어 있는 날이에요',
+                        filter != null
+                            ? '이 날은 #$filter 일정이 없어요'
+                            : (isPast ? '이 날은 일정이 없었어요' : '비어 있는 날이에요'),
                         style: ts(context, 14, color: p.muted),
                       ),
                     ),

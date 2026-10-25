@@ -154,8 +154,9 @@ class _WeekRow extends StatelessWidget {
     final isToday = sameDay(day, today);
     final isPast = day.isBefore(today);
     final hol = store.holidayOn(day);
-    final evs = store.eventsOn(day);
-    final timed = evs.where((e) => !e.allDay).toList();
+    final evs = store.shownOn(day);
+    // 시간 막대는 모든 일정을 그리되, 태그로 걸러보는 중이면 해당하지 않는 것은 흐리게 해요.
+    final timed = store.eventsOn(day).where((e) => !e.allDay).toList();
 
     // 요일·날짜 글자 색
     Color letter = p.muted;
@@ -270,7 +271,9 @@ class _WeekRow extends StatelessWidget {
                           height: 22,
                           child: DecoratedBox(
                             decoration: BoxDecoration(
-                              color: isPast ? e.color.withAlpha(102) : e.color,
+                              color: !store.tagMatch(e)
+                                  ? e.color.withAlpha(48)
+                                  : (isPast ? e.color.withAlpha(102) : e.color),
                               borderRadius: BorderRadius.circular(5),
                             ),
                           ),

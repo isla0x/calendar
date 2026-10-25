@@ -414,6 +414,26 @@ class CalendarStore extends ChangeNotifier {
     }
   }
 
+  /// 화면에서 이 태그가 붙은 일정만 또렷하게 보여줘요 (없으면 전체)
+  String? _tagFilter;
+  String? get tagFilter => _tagFilter;
+
+  void setTagFilter(String? tag) {
+    if (_tagFilter == tag) return;
+    _tagFilter = tag;
+    notifyListeners();
+  }
+
+  /// 걸러보기 중일 때, 이 일정이 고른 태그에 해당하는지
+  bool tagMatch(Ev e) => _tagFilter == null || e.tags.contains(_tagFilter);
+
+  /// 그날의 일정 중 화면에 보여줄 것 (태그로 걸러보는 중이면 그 태그만)
+  List<Ev> shownOn(DateTime d) {
+    final all = eventsOn(d);
+    if (_tagFilter == null) return all;
+    return all.where(tagMatch).toList();
+  }
+
   /// 지금 불러와 둔 일정들에서 쓰인 태그 (많이 쓴 순)
   List<String> knownTags() {
     final count = <String, int>{};
