@@ -300,12 +300,25 @@ class _EventEditPageState extends State<EventEditPage> {
               width: 34,
               child: Text(label, style: ts(context, 15, color: p.muted)),
             ),
-            const Spacer(),
-            pill(_dateText(d, today), pickDate),
-            if (!_allDay) ...[
-              const SizedBox(width: 8),
-              pill(ampm(d), pickTime),
-            ],
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      pill(_dateText(d, today), pickDate),
+                      if (!_allDay) ...[
+                        const SizedBox(width: 8),
+                        pill(ampm(d), pickTime),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       );
