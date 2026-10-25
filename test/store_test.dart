@@ -28,7 +28,10 @@ class _Repo implements CalendarRepo {
     required DateTime end,
     bool allDay = false,
     String? location,
+    List<String> tags = const <String>[],
   }) async {}
+  @override
+  Future<void> setTags(Ev e, List<String> tags) async {}
   @override
   Future<void> move(Ev e, DateTime start, DateTime end) async {}
   @override
@@ -119,5 +122,19 @@ void main() {
     expect(s.eventsOn(DateTime(2026, 10, 27)).length, 1);
     expect(s.eventsOn(DateTime(2026, 10, 29)).length, 1);
     expect(s.eventsOn(DateTime(2026, 10, 30)).length, 0);
+  });
+
+  test('Ev.firstDay / lastDay: 종일은 끝 날짜를 하루 앞으로, 자정에 끝나면 그 전날', () {
+    final allDay = _ev('p', DateTime(2026, 9, 18), DateTime(2026, 10, 29), allDay: true);
+    expect(allDay.firstDay, DateTime(2026, 9, 18));
+    expect(allDay.lastDay, DateTime(2026, 10, 28));
+    final one = _ev('o', DateTime(2026, 10, 27), DateTime(2026, 10, 28), allDay: true);
+    expect(one.lastDay, DateTime(2026, 10, 27));
+    final timed = _ev('t', DateTime(2026, 10, 27, 10), DateTime(2026, 10, 27, 11));
+    expect(timed.lastDay, DateTime(2026, 10, 27));
+    final night = _ev('n', DateTime(2026, 10, 27, 22), DateTime(2026, 10, 28, 2));
+    expect(night.lastDay, DateTime(2026, 10, 28));
+    final toMidnight = _ev('m', DateTime(2026, 10, 27, 22), DateTime(2026, 10, 28));
+    expect(toMidnight.lastDay, DateTime(2026, 10, 27));
   });
 }
