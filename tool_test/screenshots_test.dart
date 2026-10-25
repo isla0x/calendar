@@ -162,7 +162,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('편집').first);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('10월 26일 월'));
+      await tester.tap(find.text('10월 26일 월').first);
       await save(tester, '$id-11-date');
     });
 

@@ -19,12 +19,25 @@ class MonthView extends StatefulWidget {
 }
 
 class _MonthViewState extends State<MonthView> {
-  final DraggableScrollableController _sheet = DraggableScrollableController();
+  DraggableScrollableController _sheet = DraggableScrollableController();
+  String _sheetKey = '';
 
   @override
   void dispose() {
     _sheet.dispose();
     super.dispose();
+  }
+
+  /// 달력 크기가 바뀌면(달이 바뀌어 줄 수가 달라질 때 등) 목록 시트를 새 컨트롤러로 다시 만들어요.
+  /// (같은 컨트롤러를 두 시트에 동시에 붙일 수 없어서, 옛 것은 한 프레임 뒤에 정리해요.)
+  void _syncSheet(String key) {
+    if (key == _sheetKey) return;
+    if (_sheetKey.isNotEmpty) {
+      final old = _sheet;
+      _sheet = DraggableScrollableController();
+      WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
+    }
+    _sheetKey = key;
   }
 
   void _toggle(double minSize) {
@@ -56,6 +69,8 @@ class _MonthViewState extends State<MonthView> {
         final cellH = math.max(50.0, math.min(104.0, raw));
         final gridBottom = 30 + rows * cellH + gap * (rows - 1) + 8;
         final minSize = (1 - gridBottom / c.maxHeight).clamp(0.2, 0.9).toDouble();
+        final sheetKey = 'daysheet-$rows-${gridBottom.round()}';
+        _syncSheet(sheetKey);
 
         return Stack(
           children: [
@@ -112,7 +127,7 @@ class _MonthViewState extends State<MonthView> {
             ),
             Positioned.fill(
               child: DraggableScrollableSheet(
-                key: ValueKey('daysheet-$rows-${gridBottom.round()}'),
+                key: ValueKey(sheetKey),
                 controller: _sheet,
                 initialChildSize: minSize,
                 minChildSize: minSize,
