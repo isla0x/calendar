@@ -17,8 +17,10 @@ jobs:
       - name: 플랫폼 폴더 준비
         run: bash tools/bootstrap.sh
       - run: flutter pub get
-      - run: flutter analyze --no-fatal-infos
-      - run: flutter test
+      - name: 분석
+        run: bash tools/ci_report.sh analyze flutter analyze --no-fatal-infos
+      - name: 테스트
+        run: bash tools/ci_report.sh test flutter test
 
   # 커밋 메시지에 [ios]가 들어 있거나 수동으로 실행했을 때만 iOS 빌드를 확인해요.
   ios-build:
