@@ -29,23 +29,19 @@ void main() {
     }
     await loader.load();
 
-    // 아이콘 글꼴(Material Icons)은 테스트에서 자동으로 안 불러와서 Flutter SDK에서 직접 불러와요.
-    final roots = <String>[
-      if (Platform.environment['FLUTTER_ROOT'] != null) Platform.environment['FLUTTER_ROOT']!,
-      for (final dir in (Platform.environment['PATH'] ?? '').split(':'))
-        if (dir.endsWith('/bin')) dir.substring(0, dir.length - 4),
-    ];
-    for (final root in roots) {
-      final f = File('$root/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
-      if (f.existsSync()) {
-        final icons = FontLoader('MaterialIcons');
-        icons.addFont(Future.value(ByteData.view(f.readAsBytesSync().buffer)));
-        await icons.load();
-        return;
-      }
+    // 아이콘 글꼴(Material Icons)은 테스트에서 자동으로 안 불러와서 Flutter SDK에서 찾아 직접 불러와요.
+    final found = Process.runSync('bash', [
+      '-c',
+      'find "\${FLUTTER_ROOT:-/nonexistent}" /opt /usr/local /home /root -name MaterialIcons-Regular.otf -print -quit 2>/dev/null',
+    ]).stdout.toString().trim();
+    File('build/screenshots/debug.txt')
+      ..createSync(recursive: true)
+      ..writeAsStringSync('icons: "$found"\nFLUTTER_ROOT: ${Platform.environment['FLUTTER_ROOT']}\n');
+    if (found.isNotEmpty) {
+      final icons = FontLoader('MaterialIcons');
+      icons.addFont(Future.value(ByteData.view(File(found).readAsBytesSync().buffer)));
+      await icons.load();
     }
-    // ignore: avoid_print
-    print('Material Icons 글꼴을 찾지 못했어요 (roots: $roots)');
   }
 
   Future<CalendarStore> open(WidgetTester tester) async {

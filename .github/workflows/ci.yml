@@ -68,5 +68,6 @@ jobs:
           git rm -rf --quiet . || true
           cp /tmp/shots/*.png .
           git add *.png
+          cp build/screenshots/debug.txt . 2>/dev/null && git add debug.txt || true
           git commit -q -m "스크린샷 ${GITHUB_SHA::7}"
           git push -f origin screenshots
