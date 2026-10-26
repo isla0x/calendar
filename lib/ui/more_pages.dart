@@ -285,8 +285,8 @@ class _BackupPageState extends State<BackupPage> {
     if (prefs == null || _busy) return;
     setState(() => _busy = true);
     try {
-      final text = await Backup.export(prefs);
       final box = context.findRenderObject() as RenderBox?;
+      final text = await Backup.export(prefs);
       final file = XFile.fromData(
         Uint8List.fromList(utf8.encode(text)),
         mimeType: 'application/json',

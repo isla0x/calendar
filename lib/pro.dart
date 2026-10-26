@@ -38,7 +38,7 @@ abstract class ProBackend {
 
 /// 테스트·샘플용: 눌러도 결제창 없이 바로 Pro 가 돼요.
 class FakeProBackend implements ProBackend {
-  FakeProBackend({bool owned = false, this.price = '₩2,200'}) : owned = owned;
+  FakeProBackend({this.owned = false, this.price = '₩2,200'});
 
   @override
   bool owned;

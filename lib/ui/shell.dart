@@ -16,6 +16,7 @@ import 'nav.dart';
 import 'permission_page.dart';
 import 'project_pages.dart';
 import 'quick_bar.dart';
+import 'sheets.dart';
 import 'tag_dialog.dart';
 import 'week_view.dart';
 
