@@ -190,7 +190,9 @@ TextStyle ts(
     fontFeatures: const [FontFeature.tabularFigures()],
     decoration: TextDecoration.none,
   );
-  if (useWebFont) return style.copyWith(fontFamily: 'IBMPlexSansKR');
+  if (useWebFont) {
+    return style.copyWith(fontFamily: 'IBMPlexSansKR', fontFamilyFallback: const <String>['NotoSansCJK']);
+  }
   return style;
 }
 

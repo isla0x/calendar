@@ -72,6 +72,8 @@ jobs:
           cache: true
       - name: 플랫폼 폴더 준비
         run: bash tools/bootstrap.sh
+      - name: 중국어·일본어 글꼴 설치
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
       - name: 스크린샷 만들기
         run: bash tools/ci_report.sh screenshots flutter test tool_test/screenshots_test.dart
       - uses: actions/upload-artifact@v4

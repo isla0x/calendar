@@ -30,10 +30,10 @@ struct NeedApp: View {
     let look: Look
     var body: some View {
         VStack(spacing: 6) {
-            Text("여백")
+            Text(tr("여백"))
                 .font(.system(size: 15, weight: .bold))
                 .foregroundColor(look.ink)
-            Text("앱을 한 번 열면\n여기에 보여요")
+            Text(tr("앱을 한 번 열면\n여기에 보여요"))
                 .font(.system(size: 12))
                 .multilineTextAlignment(.center)
                 .foregroundColor(look.muted)
@@ -63,11 +63,12 @@ struct UntilText: View {
     let look: Look
     var body: some View {
         if inProgress {
-            Chip(look: look, text: "진행 중")
+            Chip(look: look, text: tr("진행 중"))
         } else {
             HStack(spacing: 0) {
+                Text(Lx.untilPre)
                 Text(start, style: .relative)
-                Text(" 후")
+                Text(Lx.untilSuf)
             }
             .font(.system(size: 11, weight: .bold))
             .foregroundColor(look.ink)
@@ -166,7 +167,7 @@ struct TodayView: View {
                 let left = snap.freeLeft(now: entry.date)
                 let next = snap.upcoming(now: entry.date, limit: 1).first
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("오늘 남은 여유")
+                    Text(tr("오늘 남은 여유"))
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(look.muted)
                     Text(Fmt.dur(left))
@@ -186,7 +187,7 @@ struct TodayView: View {
                             .lineLimit(1)
                             .padding(.top, 4)
                     } else {
-                        Text("남은 일정이 없어요")
+                        Text(tr("남은 일정이 없어요"))
                             .font(.system(size: 13, weight: .bold))
                             .foregroundColor(look.ink)
                     }
@@ -206,8 +207,8 @@ struct TodayWidget: Widget {
     let kind = "YeobaekToday"
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { TodayView(entry: $0) }
-            .configurationDisplayName("오늘의 여백")
-            .description("오늘 남은 여유 시간과 다음 일정이 보여요.")
+            .configurationDisplayName(tr("오늘의 여백"))
+            .description(tr("오늘 남은 여유 시간과 다음 일정이 보여요."))
             .supportedFamilies([.systemSmall])
             .contentMarginsDisabled()
     }
@@ -225,14 +226,14 @@ struct TimelineView2: View {
             if let snap = entry.snap {
                 let now = entry.date
                 let cal = Calendar.current
-                let title = "오늘 · \(cal.component(.month, from: now))/\(cal.component(.day, from: now)) \(snap.day(on: now)?.wd ?? "")"
+                let title = tr("오늘 · {0}/{1} {2}", "\(cal.component(.month, from: now))", "\(cal.component(.day, from: now))", Lx.wdShort[max(0, min(6, cal.component(.weekday, from: now) - 1))])
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(alignment: .firstTextBaseline) {
                         Text(title)
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(look.ink)
                         Spacer()
-                        Text("남은 여유 \(Fmt.dur(snap.freeLeft(now: now)))")
+                        Text(tr("남은 여유 {0}", Fmt.dur(snap.freeLeft(now: now))))
                             .font(.system(size: 12, weight: .bold))
                             .foregroundColor(look.good)
                     }
@@ -264,12 +265,12 @@ struct TimelineView2: View {
         if let g = snap.nextGap(now: now) {
             Link(destination: URL(string: "yeobaek://add?from=\(Int(g.0.timeIntervalSince1970 * 1000))")!) {
                 HStack {
-                    Text("다음 빈 시간 \(Fmt.time(g.0))–\(Fmt.time(g.1))")
+                    Text(tr("다음 빈 시간 {0}–{1}", Fmt.time(g.0), Fmt.time(g.1)))
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(look.good)
                         .lineLimit(1)
                     Spacer()
-                    Text("+ 추가")
+                    Text(tr("+ 추가"))
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(look.ink)
                 }
@@ -282,7 +283,7 @@ struct TimelineView2: View {
                 )
             }
         } else {
-            Text("오늘은 더 비는 시간이 없어요")
+            Text(tr("오늘은 더 비는 시간이 없어요"))
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(look.muted)
                 .frame(maxWidth: .infinity, minHeight: 40)
@@ -294,8 +295,8 @@ struct TimelineWidget: Widget {
     let kind = "YeobaekTimeline"
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { TimelineView2(entry: $0) }
-            .configurationDisplayName("하루 타임라인")
-            .description("오늘 일정과 비는 시간을 한 줄로 보고, 빈 시간에 바로 추가해요.")
+            .configurationDisplayName(tr("하루 타임라인"))
+            .description(tr("오늘 일정과 비는 시간을 한 줄로 보고, 빈 시간에 바로 추가해요."))
             .supportedFamilies([.systemMedium])
             .contentMarginsDisabled()
     }
@@ -318,7 +319,7 @@ struct ProjectView: View {
                             .font(.system(size: 15, weight: .bold))
                             .foregroundColor(look.ink)
                             .lineLimit(1)
-                        Text("\(shortDate(p.start)) – \(shortDate(p.end)) · 남은 근무일 \(p.left)일")
+                        Text(tr("{0} – {1} · 남은 근무일 {2}일", shortDate(p.start), shortDate(p.end), "\(p.left)"))
                             .font(.system(size: 12))
                             .foregroundColor(look.muted)
                             .lineLimit(1)
@@ -343,10 +344,10 @@ struct ProjectView: View {
                 }
             } else if entry.snap != nil {
                 VStack(spacing: 6) {
-                    Text("진행 중인 프로젝트가 없어요")
+                    Text(tr("진행 중인 프로젝트가 없어요"))
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(look.ink)
-                    Text("눌러서 프로젝트 만들기")
+                    Text(tr("눌러서 프로젝트 만들기"))
                         .font(.system(size: 12))
                         .foregroundColor(look.muted)
                 }
@@ -369,7 +370,7 @@ struct ProjectView: View {
     func ring(p: ProjS, look: Look) -> some View {
         let frac = p.total == 0 ? 0 : min(1, max(0, Double(p.n) / Double(p.total)))
         let big = p.dday > 0 ? "D-\(p.dday)" : (p.dday == 0 ? "D-day" : "D+\(-p.dday)")
-        let small = p.upcoming ? "시작 전" : "\(p.n)일째"
+        let small = p.upcoming ? tr("시작 전") : tr("{0}일째", "\(p.n)")
         return ZStack {
             Circle().stroke(look.chip, lineWidth: 10)
             Circle()
@@ -408,8 +409,8 @@ struct ProjectWidget: Widget {
     let kind = "YeobaekProject"
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { ProjectView(entry: $0) }
-            .configurationDisplayName("프로젝트")
-            .description("가장 먼저 끝나는 프로젝트의 D-day와 진행 상황이 보여요.")
+            .configurationDisplayName(tr("프로젝트"))
+            .description(tr("가장 먼저 끝나는 프로젝트의 D-day와 진행 상황이 보여요."))
             .supportedFamilies([.systemMedium])
             .contentMarginsDisabled()
     }
@@ -430,11 +431,11 @@ struct TodoView: View {
                 let unplaced = snap.todos.filter { !$0.done && $0.plan }.count
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(alignment: .firstTextBaseline) {
-                        Text("오늘 할 일")
+                        Text(tr("오늘 할 일"))
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(look.ink)
                         Spacer()
-                        Text(left == 0 ? "다 했어요" : "\(left)개 남음")
+                        Text(left == 0 ? tr("다 했어요") : tr("{0}개 남음", "\(left)"))
                             .font(.system(size: 12))
                             .foregroundColor(look.muted)
                     }
@@ -446,12 +447,12 @@ struct TodoView: View {
                     .padding(.top, 6)
                     Spacer(minLength: 4)
                     if unplaced > 0 {
-                        Text("자리 못 찾은 할 일 \(unplaced)개 · 눌러서 자리 찾기")
+                        Text(tr("자리 못 찾은 할 일 {0}개 · 눌러서 자리 찾기", "\(unplaced)"))
                             .font(.system(size: 12, weight: .bold))
                             .foregroundColor(look.good)
                             .lineLimit(1)
                     } else if rows.isEmpty {
-                        Text("할 일이 없어요")
+                        Text(tr("할 일이 없어요"))
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(look.muted)
                     }
@@ -504,7 +505,7 @@ struct TodoView: View {
         }
         if let due = t.due {
             let parts = due.split(separator: "-")
-            if parts.count == 3, let m = Int(parts[1]), let d = Int(parts[2]) { return "\(m)/\(d)까지" }
+            if parts.count == 3, let m = Int(parts[1]), let d = Int(parts[2]) { return tr("{0}/{1}까지", "\(m)", "\(d)") }
         }
         return Fmt.dur(t.m)
     }
@@ -514,8 +515,8 @@ struct TodoWidget: Widget {
     let kind = "YeobaekTodos"
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { TodoView(entry: $0) }
-            .configurationDisplayName("할 일")
-            .description("오늘 할 일과 정해진 시각이 보여요.")
+            .configurationDisplayName(tr("할 일"))
+            .description(tr("오늘 할 일과 정해진 시각이 보여요."))
             .supportedFamilies([.systemMedium])
             .contentMarginsDisabled()
     }
@@ -536,11 +537,11 @@ struct WeekView2: View {
                 let winMin = max(60, (snap.dayEnd - snap.dayStart) * 60)
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(alignment: .firstTextBaseline) {
-                        Text("이번 주 여유")
+                        Text(tr("이번 주 여유"))
                             .font(.system(size: 15, weight: .bold))
                             .foregroundColor(look.ink)
                         Spacer()
-                        Text("하루 중 비는 시간")
+                        Text(tr("하루 중 비는 시간"))
                             .font(.system(size: 12))
                             .foregroundColor(look.muted)
                     }
@@ -551,7 +552,7 @@ struct WeekView2: View {
                     }
                     .padding(.top, 10)
                     if let bi = bestIdx {
-                        Text("가장 여유로운 날 · \(days[bi].wd)요일 \(Fmt.dur(days[bi].free))")
+                        Text(tr("가장 여유로운 날 · {0} {1}", days[bi].wdLong, Fmt.dur(days[bi].free)))
                             .font(.system(size: 13, weight: .bold))
                             .foregroundColor(look.good)
                             .lineLimit(1)
@@ -561,7 +562,7 @@ struct WeekView2: View {
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .padding(.top, 10)
                     }
-                    Text("다음 일정")
+                    Text(tr("다음 일정"))
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(look.muted)
                         .padding(.top, 8)
@@ -594,7 +595,7 @@ struct WeekView2: View {
         var best: Int?
         for (i, d) in days.enumerated() {
             // 주말은 늘 비니까 평일 중에서 골라요
-            if d.wd == "토" || d.wd == "일" { continue }
+            if d.wdIdx == 6 || d.wdIdx == 0 { continue }
             if best == nil || d.free > days[best!].free { best = i }
         }
         return best
@@ -615,9 +616,9 @@ struct WeekView2: View {
                 }
             }
             .frame(height: 100)
-            Text(d.wd)
+            Text(d.wdShort)
                 .font(.system(size: 12, weight: first ? .bold : .medium))
-                .foregroundColor(d.wd == "일" ? Color(hex: "#D67171") : (first ? look.ink : look.muted))
+                .foregroundColor(d.wdIdx == 0 ? Color(hex: "#D67171") : (first ? look.ink : look.muted))
         }
         .frame(maxWidth: .infinity)
     }
@@ -627,8 +628,8 @@ struct WeekWidget: Widget {
     let kind = "YeobaekWeek"
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { WeekView2(entry: $0) }
-            .configurationDisplayName("이번 주 여유")
-            .description("요일마다 비는 시간과 다음 일정이 보여요.")
+            .configurationDisplayName(tr("이번 주 여유"))
+            .description(tr("요일마다 비는 시간과 다음 일정이 보여요."))
             .supportedFamilies([.systemLarge])
             .contentMarginsDisabled()
     }
@@ -650,7 +651,7 @@ struct LockView: View {
                 case .accessoryCircular:
                     let total = max(1, (snap.dayEnd - snap.dayStart) * 60)
                     Gauge(value: Double(min(left, total)), in: 0...Double(total)) {
-                        Text("여유")
+                        Text(tr("여유"))
                     } currentValueLabel: {
                         Text("\(left / 60):\(String(format: "%02d", left % 60))")
                             .font(.system(size: 14, weight: .bold))
@@ -660,32 +661,33 @@ struct LockView: View {
                     VStack(alignment: .leading, spacing: 1) {
                         if let next {
                             if next.inProgress {
-                                Text("진행 중").font(.system(size: 11, weight: .bold))
+                                Text(tr("진행 중")).font(.system(size: 11, weight: .bold))
                             } else {
                                 HStack(spacing: 0) {
+                                    Text(Lx.untilPre)
                                     Text(next.event.start, style: .relative)
-                                    Text(" 후")
+                                    Text(Lx.untilSuf)
                                 }
                                 .font(.system(size: 11, weight: .bold))
                             }
                             Text(next.event.t).font(.system(size: 14, weight: .bold)).lineLimit(1)
                         } else {
-                            Text("남은 일정이 없어요").font(.system(size: 14, weight: .bold))
+                            Text(tr("남은 일정이 없어요")).font(.system(size: 14, weight: .bold))
                         }
                         if let g = snap.nextGap(now: now) {
-                            Text("다음 빈 시간 \(Fmt.time(g.0)) · \(Fmt.dur(Int(g.1.timeIntervalSince(g.0) / 60)))")
+                            Text(tr("다음 빈 시간 {0} · {1}", Fmt.time(g.0), Fmt.dur(Int(g.1.timeIntervalSince(g.0) / 60))))
                                 .font(.system(size: 11))
                                 .lineLimit(1)
                         } else {
-                            Text("남은 여유 \(Fmt.dur(left))").font(.system(size: 11))
+                            Text(tr("남은 여유 {0}", Fmt.dur(left))).font(.system(size: 11))
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 default:
-                    Text("남은 여유 \(Fmt.dur(left))")
+                    Text(tr("남은 여유 {0}", Fmt.dur(left)))
                 }
             } else {
-                Text("여백")
+                Text(tr("여백"))
             }
         }
         .widgetBG(.clear)
@@ -697,8 +699,8 @@ struct LockWidget: Widget {
     let kind = "YeobaekLock"
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { LockView(entry: $0) }
-            .configurationDisplayName("잠금화면 여유")
-            .description("잠금화면에서 남은 여유와 다음 일정을 봐요.")
+            .configurationDisplayName(tr("잠금화면 여유"))
+            .description(tr("잠금화면에서 남은 여유와 다음 일정을 봐요."))
             .supportedFamilies([.accessoryCircular, .accessoryRectangular, .accessoryInline])
     }
 }

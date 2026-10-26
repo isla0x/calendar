@@ -14,3 +14,4 @@ if ! ruby -e 'require "xcodeproj"' >/dev/null 2>&1; then
 fi
 
 ruby tools/add_widgets.rb
+ruby tools/add_locales.rb

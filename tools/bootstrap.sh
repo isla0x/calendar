@@ -29,6 +29,10 @@ if [ -f "$PLIST" ] && [ -x "$PB" ]; then
   setstr NSPhotoLibraryUsageDescription "백업 파일을 불러올 때 사진 보관함에서 파일을 고를 수 있도록 접근해요."
   setstr NSCameraUsageDescription "백업 파일을 불러올 때 카메라를 쓰는 기능이 포함돼 있어요. 여백은 카메라를 따로 쓰지 않아요."
   setstr NSLocationWhenInUseUsageDescription "여백은 위치를 사용하지 않아요. 연결된 구성 요소가 요구하는 안내 문구예요."
+  # 앱이 지원하는 언어 (스토어·시스템 화면이 이 언어들로 보여요)
+  "$PB" -c "Delete :CFBundleLocalizations" "$PLIST" 2>/dev/null || true
+  "$PB" -c "Add :CFBundleLocalizations array" "$PLIST"
+  for lc in en fr zh-Hans ja ko; do "$PB" -c "Add :CFBundleLocalizations: string $lc" "$PLIST"; done
   "$PB" -c "Set :ITSAppUsesNonExemptEncryption false" "$PLIST" 2>/dev/null \
     || "$PB" -c "Add :ITSAppUsesNonExemptEncryption bool false" "$PLIST"
   echo "iOS Info.plist 수정 완료"
