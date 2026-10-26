@@ -490,8 +490,11 @@ void main() {
     // 프로젝트 자체(이름이 같은 일정)는 달력에 그대로 보여요.
     await store.saveProject(store.projectById('p1')!.copyWith(name: e.title));
     expect(store.shownOn(d).any((x) => x.id == e.id), true);
+    // 프로젝트 자체를 누르면 프로젝트 화면으로 가요 (속 일정은 아니에요).
+    expect(store.projectSelfOf(e)?.id, 'p1');
     await store.saveProject(store.projectById('p1')!.copyWith(name: '묶음'));
     expect(store.shownOn(d).any((x) => x.id == e.id), false);
+    expect(store.projectSelfOf(e), null);
     // 프로젝트 화면은 따로 읽어 와요.
     final inside = await store.projectEvents(store.projectById('p1')!);
     expect(inside.any((x) => x.id == e.id), true);

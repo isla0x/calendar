@@ -123,7 +123,7 @@ class _SearchPageState extends State<SearchPage> {
               showDate: true,
               onTap: () {
                 StoreScope.of(context).select(e.start);
-                openDetail(context, e);
+                openEvent(context, e);
               },
             ),
         ],

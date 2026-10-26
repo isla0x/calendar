@@ -563,6 +563,14 @@ class CalendarStore extends ChangeNotifier {
     return false;
   }
 
+  /// 프로젝트 자체(프로젝트와 이름이 같은 일정)인지. 눌렀을 때 프로젝트 화면으로 가요.
+  Project? projectSelfOf(Ev e) {
+    for (final p in _projects) {
+      if (p.eventIds.contains(e.id) && e.title.trim() == p.name.trim()) return p;
+    }
+    return null;
+  }
+
   /// 그날의 일정 중 바깥 화면에 늘어놓을 것 (프로젝트 안 일정은 뺀 것)
   List<Ev> listedOn(DateTime d) {
     final all = eventsOn(d);

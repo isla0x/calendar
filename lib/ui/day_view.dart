@@ -385,7 +385,7 @@ class _AllDayRow extends StatelessWidget {
               Opacity(
                 opacity: StoreScope.of(context).tagMatch(e) ? 1 : 0.28,
                 child: Tap(
-                onTap: () => openDetail(context, e),
+                onTap: () => openEvent(context, e),
                 child: Container(
                   height: 28,
                   constraints: const BoxConstraints(maxWidth: 240),
@@ -956,7 +956,7 @@ class _Block extends StatelessWidget {
     return Opacity(
       opacity: match ? (isDone ? 0.55 : 1) : 0.28,
       child: Tap(
-      onTap: () => openDetail(context, event),
+      onTap: () => openEvent(context, event),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12),
         alignment: Alignment.centerLeft,

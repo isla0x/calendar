@@ -659,7 +659,7 @@ class _DaySheet extends StatelessWidget {
             for (final e in evs)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: EventTile(event: e, onTap: () => openDetail(context, e)),
+                child: EventTile(event: e, onTap: () => openEvent(context, e)),
               ),
             const SizedBox(height: 130),
           ],

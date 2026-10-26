@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models.dart';
 import '../projects.dart';
+import '../store.dart';
 import 'detail_page.dart';
 import 'project_pages.dart';
 import 'quick_add_page.dart';
@@ -13,6 +14,14 @@ Future<void> openDetail(BuildContext context, Ev e) {
   return Navigator.of(context).push<void>(
     MaterialPageRoute<void>(builder: (_) => EventDetailPage(event: e)),
   );
+}
+
+/// 달력·검색 같은 바깥 화면에서 일정을 눌렀을 때.
+/// 프로젝트 자체를 누르면 바로 그 프로젝트 화면(이 프로젝트의 오늘 일정)으로 가요.
+Future<void> openEvent(BuildContext context, Ev e) {
+  final pj = StoreScope.read(context).projectSelfOf(e);
+  if (pj != null) return openProject(context, pj.id);
+  return openDetail(context, e);
 }
 
 /// [initialText] 를 넣으면 한 줄 입력 칸에 미리 적어둬요 (예: 비는 시간을 눌렀을 때)
