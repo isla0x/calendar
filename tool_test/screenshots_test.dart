@@ -63,6 +63,9 @@ void main() {
     }
   }
 
+  var tablet = false; // true 면 iPad 13인치(2064 × 2752)로 뽑아요
+  const tabletKeep = ['1-month', '2-today', '3-week', '4-quick-add', '6-dark', '13-project', '14-day-project'];
+
   Future<CalendarStore> open(WidgetTester tester, Skin skin, Lang lang, {bool project = false, DateTime? at}) async {
     final clock = at ?? now;
     L10n.lang = lang;
@@ -71,10 +74,13 @@ void main() {
     Skin.current = skin;
     addTearDown(() => Skin.current = Skin.pastel);
     // iPhone 6.9인치: 1320 × 2868 (논리 440 × 956, 배율 3)
-    tester.view.physicalSize = const Size(1320, 2868);
-    tester.view.devicePixelRatio = 3;
+    // iPad 13인치: 2064 × 2752 (논리 1032 × 1376, 배율 2)
+    tester.view.physicalSize = tablet ? const Size(2064, 2752) : const Size(1320, 2868);
+    tester.view.devicePixelRatio = tablet ? 2 : 3;
     // 상태 표시줄(위 59)과 홈 인디케이터(아래 34) 자리
-    const pad = FakeViewPadding(top: 59 * 3, bottom: 34 * 3);
+    final pad = tablet
+        ? const FakeViewPadding(top: 24 * 2, bottom: 20 * 2)
+        : const FakeViewPadding(top: 59 * 3, bottom: 34 * 3);
     tester.view.padding = pad;
     tester.view.viewPadding = pad;
     addTearDown(tester.view.reset);
@@ -87,10 +93,11 @@ void main() {
   }
 
   Future<void> save(WidgetTester tester, String name) async {
+    if (tablet && !tabletKeep.any(name.endsWith)) return;
     await tester.pumpAndSettle();
     await tester.runAsync(() async {
       final boundary = tester.renderObject<RenderRepaintBoundary>(find.byKey(key));
-      final ui.Image image = await boundary.toImage(pixelRatio: 3);
+      final ui.Image image = await boundary.toImage(pixelRatio: tablet ? 2 : 3);
       final data = await image.toByteData(format: ui.ImageByteFormat.png);
       final file = File('build/screenshots/$name.png')..createSync(recursive: true);
       file.writeAsBytesSync(data!.buffer.asUint8List());
@@ -163,11 +170,14 @@ void main() {
   String evTitle() => tl('스프린트 플래닝 #회의').replaceAll(RegExp(r'\s*#\S+'), '').trim();
   String evTag() => RegExp(r'#\S+').firstMatch(tl('스프린트 플래닝 #회의'))!.group(0)!;
 
+  for (final tab in [false, true]) {
   for (final lang in Lang.values) {
   final lc = lang.name;
   for (final skin in [Skin.pastel]) {
-    final id = '$lc-${skin.id}';
-    final nm = '$lc ${skin.name}';
+    final id = '${tab ? 'ipad-' : ''}$lc-${skin.id}';
+    final nm = '${tab ? 'iPad ' : ''}$lc ${skin.name}';
+    group(nm, () {
+    setUp(() => tablet = tab);
 
     testWidgets('$nm 월간', (tester) async {
       await open(tester, skin, lang, project: true);
@@ -286,6 +296,8 @@ void main() {
       store.setView(ViewMode.day);
       await save(tester, '$id-6-dark');
     });
+    });
+  }
   }
   }
 }
