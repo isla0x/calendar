@@ -71,11 +71,10 @@ class _TopBar extends StatelessWidget {
 }
 
 class _SmallBtn extends StatelessWidget {
-  const _SmallBtn({required this.text, required this.onTap, this.dark = true});
+  const _SmallBtn({required this.text, required this.onTap});
 
   final String text;
   final VoidCallback onTap;
-  final bool dark;
 
   @override
   Widget build(BuildContext context) {
@@ -87,13 +86,12 @@ class _SmallBtn extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: dark ? p.ink : p.surface,
+          color: p.ink,
           borderRadius: BorderRadius.circular(18),
-          border: dark ? null : Border.all(color: p.line),
         ),
         child: Text(
           text,
-          style: ts(context, 14, weight: FontWeight.w600, color: dark ? p.bg : p.ink),
+          style: ts(context, 14, weight: FontWeight.w600, color: p.bg),
         ),
       ),
     );

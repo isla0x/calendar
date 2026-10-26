@@ -4,7 +4,6 @@ import 'package:flutter/painting.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'dates.dart';
-import 'models.dart';
 
 /// 프로젝트 안의 체크포인트 (착수, 중간 보고, 최종 보고 …)
 class Checkpoint {
