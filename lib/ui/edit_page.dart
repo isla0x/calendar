@@ -43,12 +43,16 @@ class _EventEditPageState extends State<EventEditPage> {
   late int _m0 = _o.allDay ? 9 * 60 : _o.start.hour * 60 + _o.start.minute;
   late int _m1 = _o.allDay ? 10 * 60 : _o.end.hour * 60 + _o.end.minute;
 
+  /// 이 일정이 들어 있는 프로젝트 (없으면 null)
+  String? _projectId;
+
   late final String _sig0;
 
   @override
   void initState() {
     super.initState();
     _color = StoreScope.read(context).customColorOf(_o);
+    _projectId = StoreScope.read(context).projectOf(_o)?.id;
     _sig0 = _sig();
   }
 
@@ -69,6 +73,7 @@ class _EventEditPageState extends State<EventEditPage> {
         _end.millisecondsSinceEpoch,
         _tags.join(','),
         _color?.toARGB32(),
+        _projectId,
       ].join('|');
 
   bool get _dirty => _sig() != _sig0;
@@ -193,9 +198,47 @@ class _EventEditPageState extends State<EventEditPage> {
       return;
     }
     if (_colorTouched) await store.setEventColor(_o, _color);
+    if (_projectId != store.projectOf(_o)?.id) await store.setEventProject(_o, _projectId);
     if (!mounted) return;
     final fresh = store.findEvent(_o.id, start: start) ?? _o.copyWith(start: start, end: end, tags: tags);
     Navigator.of(context).pop(fresh);
+  }
+
+  Future<void> _pickProject() async {
+    final store = StoreScope.read(context);
+    final list = store.projects;
+    final r = await showAppSheet<_ProjPick>(
+      context: context,
+      builder: (ctx) {
+        final p = Pal.of(ctx);
+        Widget row(String? id, String name, Color? dot) => Tap(
+              onTap: () => Navigator.of(ctx).pop(_ProjPick(id)),
+              child: SizedBox(
+                height: 52,
+                child: Row(
+                  children: [
+                    if (dot != null) Dot(dot, size: 10) else const SizedBox(width: 10),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(name, style: ts(ctx, 16, weight: FontWeight.w600))),
+                    if (_projectId == id) Icon(Icons.check_rounded, size: 20, color: p.ink),
+                  ],
+                ),
+              ),
+            );
+        return SheetFrame(
+          title: '프로젝트',
+          subtitle: '태그와는 별개로 이 일정을 프로젝트에 넣어요.',
+          child: Column(
+            children: [
+              row(null, '없음', null),
+              for (final pr in list) row(pr.id, pr.name, pr.color),
+            ],
+          ),
+        );
+      },
+    );
+    if (r == null || !mounted) return;
+    setState(() => _projectId = r.id);
   }
 
   Future<void> _askDiscard() async {
@@ -647,6 +690,26 @@ class _EventEditPageState extends State<EventEditPage> {
                         ),
                         top: true,
                       ),
+                      divider(),
+                      Tap(
+                        onTap: _pickProject,
+                        label: '프로젝트 고르기',
+                        child: iconRow(
+                          Icons.flag_outlined,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text('프로젝트', style: ts(context, 15, weight: FontWeight.w600)),
+                              ),
+                              Text(
+                                StoreScope.of(context).projectById(_projectId ?? '')?.name ?? '없음',
+                                style: ts(context, 14, color: p.muted),
+                              ),
+                              Icon(Icons.chevron_right_rounded, size: 20, color: p.muted),
+                            ],
+                          ),
+                        ),
+                      ),
                     ]),
                   ],
                 ),
@@ -657,4 +720,9 @@ class _EventEditPageState extends State<EventEditPage> {
       ),
     );
   }
+}
+
+class _ProjPick {
+  const _ProjPick(this.id);
+  final String? id;
 }

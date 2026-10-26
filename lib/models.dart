@@ -124,14 +124,17 @@ class Ev {
 enum DeleteScope { one, following, all }
 
 /// 반복 방식
-enum RepeatKind { daily, weekdays, weekly }
+enum RepeatKind { daily, weekdays, weekly, days }
 
 /// 반복 일정 설정. [until] 은 반복이 끝나는 마지막 날(그날 포함, 날짜만). 없으면 계속 반복해요.
 class Repeat {
-  const Repeat(this.kind, {this.until});
+  const Repeat(this.kind, {this.until, this.days = const <int>{}});
 
   final RepeatKind kind;
   final DateTime? until;
+
+  /// [RepeatKind.days] 일 때 일정이 생기는 요일 (월=1 … 일=7)
+  final Set<int> days;
 
   String get label {
     switch (kind) {
@@ -141,6 +144,8 @@ class Repeat {
         return '평일마다';
       case RepeatKind.weekly:
         return '매주';
+      case RepeatKind.days:
+        return '요일마다';
     }
   }
 }

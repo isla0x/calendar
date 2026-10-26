@@ -13,6 +13,7 @@ import 'day_view.dart';
 import 'month_view.dart';
 import 'nav.dart';
 import 'permission_page.dart';
+import 'project_pages.dart';
 import 'quick_bar.dart';
 import 'tag_dialog.dart';
 import 'week_view.dart';
@@ -63,6 +64,8 @@ class _Home extends StatelessWidget {
           children: [
             const _Header(),
             const _Switcher(),
+            if (store.view == ViewMode.month && store.currentProject != null)
+              ProjectStrip(project: store.currentProject!),
             if (store.tagFilter != null) _TagFilterBar(tag: store.tagFilter!),
             Expanded(child: content),
           ],
@@ -139,6 +142,15 @@ class _Header extends StatelessWidget {
                   ],
                 ),
               ],
+            ),
+          ),
+          Tap(
+            onTap: () => openProjects(context),
+            label: '프로젝트',
+            child: SizedBox(
+              width: 40,
+              height: 44,
+              child: Icon(Icons.flag_outlined, size: 24, color: p.ink),
             ),
           ),
           Tap(

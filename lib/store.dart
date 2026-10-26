@@ -6,15 +6,22 @@ import 'color_book.dart';
 import 'dates.dart';
 import 'demo_repo.dart';
 import 'models.dart';
+import 'projects.dart';
 import 'repo.dart';
 
 enum ViewMode { month, week, day }
 
 /// 앱 상태 + 일정 계산(비는 시간, 바쁨 단계 등)
 class CalendarStore extends ChangeNotifier {
-  CalendarStore(this.repo, {DateTime Function()? clock, ColorBook? colors})
-      : _clock = clock ?? DateTime.now,
-        _colors = colors ?? MemoryColorBook() {
+  CalendarStore(
+    this.repo, {
+    DateTime Function()? clock,
+    ColorBook? colors,
+    ProjectBook? projects,
+  })  : _clock = clock ?? DateTime.now,
+        _colors = colors ?? MemoryColorBook(),
+        _projectBook = projects ?? MemoryProjectBook() {
+    _projects = _projectBook.load();
     final t = dayOnly(_clock());
     selected = t;
     month = DateTime(t.year, t.month);
@@ -29,6 +36,13 @@ class CalendarStore extends ChangeNotifier {
 
   /// 일정마다 따로 고른 색
   final ColorBook _colors;
+
+  /// 프로젝트 저장소와 목록
+  final ProjectBook _projectBook;
+  List<Project> _projects = const <Project>[];
+
+  /// 방금 만든 일정의 id (프로젝트에 이어 줄 때 써요)
+  String? lastCreatedId;
 
   PermState perm = PermState.unknown;
 
@@ -397,6 +411,7 @@ class CalendarStore extends ChangeNotifier {
         tags: tags,
         repeat: repeat,
       );
+      lastCreatedId = id;
       if (color != null && id != null) await _colors.set(id, color);
       await _refresh(force: true);
       return true;
@@ -517,6 +532,120 @@ class CalendarStore extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  // ---------------------------------------------------------------- 프로젝트
+
+  List<Project> get projects => List<Project>.unmodifiable(_projects);
+
+  Project? projectById(String id) {
+    for (final p in _projects) {
+      if (p.id == id) return p;
+    }
+    return null;
+  }
+
+  /// 이 일정이 들어 있는 프로젝트 (없으면 null)
+  Project? projectOf(Ev e) {
+    for (final p in _projects) {
+      if (p.eventIds.contains(e.id)) return p;
+    }
+    return null;
+  }
+
+  /// 지금 진행 중인 프로젝트 중 가장 먼저 끝나는 것 (월 화면 위 띠에 보여줘요)
+  Project? get currentProject {
+    Project? best;
+    for (final p in _projects) {
+      if (p.statusOn(today) != ProjectStatus.active) continue;
+      if (best == null || p.end.isBefore(best.end)) best = p;
+    }
+    return best;
+  }
+
+  Future<void> _saveProjects(List<Project> next) async {
+    _projects = next;
+    notifyListeners();
+    await _projectBook.save(next);
+  }
+
+  String newProjectId() => 'p${DateTime.now().microsecondsSinceEpoch}';
+
+  /// 새 프로젝트를 저장하거나, 같은 id 가 있으면 바꿔 저장해요.
+  Future<void> saveProject(Project p) async {
+    final next = List<Project>.of(_projects);
+    final i = next.indexWhere((x) => x.id == p.id);
+    if (i >= 0) {
+      next[i] = p;
+    } else {
+      next.add(p);
+    }
+    await _saveProjects(next);
+  }
+
+  Future<void> deleteProject(String id) async {
+    await _saveProjects(_projects.where((p) => p.id != id).toList());
+  }
+
+  /// 일정 하나를 프로젝트에 넣거나(projectId), 빼요(null). 한 일정은 한 프로젝트에만 있어요.
+  Future<void> setEventProject(Ev e, String? projectId) async {
+    final next = <Project>[];
+    for (final p in _projects) {
+      final ids = Set<String>.of(p.eventIds)..remove(e.id);
+      if (p.id == projectId) ids.add(e.id);
+      next.add(ids.length == p.eventIds.length && p.id != projectId ? p : p.copyWith(eventIds: ids));
+    }
+    await _saveProjects(next);
+  }
+
+  /// 프로젝트에 일정 id 여러 개를 한꺼번에 넣어요.
+  Future<void> addEventIdsToProject(String projectId, Iterable<String> ids) async {
+    final p = projectById(projectId);
+    if (p == null) return;
+    final all = Set<String>.of(ids);
+    final next = <Project>[];
+    for (final x in _projects) {
+      if (x.id == projectId) {
+        next.add(x.copyWith(eventIds: {...x.eventIds, ...all}));
+      } else {
+        next.add(x.copyWith(eventIds: x.eventIds.difference(all)));
+      }
+    }
+    await _saveProjects(next);
+  }
+
+  /// 프로젝트에 넣은 일정들 (기간 안, 시간순). 기기에서 새로 읽어와요.
+  Future<List<Ev>> projectEvents(Project p) async {
+    if (p.eventIds.isEmpty) return const <Ev>[];
+    final list = await eventsBetween(p.start, addDays(p.end, 1));
+    return list.where((e) => p.eventIds.contains(e.id)).toList();
+  }
+
+  /// 아직 어느 프로젝트에도 안 들어간, 프로젝트 기간 안의 일정들 (묶음 반복은 하나로)
+  Future<List<Ev>> unlinkedEventsIn(Project p) async {
+    final list = await eventsBetween(p.start, addDays(p.end, 1));
+    final seen = <String>{};
+    final out = <Ev>[];
+    for (final e in list) {
+      if (e.readOnly || e.holiday) continue;
+      if (projectOf(e) != null) continue;
+      if (!seen.add(e.id)) continue;
+      out.add(e);
+    }
+    return out;
+  }
+
+  /// 오늘부터 앞으로 최대 [n] 근무일의 하루 평균 비는 시간(분). 불러온 일정 범위 안에서만 계산해요.
+  int avgFreeMinutes(Project p, {int n = 7}) {
+    var sum = 0;
+    var cnt = 0;
+    for (final d in p.workDays) {
+      if (d.isBefore(today)) continue;
+      if (cnt >= n) break;
+      sum += freeMinutes(d);
+      cnt++;
+    }
+    return cnt == 0 ? 0 : sum ~/ cnt;
   }
 
   // ---------------------------------------------------------------- 시계

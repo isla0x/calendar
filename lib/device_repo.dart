@@ -156,6 +156,11 @@ class DeviceRepo implements CalendarRepo {
     }
     final b = StringBuffer('FREQ=WEEKLY');
     if (r.kind == RepeatKind.weekdays) b.write(';BYDAY=MO,TU,WE,TH,FR');
+    if (r.kind == RepeatKind.days) {
+      const names = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+      final list = (r.days.toList()..sort()).where((d) => d >= 1 && d <= 7);
+      b.write(';BYDAY=${list.map((d) => names[d - 1]).join(',')}');
+    }
     if (untilUtc != null) {
       b.write(
         ';UNTIL=${untilUtc.year}${two(untilUtc.month)}${two(untilUtc.day)}'

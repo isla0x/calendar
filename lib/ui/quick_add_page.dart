@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import '../dates.dart';
 import '../models.dart';
 import '../parser.dart';
+import '../projects.dart';
 import '../skins.dart';
 import '../store.dart';
 import '../tags.dart';
 import '../theme.dart';
 import 'common.dart';
+import 'project_pages.dart';
 import 'sheets.dart';
 import 'tag_dialog.dart';
 
@@ -90,9 +92,12 @@ List<Ev> _conflicts(CalendarStore store, QuickParse q) {
 
 /// "새 일정" 화면: 한 줄로 쓰면 날짜·시간·길이를 읽어서 보여줘요.
 class QuickAddPage extends StatefulWidget {
-  const QuickAddPage({super.key, this.initialText = ''});
+  const QuickAddPage({super.key, this.initialText = '', this.project});
 
   final String initialText;
+
+  /// 이 프로젝트 안에 일정을 추가할 때
+  final Project? project;
 
   @override
   State<QuickAddPage> createState() => _QuickAddPageState();
@@ -101,6 +106,16 @@ class QuickAddPage extends StatefulWidget {
 class _QuickAddPageState extends State<QuickAddPage> {
   /// 이 일정에만 따로 고른 색 (없으면 캘린더 색)
   Color? _color;
+
+  /// 이 프로젝트 안에 추가하는 중 (✕ 로 뺄 수 있어요)
+  late Project? _into = widget.project;
+
+  /// 체크포인트로도 표시할지 (프로젝트 안에 추가할 때)
+  bool _asCheckpoint = false;
+
+  /// 이 일정으로 새 프로젝트를 만들지, 그때 고른 것들
+  bool _projectOn = false;
+  ProjectDraft? _draft;
 
   final ParsedController _ctl = ParsedController();
   final FocusNode _focus = FocusNode();
@@ -403,26 +418,153 @@ class _QuickAddPageState extends State<QuickAddPage> {
 
   // ---------------------------------------------------------------- 저장
 
+  Future<void> _toggleProject(QuickParse q) async {
+    if (_projectOn) {
+      setState(() => _projectOn = false);
+      return;
+    }
+    final last = q.lastDay;
+    if (last == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('기간("10/26~11/13")이나 "매일 …까지"처럼 끝나는 날이 있는 일정만 프로젝트로 볼 수 있어요')),
+      );
+      return;
+    }
+    final r = await showProjectOptionsSheet(
+      context,
+      name: q.title.isEmpty ? '새 일정' : q.title,
+      start: dayOnly(q.start),
+      end: last,
+      initial: _draft,
+    );
+    if (r == null || !mounted) return;
+    setState(() {
+      _draft = r;
+      _projectOn = true;
+    });
+  }
+
+  /// 쉬는 요일에 맞춰 반복 방식을 바꿔요 (매일 / 평일마다 / 고른 요일마다)
+  Repeat? _repeatFor(Repeat? r, Set<int> rest) {
+    if (r == null || (r.kind != RepeatKind.daily && r.kind != RepeatKind.weekdays)) return r;
+    if (rest.isEmpty) return Repeat(RepeatKind.daily, until: r.until);
+    if (rest.length == 2 && rest.contains(6) && rest.contains(7)) {
+      return Repeat(RepeatKind.weekdays, until: r.until);
+    }
+    return Repeat(
+      RepeatKind.days,
+      until: r.until,
+      days: {for (var i = 1; i <= 7; i++) if (!rest.contains(i)) i},
+    );
+  }
+
   Future<void> _save() async {
     if (_saving) return;
     final store = StoreScope.of(context);
     if (_ctl.text.trim().isEmpty) return;
     final q = _parse(store);
     final cal = _calendar(store);
+    final into = _into;
+    final makeProject = _projectOn && _draft != null && q.lastDay != null && into == null;
+    final rest = makeProject ? _draft!.rest : const <int>{};
+
+    // 프로젝트 기간 밖이거나 쉬는 요일이면 한 번 물어봐요.
+    if (into != null) {
+      final day = dayOnly(q.start);
+      String? why;
+      if (!into.contains(day)) {
+        why = '프로젝트 기간(${into.start.month}/${into.start.day} – ${into.end.month}/${into.end.day}) 밖이에요';
+      } else if (into.isRestDay(day)) {
+        why = '${wdFull(day)}은 쉬는 요일이에요';
+      }
+      if (why != null) {
+        final yes = await showConfirmSheet(
+          context,
+          title: why,
+          body: '그래도 이 프로젝트에 추가할까요?',
+          yes: '그래도 추가',
+          no: '다시 정할게요',
+        );
+        if (!yes || !mounted) return;
+      }
+    }
+
+    var start = q.start;
+    var end = q.end;
+    var repeat = q.repeatRule;
+    if (makeProject && repeat != null) {
+      repeat = _repeatFor(repeat, rest);
+      // 첫날이 쉬는 요일이면 다음 근무일부터 시작해요.
+      var shift = 0;
+      while (rest.contains(addDays(start, shift).weekday) && shift < 7) {
+        shift++;
+      }
+      if (shift > 0) {
+        final ns = DateTime(start.year, start.month, start.day + shift, start.hour, start.minute);
+        end = ns.add(end.difference(start));
+        start = ns;
+      }
+    }
+
     setState(() => _saving = true);
     final ok = await store.addEvent(
       calendarId: cal?.id,
       title: q.title.isEmpty ? '새 일정' : q.title,
-      start: q.start,
-      end: q.end,
+      start: start,
+      end: end,
       allDay: q.allDay,
       location: _location.isEmpty ? null : _location,
       tags: q.tags,
-      repeat: q.repeatRule,
+      repeat: repeat,
       color: _color,
     );
     if (!mounted) return;
     if (ok) {
+      final id = store.lastCreatedId;
+      if (id != null && into != null) {
+        await store.addEventIdsToProject(into.id, {id});
+        if (_asCheckpoint) {
+          final fresh = store.projectById(into.id);
+          if (fresh != null) {
+            final cps = [
+              ...fresh.checkpoints,
+              Checkpoint(
+                id: 'c${DateTime.now().microsecondsSinceEpoch}',
+                title: q.title.isEmpty ? '새 일정' : q.title,
+                date: dayOnly(q.start),
+              ),
+            ]..sort((a, b) => a.date.compareTo(b.date));
+            await store.saveProject(fresh.copyWith(checkpoints: cps));
+          }
+        }
+      } else if (id != null && makeProject) {
+        final String prefix;
+        if (q.allDay) {
+          prefix = '';
+        } else if (rest.isEmpty) {
+          prefix = '매일 ';
+        } else if (rest.length == 2 && rest.contains(6) && rest.contains(7)) {
+          prefix = '평일 ';
+        } else {
+          prefix = '';
+        }
+        final firstDay = dayOnly(start);
+        await store.saveProject(
+          Project(
+            id: store.newProjectId(),
+            name: q.title.isEmpty ? '새 프로젝트' : q.title,
+            start: firstDay,
+            end: q.lastDay!,
+            colorValue: (_color ?? cal?.color ?? Skin.palette.first).toARGB32(),
+            rest: rest,
+            checkpoints: _draft!.checkpoints,
+            eventIds: {id},
+            timeText: q.allDay ? '종일' : '$prefix${hm(start)} – ${hm(end)}',
+            cells: !q.allDay,
+          ),
+        );
+      }
+      if (!mounted) return;
       // 기간 일정이 오늘을 지나고 있으면 오늘로, 아니면 시작일로 가요.
       final last = q.lastDay;
       final t = store.today;
@@ -582,6 +724,38 @@ class _QuickAddPageState extends State<QuickAddPage> {
                       ],
                     ),
                   ),
+                  if (_into != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          _Chip(
+                            dot: _into!.color,
+                            icon: Icons.close_rounded,
+                            text: _into!.name,
+                            onTap: () => setState(() {
+                              _into = null;
+                              _asCheckpoint = false;
+                            }),
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('체크포인트로 표시', style: ts(context, 14, weight: FontWeight.w600)),
+                              const SizedBox(width: 8),
+                              AppSwitch(
+                                value: _asCheckpoint,
+                                label: '체크포인트로 표시',
+                                onChanged: (v) => setState(() => _asCheckpoint = v),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
                     child: Wrap(
@@ -643,6 +817,13 @@ class _QuickAddPageState extends State<QuickAddPage> {
                           dashed: _location.isEmpty,
                           onTap: _askLocation,
                         ),
+                        if (_into == null)
+                          _Chip(
+                            icon: _projectOn ? Icons.close_rounded : Icons.flag_outlined,
+                            text: _projectOn ? '프로젝트로 보기' : '프로젝트',
+                            dashed: !_projectOn,
+                            onTap: () => _toggleProject(q),
+                          ),
                         for (final h in tagHits)
                           _Chip(
                             icon: Icons.close_rounded,

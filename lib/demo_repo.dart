@@ -225,6 +225,7 @@ class DemoRepo implements CalendarRepo {
         RepeatKind.daily => true,
         RepeatKind.weekdays => wd <= 5,
         RepeatKind.weekly => wd == first.weekday,
+        RepeatKind.days => repeat.days.contains(wd),
       };
       if (ok) {
         final s = DateTime(d.year, d.month, d.day, start.hour, start.minute);

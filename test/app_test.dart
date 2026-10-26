@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yeobaek/demo_repo.dart';
 import 'package:yeobaek/main.dart';
 import 'package:yeobaek/models.dart';
+import 'package:yeobaek/projects.dart';
 import 'package:yeobaek/store.dart';
 import 'package:yeobaek/theme.dart';
 import 'package:yeobaek/ui/event_tile.dart';
@@ -341,6 +342,88 @@ void main() {
     store.shiftDay(-1);
     await tester.pumpAndSettle();
     expect(store.selected, w0);
+  });
+
+  testWidgets('프로젝트: 월 화면 위 띠와 목록 · 상세에 진행이 보여요', (tester) async {
+    final store = await open(tester);
+    await store.saveProject(
+      Project(
+        id: 'p1',
+        name: '교보증권 프로젝트',
+        start: DateTime(2026, 10, 26),
+        end: DateTime(2026, 11, 13),
+        colorValue: 0xFF909FEA,
+        timeText: '매일 09:00 – 18:00',
+        cells: true,
+        checkpoints: [
+          Checkpoint(id: 'c1', title: '중간 보고', date: DateTime(2026, 11, 6)),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    // 월 화면 위 한 줄 띠
+    expect(find.text('교보증권 프로젝트'), findsOneWidget);
+    expect(find.text('D-18'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.flag_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text('진행 중 1'), findsOneWidget);
+    expect(find.text('남은 14일'), findsOneWidget);
+    expect(find.text('1일째 · 근무일 15일 중'), findsOneWidget);
+
+    await tester.tap(find.text('교보증권 프로젝트'));
+    await tester.pumpAndSettle();
+    expect(find.text('체크포인트'), findsOneWidget);
+    expect(find.text('11/6 · D-11'), findsOneWidget);
+    expect(find.text('+ 일정 추가'), findsOneWidget);
+  });
+
+  testWidgets('프로젝트: 일정을 쓰며 "프로젝트로 보기"를 켜면 프로젝트가 생겨요', (tester) async {
+    final store = await open(tester);
+    await tester.tap(find.text('한 줄로 추가 · 예) 내일 3시 치과'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '10/27~10/30 9시~18시 킥오프');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('프로젝트'));
+    await tester.pumpAndSettle();
+    expect(find.text('프로젝트로 보기'), findsOneWidget);
+    await tester.tap(find.text('완료'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('추가'));
+    await tester.pumpAndSettle();
+
+    expect(store.projects.length, 1);
+    final pr = store.projects.first;
+    expect(pr.name, '킥오프');
+    expect(pr.start, DateTime(2026, 10, 27));
+    expect(pr.end, DateTime(2026, 10, 30));
+    expect(pr.eventIds.length, 1);
+    // 일정은 태그 없이도 프로젝트에 이어져 있어요.
+    final e = store.eventsOn(DateTime(2026, 10, 28)).firstWhere((x) => x.title == '킥오프');
+    expect(store.projectOf(e)?.id, pr.id);
+    expect(e.tags, isEmpty);
+  });
+
+  testWidgets('프로젝트: 일정을 넣고 빼도 일정은 그대로예요', (tester) async {
+    final store = await open(tester);
+    final e = store.eventsOn(DateTime(2026, 10, 26)).first;
+    await store.saveProject(
+      Project(
+        id: 'p1',
+        name: '묶음',
+        start: DateTime(2026, 10, 26),
+        end: DateTime(2026, 10, 30),
+        colorValue: 0xFF909FEA,
+      ),
+    );
+    await store.setEventProject(e, 'p1');
+    expect(store.projectOf(e)?.id, 'p1');
+    await store.setEventProject(e, null);
+    expect(store.projectOf(e), isNull);
+    await store.setEventProject(e, 'p1');
+    await store.deleteProject('p1');
+    expect(store.projects, isEmpty);
+    expect(store.eventsOn(DateTime(2026, 10, 26)).any((x) => x.id == e.id), true);
   });
 
   testWidgets('다크 모드에서도 그려져요', (tester) async {
