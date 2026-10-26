@@ -176,8 +176,8 @@ class _QuickAddPageState extends State<QuickAddPage> {
   void _setDate(DateTime d) {
     final t = StoreScope.of(context).today;
     final text = (d.year == t.year && !d.isBefore(t))
-        ? '${mdText(d)}'
-        : '${ymdText(d)}';
+        ? mdText(d)
+        : ymdText(d);
     _rewrite({HitKind.date}, text);
   }
 

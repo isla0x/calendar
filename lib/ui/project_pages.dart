@@ -1083,7 +1083,7 @@ class _ProjectDaysPageState extends State<ProjectDaysPage> {
                     children: [
                       Expanded(
                         child: Text(
-                          '${dateFull(sel)}',
+                          dateFull(sel),
                           style: ts(context, 18, weight: FontWeight.w700),
                         ),
                       ),
@@ -1804,7 +1804,7 @@ class _DatePill extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                '${dateChip(date)}',
+                dateChip(date),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: ts(context, 15, weight: FontWeight.w600),

@@ -627,7 +627,7 @@ class _DaySheet extends StatelessWidget {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
-                  '${dateFull(day)}',
+                  dateFull(day),
                   style: ts(context, 18, weight: FontWeight.w700, letterSpacing: -0.36),
                 ),
                 const SizedBox(width: 8),

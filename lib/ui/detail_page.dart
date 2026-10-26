@@ -42,7 +42,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
     final endsSameDay = sameDay(e.start, e.end) ||
         (e.end.hour == 0 && e.end.minute == 0 && daysBetween(e.start, e.end) == 1);
     if (endsSameDay) return '$head ${hm(e.start)} – ${hm(e.end)}';
-    return '${head} ${hm(e.start)} – ${mdText(e.end)} ${hm(e.end)}';
+    return '$head ${hm(e.start)} – ${mdText(e.end)} ${hm(e.end)}';
   }
 
   String? _status(Ev e, DateTime now) {

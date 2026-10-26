@@ -9,7 +9,7 @@ import 'l10n.dart';
 const String kProProductId = 'com.isla0x.yeobaek.pro';
 
 /// Pro 로 열리는 것들 (안내 화면에 그대로 써요)
-const List<(String, String)> kProPerks = <(String, String)>[
+List<(String, String)> get kProPerks => <(String, String)>[
   (tl('백업 · 복원'), tl('색 · 프로젝트 · 할 일 · 이동시간을 파일로 보관하고 되돌려요')),
   (tl('폰을 바꿔도 그대로'), tl('새 폰에서 "가져오기" 한 번이면 돌아와요')),
 ];

@@ -226,20 +226,20 @@ class _Header extends StatelessWidget {
     String big;
 
     if (store.view == ViewMode.month) {
-      small = '${yText(store.month.year)}';
-      big = '${mText(store.month.month)}';
+      small = yText(store.month.year);
+      big = mText(store.month.month);
     } else if (store.view == ViewMode.week) {
       final a = weekStartSunday(store.selected);
       final b = addDays(a, 6);
       small = a.month == b.month
-          ? '${ymText(a)}'
+          ? ymText(a)
           : '${ymText(a)} – ${mText(b.month)}';
       big = '${dText(a.day)} – ${dText(b.day)}';
     } else {
       final d = store.selected;
       final h = store.holidayOn(d);
       small = h == null ? wdFull(d) : '${wdFull(d)} · $h';
-      big = '${mdText(d)}';
+      big = mdText(d);
     }
 
     return Padding(

@@ -277,7 +277,7 @@ class _EventEditPageState extends State<EventEditPage> {
 
   String _dateText(DateTime d, DateTime today) {
     final y = d.year == today.year ? '' : '${yText(d.year)} ';
-    return '${y}${dateChip(d)}';
+    return '$y${dateChip(d)}';
   }
 
   List<Ev> _conflicts(CalendarStore s) {

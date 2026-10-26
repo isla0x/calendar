@@ -485,7 +485,7 @@ Future<bool> showConfirmSheet(
   required String title,
   String? body,
   required String yes,
-  String no = tl('취소'),
+  String? no,
   bool danger = false,
 }) async {
   final r = await showAppSheet<bool>(
@@ -499,7 +499,7 @@ Future<bool> showConfirmSheet(
           children: [
             Expanded(
               flex: 2,
-              child: BigButton(label: no, quiet: true, onTap: () => Navigator.of(ctx).pop(false)),
+              child: BigButton(label: no ?? tl('취소'), quiet: true, onTap: () => Navigator.of(ctx).pop(false)),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -588,7 +588,7 @@ Future<DateTime?> showDateSheet(
   required DateTime initial,
   DateTime? first,
   DateTime? last,
-  String title = tl('날짜'),
+  String? title,
 }) {
   return showAppSheet<DateTime>(
     context: context,
@@ -596,7 +596,7 @@ Future<DateTime?> showDateSheet(
       initial: dayOnly(initial),
       first: dayOnly(first ?? DateTime(2000)),
       last: dayOnly(last ?? DateTime(2100)),
-      title: title,
+      title: title ?? tl('날짜'),
     ),
   );
 }
@@ -674,7 +674,7 @@ class _DateSheetState extends State<_DateSheet> {
             children: [
               Expanded(
                 child: Text(
-                  '${ymText(_month)}',
+                  ymText(_month),
                   style: ts(context, 17, weight: FontWeight.w700),
                 ),
               ),
@@ -761,11 +761,11 @@ class _DateSheetState extends State<_DateSheet> {
 Future<DateTime?> showTimeSheet(
   BuildContext context, {
   required DateTime initial,
-  String title = tl('시간'),
+  String? title,
 }) {
   return showAppSheet<DateTime>(
     context: context,
-    builder: (_) => _TimeWheelSheet(initial: initial, title: title),
+    builder: (_) => _TimeWheelSheet(initial: initial, title: title ?? tl('시간')),
   );
 }
 
