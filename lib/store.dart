@@ -554,10 +554,11 @@ class CalendarStore extends ChangeNotifier {
   /// 걸러보기 중일 때, 이 일정이 고른 태그에 해당하는지
   bool tagMatch(Ev e) => _tagFilter == null || e.tags.contains(_tagFilter);
 
-  /// 프로젝트에 들어간 일정인지 (바깥 화면에서는 숨기고, 프로젝트 화면에서만 보여줘요)
+  /// 프로젝트 안에 든 "속 일정"인지. 프로젝트 자체(이름이 같은 일정)는 달력에 그대로 보이고,
+  /// 그 안에 넣은 다른 일정들만 바깥 화면에서 숨겨요 (프로젝트 화면에서만 보여줘요).
   bool inProject(Ev e) {
     for (final p in _projects) {
-      if (p.eventIds.contains(e.id)) return true;
+      if (p.eventIds.contains(e.id)) return e.title.trim() != p.name.trim();
     }
     return false;
   }
