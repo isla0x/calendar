@@ -891,14 +891,14 @@ class _TodoAddPageState extends State<TodoAddPage> {
                         ),
                         if (_split) ...[
                           const SizedBox(height: 12),
-                          Row(
+                          Text('한 번에 최소', style: ts(context, 13, color: p.muted)),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
                             children: [
-                              Text('한 번에 최소', style: ts(context, 13, color: p.muted)),
-                              const SizedBox(width: 10),
                               _OptChip('30분', _chunk == 30, () => setState(() => _chunk = 30)),
-                              const SizedBox(width: 8),
                               _OptChip('1시간', _chunk == 60, () => setState(() => _chunk = 60)),
-                              const SizedBox(width: 8),
                               _OptChip('통째로', _chunk == 0, () => setState(() => _chunk = 0)),
                             ],
                           ),
