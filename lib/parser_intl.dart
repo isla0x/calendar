@@ -586,8 +586,8 @@ Normalized normalizeIntl(String input, Lang lang) {
   void rep(int a, int b, String out, {bool pad = true}) {
     var o = out;
     if (pad) {
-      if (last != ' ' && last != '\n' && last != '\t') o = ' ' + o;
-      if (b < input.length && input[b] != ' ' && input[b] != '\n' && input[b] != '\t') o = o + ' ';
+      if (last != ' ' && last != '\n' && last != '\t') o = ' $o';
+      if (b < input.length && input[b] != ' ' && input[b] != '\n' && input[b] != '\t') o = '$o ';
     }
     buf.write(o);
     segs.add(_Seg(outLen, outLen + o.length, a, b, false));

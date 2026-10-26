@@ -116,7 +116,7 @@ class Ev {
       }
       return tl('{0} – {1} · 종일', [mdText(start), mdText(last)]);
     }
-    final base = '${dateFull(start)}';
+    final base = dateFull(start);
     return '$base ${hm(start)} – ${hm(end)}';
   }
 }

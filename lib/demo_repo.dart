@@ -38,7 +38,7 @@ class DemoRepo implements CalendarRepo {
     ),
   ];
 
-  static const Map<int, List<_T>> _week = {
+  static Map<int, List<_T>> get _week => {
     1: [
       _T(9.5, 10.5, tl('주간 싱크 #회의'), 'work', tl('회의실 A')),
       _T(12, 13, tl('점심 약속 #약속'), 'meet'),
@@ -77,7 +77,7 @@ class DemoRepo implements CalendarRepo {
     ],
   };
 
-  static const Map<int, String> _holidays = {
+  static Map<int, String> get _holidays => {
     101: tl('신정'),
     301: tl('삼일절'),
     505: tl('어린이날'),
