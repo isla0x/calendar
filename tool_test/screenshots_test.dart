@@ -166,6 +166,14 @@ void main() {
       await save(tester, '$id-11-date');
     });
 
+    testWidgets('$nm Pro 안내', (tester) async {
+      await open(tester, skin);
+      await tester.tap(find.byIcon(Icons.more_horiz_rounded));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('백업 · 복원'));
+      await save(tester, '$id-12-pro');
+    });
+
     testWidgets('$nm 다크 모드', (tester) async {
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
       addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
