@@ -25,6 +25,10 @@ if [ -f "$PLIST" ] && [ -x "$PB" ]; then
   setstr NSCalendarsUsageDescription "내 캘린더의 일정을 보여주고, 비는 시간을 찾아드리기 위해 접근해요."
   setstr NSCalendarsFullAccessUsageDescription "내 캘린더의 일정을 보여주고, 새 일정을 추가·수정하기 위해 접근해요."
   setstr NSCalendarsWriteOnlyAccessUsageDescription "새 일정을 내 캘린더에 추가하기 위해 접근해요."
+  # 백업 파일을 고르는 화면(file_picker)이 사진·카메라·위치 접근 코드를 포함해서 문구가 꼭 필요해요.
+  setstr NSPhotoLibraryUsageDescription "백업 파일을 불러올 때 사진 보관함에서 파일을 고를 수 있도록 접근해요."
+  setstr NSCameraUsageDescription "백업 파일을 불러올 때 카메라를 쓰는 기능이 포함돼 있어요. 여백은 카메라를 따로 쓰지 않아요."
+  setstr NSLocationWhenInUseUsageDescription "여백은 위치를 사용하지 않아요. 연결된 구성 요소가 요구하는 안내 문구예요."
   "$PB" -c "Set :ITSAppUsesNonExemptEncryption false" "$PLIST" 2>/dev/null \
     || "$PB" -c "Add :ITSAppUsesNonExemptEncryption bool false" "$PLIST"
   echo "iOS Info.plist 수정 완료"
