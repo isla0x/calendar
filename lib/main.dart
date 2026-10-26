@@ -7,6 +7,7 @@ import 'device_repo.dart';
 import 'projects.dart';
 import 'skins.dart';
 import 'store.dart';
+import 'todos.dart';
 import 'theme.dart';
 import 'ui/shell.dart';
 
@@ -14,18 +15,22 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final colors = await PrefsColorBook.open();
   final projects = await PrefsProjectBook.open();
-  runApp(YeobaekApp(colors: colors, projects: projects));
+  final todos = await PrefsTodoBook.open();
+  runApp(YeobaekApp(colors: colors, projects: projects, todos: todos));
 }
 
 /// 앱 뿌리. [store] 를 넣으면 그걸 쓰고(테스트용), 아니면 기기 캘린더에 연결해요.
 class YeobaekApp extends StatefulWidget {
-  const YeobaekApp({super.key, this.store, this.ticking = true, this.colors, this.projects});
+  const YeobaekApp({super.key, this.store, this.ticking = true, this.colors, this.projects, this.todos});
 
   /// 일정별 색을 기억해 두는 곳 (없으면 앱을 끄면 잊어요)
   final ColorBook? colors;
 
   /// 프로젝트를 기억해 두는 곳
   final ProjectBook? projects;
+
+  /// 할 일을 기억해 두는 곳
+  final TodoBook? todos;
 
   final CalendarStore? store;
 
@@ -44,7 +49,7 @@ class _YeobaekAppState extends State<YeobaekApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     _owned = widget.store == null;
-    _store = widget.store ?? CalendarStore(DeviceRepo(), colors: widget.colors, projects: widget.projects);
+    _store = widget.store ?? CalendarStore(DeviceRepo(), colors: widget.colors, projects: widget.projects, todos: widget.todos);
     WidgetsBinding.instance.addObserver(this);
     _store.init();
     if (widget.ticking) _store.startClock();

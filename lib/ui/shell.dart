@@ -145,6 +145,15 @@ class _Header extends StatelessWidget {
             ),
           ),
           Tap(
+            onTap: () => openTodos(context),
+            label: '할 일',
+            child: SizedBox(
+              width: 40,
+              height: 44,
+              child: Icon(Icons.checklist_rounded, size: 24, color: p.ink),
+            ),
+          ),
+          Tap(
             onTap: () => openProjects(context),
             label: '프로젝트',
             child: SizedBox(

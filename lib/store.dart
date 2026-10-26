@@ -8,6 +8,7 @@ import 'demo_repo.dart';
 import 'models.dart';
 import 'projects.dart';
 import 'repo.dart';
+import 'todos.dart';
 
 enum ViewMode { month, week, day }
 
@@ -18,10 +19,13 @@ class CalendarStore extends ChangeNotifier {
     DateTime Function()? clock,
     ColorBook? colors,
     ProjectBook? projects,
+    TodoBook? todos,
   })  : _clock = clock ?? DateTime.now,
         _colors = colors ?? MemoryColorBook(),
-        _projectBook = projects ?? MemoryProjectBook() {
+        _projectBook = projects ?? MemoryProjectBook(),
+        _todoBook = todos ?? MemoryTodoBook() {
     _projects = _projectBook.load();
+    _todos = _todoBook.load();
     final t = dayOnly(_clock());
     selected = t;
     month = DateTime(t.year, t.month);
@@ -40,6 +44,10 @@ class CalendarStore extends ChangeNotifier {
   /// 프로젝트 저장소와 목록
   final ProjectBook _projectBook;
   List<Project> _projects = const <Project>[];
+
+  /// 할 일 저장소와 목록
+  final TodoBook _todoBook;
+  List<Todo> _todos = const <Todo>[];
 
   /// 방금 만든 일정의 id (프로젝트에 이어 줄 때 써요)
   String? lastCreatedId;
@@ -143,6 +151,7 @@ class CalendarStore extends ChangeNotifier {
       _from = from;
       _to = to;
       _index();
+      _syncTodoSlots();
       error = null;
     } catch (e) {
       error = '일정을 불러오지 못했어요';
@@ -646,6 +655,174 @@ class CalendarStore extends ChangeNotifier {
       cnt++;
     }
     return cnt == 0 ? 0 : sum ~/ cnt;
+  }
+
+  // ---------------------------------------------------------------- 할 일
+
+  List<Todo> get todos => List<Todo>.unmodifiable(_todos);
+
+  Todo? todoById(String id) {
+    for (final t in _todos) {
+      if (t.id == id) return t;
+    }
+    return null;
+  }
+
+  String newTodoId() => 't${DateTime.now().microsecondsSinceEpoch}';
+
+  Future<void> _saveTodos(List<Todo> next) async {
+    _todos = next;
+    notifyListeners();
+    await _todoBook.save(next);
+  }
+
+  Future<void> saveTodo(Todo t) async {
+    final next = List<Todo>.of(_todos);
+    final i = next.indexWhere((x) => x.id == t.id);
+    if (i >= 0) {
+      next[i] = t;
+    } else {
+      next.add(t);
+    }
+    await _saveTodos(next);
+  }
+
+  Future<void> deleteTodo(String id) async {
+    await _saveTodos(_todos.where((t) => t.id != id).toList());
+  }
+
+  Future<void> setTodoDone(String id, bool done) async {
+    final t = todoById(id);
+    if (t == null) return;
+    await saveTodo(t.copyWith(done: done, doneAt: done ? now : null));
+  }
+
+  /// 캘린더에서 일정을 옮기거나 지웠으면, 할 일의 자리도 거기에 맞춰요.
+  /// (옮겼으면 새 시간으로, 지웠으면 자리를 비워서 다시 찾게 해요.)
+  void _syncTodoSlots() {
+    final f = _from;
+    final t = _to;
+    if (f == null || t == null || _todos.isEmpty) return;
+    var changed = false;
+    final next = <Todo>[];
+    for (final todo in _todos) {
+      if (todo.slots.isEmpty) {
+        next.add(todo);
+        continue;
+      }
+      final slots = <TodoSlot>[];
+      for (final s in todo.slots) {
+        if (s.start.isBefore(addDays(f, 1)) || s.start.isAfter(addDays(t, -1))) {
+          slots.add(s);
+          continue;
+        }
+        Ev? hit;
+        for (final e in _events) {
+          if (e.id == s.eventId) {
+            if (hit == null || (e.start.difference(s.start)).abs() < (hit.start.difference(s.start)).abs()) {
+              hit = e;
+            }
+          }
+        }
+        if (hit == null) {
+          changed = true;
+          continue;
+        }
+        if (hit.start != s.start || hit.end != s.end) {
+          changed = true;
+          slots.add(s.copyWith(start: hit.start, end: hit.end));
+        } else {
+          slots.add(s);
+        }
+      }
+      next.add(slots.length == todo.slots.length && !changed ? todo : todo.copyWith(slots: slots));
+    }
+    if (changed) {
+      _todos = next;
+      _todoBook.save(next);
+    }
+  }
+
+  /// 자리가 필요한 할 일들을 비는 시간에 맞춰 넣어 본 결과 (아직 캘린더에는 안 넣어요)
+  PlanResult planTodoSlots({DayPart? override, List<Todo>? only}) {
+    return planTodos(
+      only ?? _todos,
+      now: now,
+      override: override,
+      dayStartHour: dayStartHour,
+      dayEndHour: dayEndHour,
+      busyOn: (d) => [
+        for (final e in eventsOn(d))
+          if (!e.allDay && e.end.isAfter(e.start)) Span(e.start, e.end),
+      ],
+    );
+  }
+
+  /// 제안한 자리를 캘린더 일정으로 만들고 할 일과 이어요. 만든 일정 수를 돌려줘요.
+  Future<int> applyProposals(List<Proposal> items) async {
+    var made = 0;
+    final slots = <String, List<TodoSlot>>{};
+    for (final it in items) {
+      final title = it.count > 1 ? '${it.todo.title} ${it.index}/${it.count}' : it.todo.title;
+      final ok = await addEvent(
+        title: title,
+        start: it.start,
+        end: it.end,
+        tags: it.todo.tags,
+      );
+      final id = lastCreatedId;
+      if (ok && id != null) {
+        made++;
+        slots.putIfAbsent(it.todo.id, () => <TodoSlot>[]).add(
+              TodoSlot(eventId: id, start: it.start, end: it.end),
+            );
+      }
+    }
+    final next = <Todo>[];
+    for (final t in _todos) {
+      final add = slots[t.id];
+      next.add(add == null ? t : t.copyWith(slots: [...t.slots, ...add], need: 0, clearNotBefore: true));
+    }
+    await _saveTodos(next);
+    return made;
+  }
+
+  /// 끝난 시간 중 아직 "다 했어요?" 하고 안 물어본 가장 최근 것
+  ({Todo todo, TodoSlot slot})? get todoQuestion {
+    ({Todo todo, TodoSlot slot})? best;
+    for (final t in _todos) {
+      if (t.done) continue;
+      for (final s in t.slots) {
+        if (s.asked || s.end.isAfter(now)) continue;
+        if (best == null || s.end.isAfter(best.slot.end)) best = (todo: t, slot: s);
+      }
+    }
+    return best;
+  }
+
+  /// 끝난 시간에 대한 대답. [more] 면 그만큼 더 자리를 찾고, [postpone] 이면 내일 이후로 미뤄요.
+  Future<void> answerTodo(
+    String todoId,
+    String eventId, {
+    bool done = false,
+    int more = 0,
+    bool postpone = false,
+  }) async {
+    final t = todoById(todoId);
+    if (t == null) return;
+    final slots = [
+      for (final s in t.slots) s.eventId == eventId ? s.copyWith(asked: true) : s,
+    ];
+    var next = t.copyWith(slots: slots);
+    if (done) {
+      next = next.copyWith(done: true, doneAt: now);
+    } else if (postpone) {
+      final slot = t.slots.firstWhere((s) => s.eventId == eventId, orElse: () => t.slots.first);
+      next = next.copyWith(need: slot.minutes, notBefore: addDays(today, 1));
+    } else if (more > 0) {
+      next = next.copyWith(need: more);
+    }
+    await saveTodo(next);
   }
 
   // ---------------------------------------------------------------- 시계

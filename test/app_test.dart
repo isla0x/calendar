@@ -6,6 +6,7 @@ import 'package:yeobaek/main.dart';
 import 'package:yeobaek/models.dart';
 import 'package:yeobaek/projects.dart';
 import 'package:yeobaek/store.dart';
+import 'package:yeobaek/todos.dart';
 import 'package:yeobaek/theme.dart';
 import 'package:yeobaek/ui/event_tile.dart';
 
@@ -424,6 +425,89 @@ void main() {
     await store.deleteProject('p1');
     expect(store.projects, isEmpty);
     expect(store.eventsOn(DateTime(2026, 10, 26)).any((x) => x.id == e.id), true);
+  });
+
+  testWidgets('할 일: 자리를 찾아 일정으로 넣고, 일정을 지우면 자리도 비어요', (tester) async {
+    final store = await open(tester);
+    await store.saveTodo(
+      Todo(
+        id: 't1',
+        title: '치과 예약 전화',
+        minutes: 10,
+        due: DateTime(2026, 10, 27),
+        split: false,
+        minChunk: 0,
+      ),
+    );
+    final plan = store.planTodoSlots();
+    expect(plan.items.length, 1);
+    final n = await store.applyProposals(plan.items);
+    expect(n, 1);
+    final t = store.todoById('t1')!;
+    expect(t.slots.length, 1);
+    final day = DateTime(t.slots.first.start.year, t.slots.first.start.month, t.slots.first.start.day);
+    final ev = store.eventsOn(day).firstWhere((e) => e.title == '치과 예약 전화');
+    expect(ev.id, t.slots.first.eventId);
+    expect(t.needsPlan(store.now), false);
+
+    await store.deleteEvent(ev);
+    expect(store.todoById('t1')!.slots, isEmpty);
+    expect(store.todoById('t1')!.needsPlan(store.now), true);
+  });
+
+  testWidgets('할 일: 끝난 시간에 물어보고, 대답에 따라 바뀌어요', (tester) async {
+    final store = await open(tester);
+    await store.saveTodo(
+      Todo(
+        id: 't2',
+        title: '영어 공부',
+        minutes: 30,
+        slots: [
+          TodoSlot(
+            eventId: 'zz',
+            start: DateTime(2026, 10, 26, 13),
+            end: DateTime(2026, 10, 26, 13, 30),
+          ),
+        ],
+      ),
+    );
+    expect(store.todoQuestion?.todo.id, 't2');
+    await store.answerTodo('t2', 'zz', more: 30);
+    expect(store.todoQuestion, isNull);
+    expect(store.todoById('t2')!.need, 30);
+    expect(store.todoById('t2')!.done, false);
+
+    await store.saveTodo(store.todoById('t2')!.copyWith(
+          slots: [
+            TodoSlot(
+              eventId: 'zz2',
+              start: DateTime(2026, 10, 26, 13),
+              end: DateTime(2026, 10, 26, 13, 30),
+            ),
+          ],
+        ));
+    await store.answerTodo('t2', 'zz2', done: true);
+    expect(store.todoById('t2')!.done, true);
+  });
+
+  testWidgets('할 일 화면: 목록과 추가 화면이 열려요', (tester) async {
+    final store = await open(tester);
+    await store.saveTodo(Todo(id: 't3', title: '운동', minutes: 60, perWeek: 2));
+    await tester.tap(find.byIcon(Icons.checklist_rounded));
+    await tester.pumpAndSettle();
+    expect(find.text('할 일'), findsWidgets);
+    expect(find.text('운동'), findsOneWidget);
+    expect(find.text('자리 찾기'), findsOneWidget);
+
+    await tester.tap(find.text('+ 할 일 추가 · 예) 운동 1시간'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '소설 쓰기 2시간 이번 주 안에');
+    await tester.pumpAndSettle();
+    expect(find.text('이렇게 넣을 수 있어요'), findsOneWidget);
+    await tester.tap(find.text('추가'));
+    await tester.pumpAndSettle();
+    expect(store.todos.length, 2);
+    expect(store.todos.any((t) => t.title == '소설 쓰기' && t.minutes == 120), true);
   });
 
   testWidgets('다크 모드에서도 그려져요', (tester) async {

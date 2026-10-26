@@ -6,6 +6,7 @@ import 'detail_page.dart';
 import 'project_pages.dart';
 import 'quick_add_page.dart';
 import 'search_page.dart';
+import 'todo_pages.dart';
 
 /// 화면 이동 모음
 Future<void> openDetail(BuildContext context, Ev e) {
@@ -40,5 +41,11 @@ Future<void> openProjects(BuildContext context) {
 Future<void> openProject(BuildContext context, String id) {
   return Navigator.of(context).push<void>(
     MaterialPageRoute<void>(builder: (_) => ProjectDetailPage(projectId: id)),
+  );
+}
+
+Future<void> openTodos(BuildContext context) {
+  return Navigator.of(context).push<void>(
+    MaterialPageRoute<void>(builder: (_) => const TodoListPage()),
   );
 }
