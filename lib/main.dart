@@ -1,8 +1,12 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'app_info.dart';
 import 'color_book.dart';
+import 'dates.dart';
 import 'device_repo.dart';
 import 'flags.dart';
 import 'pro.dart';
@@ -11,6 +15,9 @@ import 'skins.dart';
 import 'store.dart';
 import 'todos.dart';
 import 'travel.dart';
+import 'widget_sync.dart';
+import 'package:home_widget/home_widget.dart';
+import 'ui/nav.dart';
 import 'theme.dart';
 import 'ui/shell.dart';
 
@@ -66,6 +73,9 @@ class YeobaekApp extends StatefulWidget {
 class _YeobaekAppState extends State<YeobaekApp> with WidgetsBindingObserver {
   late final CalendarStore _store;
   late final bool _owned;
+  final GlobalKey<NavigatorState> _nav = GlobalKey<NavigatorState>();
+  WidgetSync? _sync;
+  StreamSubscription<Uri?>? _clicks;
 
   @override
   void initState() {
@@ -75,11 +85,46 @@ class _YeobaekAppState extends State<YeobaekApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _store.init();
     if (widget.ticking) _store.startClock();
+    // 실제 기기에서만: 위젯에 자료를 건네고, 위젯을 눌러 들어오면 해당 화면을 열어요.
+    if (_owned && defaultTargetPlatform == TargetPlatform.iOS) {
+      _sync = WidgetSync(_store, HomeWidgetSink());
+      HomeWidget.setAppGroupId(kWidgetGroup);
+      _clicks = HomeWidget.widgetClicked.listen(_openFromWidget);
+      HomeWidget.initiallyLaunchedFromHomeWidget().then(_openFromWidget);
+    }
+  }
+
+  void _openFromWidget(Uri? uri) {
+    if (uri == null) return;
+    // 화면이 다 그려진 뒤에 열어요.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _nav.currentContext;
+      if (ctx == null || !ctx.mounted) return;
+      switch (uri.host) {
+        case 'add':
+          // from=밀리초: 그 시각부터 쓰기 (비는 시간을 눌렀을 때)
+          final ms = int.tryParse(uri.queryParameters['from'] ?? '');
+          var text = '';
+          if (ms != null) {
+            final f = DateTime.fromMillisecondsSinceEpoch(ms);
+            text = '${f.month}월 ${f.day}일 ${timeWords(f.hour, f.minute)} ';
+          }
+          openQuickAdd(ctx, initialText: text);
+        case 'todos':
+          openTodos(ctx);
+        case 'projects':
+          openProjects(ctx);
+        case 'today':
+          _store.goToday();
+      }
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _clicks?.cancel();
+    _sync?.dispose();
     _store.stopClock();
     if (_owned) _store.dispose();
     super.dispose();
@@ -96,6 +141,7 @@ class _YeobaekAppState extends State<YeobaekApp> with WidgetsBindingObserver {
     return StoreScope(
       store: _store,
       child: MaterialApp(
+        navigatorKey: _nav,
         title: kAppName,
         debugShowCheckedModeBanner: false,
         theme: buildTheme(Skin.current.light),

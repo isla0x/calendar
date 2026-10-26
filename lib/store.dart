@@ -309,6 +309,14 @@ class CalendarStore extends ChangeNotifier {
     return out;
   }
 
+  /// [a]~[b] 날짜의 일정을 이미 읽어 왔는지 (위젯 자료를 만들어도 되는지 확인용)
+  bool coversDays(DateTime a, DateTime b) {
+    final f = _from;
+    final t = _to;
+    if (f == null || t == null) return false;
+    return !dayOnly(a).isBefore(f) && dayOnly(b).isBefore(t);
+  }
+
   /// 비는 시간(분)
   int freeMinutes(DateTime d, {DateTime? from}) {
     final w = _window(d, from);
