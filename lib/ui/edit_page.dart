@@ -360,7 +360,7 @@ class _EventEditPageState extends State<EventEditPage> {
         child: Row(
           children: [
             SizedBox(
-              width: 34,
+              width: L10n.lang == Lang.ko ? 34 : 58,
               child: Text(label, style: ts(context, 15, color: p.muted)),
             ),
             Expanded(
