@@ -78,8 +78,8 @@ if ext.nil?
   group.new_file('Info.plist')
   group.new_file('YeobaekWidgets.entitlements')
 
-  flutter_group = project.main_group['Flutter'] || project.main_group
-  xc = flutter_group.new_file('Widget.xcconfig')
+  # 프로젝트 폴더(ios/) 기준 경로로 직접 가리켜요.
+  xc = project.main_group.new_reference('Flutter/Widget.xcconfig')
 
   ext.build_configurations.each do |c|
     s = c.build_settings
