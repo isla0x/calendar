@@ -15,6 +15,9 @@ import 'package:yeobaek/dates.dart';
 import 'package:yeobaek/demo_repo.dart';
 import 'package:yeobaek/l10n.dart';
 import 'package:yeobaek/main.dart';
+import 'package:yeobaek/models.dart';
+import 'package:yeobaek/projects.dart';
+import 'package:yeobaek/ui/project_pages.dart';
 import 'package:yeobaek/skins.dart';
 import 'package:yeobaek/store.dart';
 import 'package:yeobaek/theme.dart';
@@ -60,7 +63,8 @@ void main() {
     }
   }
 
-  Future<CalendarStore> open(WidgetTester tester, Skin skin, Lang lang, {bool project = false}) async {
+  Future<CalendarStore> open(WidgetTester tester, Skin skin, Lang lang, {bool project = false, DateTime? at}) async {
+    final clock = at ?? now;
     L10n.lang = lang;
     addTearDown(() => L10n.lang = Lang.ko);
     useWebFont = true;
@@ -74,7 +78,7 @@ void main() {
     tester.view.padding = pad;
     tester.view.viewPadding = pad;
     addTearDown(tester.view.reset);
-    final store = CalendarStore(DemoRepo(clock: () => now, project: project), clock: () => now);
+    final store = CalendarStore(DemoRepo(clock: () => clock, project: project), clock: () => clock);
     await tester.pumpWidget(
       RepaintBoundary(key: key, child: YeobaekApp(store: store, ticking: false)),
     );
@@ -105,6 +109,56 @@ void main() {
     Lang.ja: ['明日 午後3時 歯医者 30分 #健康', '2026.11.2~2026.12.18 新プロジェクト #仕事'],
   };
   final today = DateTime(2026, 10, 26);
+
+  // 프로젝트 화면용 샘플 (진짜 프로젝트 기능으로 만들어요): 평일 13:00–18:00, 속 일정 2개
+  const projTexts = <Lang, List<String>>{
+    Lang.ko: ['킥오프 미팅', '환경 세팅', '착수', '중간 보고', '최종 보고'],
+    Lang.en: ['Kickoff meeting', 'Environment setup', 'Kickoff', 'Midterm review', 'Final report'],
+    Lang.fr: ['Réunion de lancement', 'Mise en place', 'Lancement', 'Point d\'étape', 'Rapport final'],
+    Lang.zh: ['启动会议', '环境配置', '启动', '中期汇报', '最终汇报'],
+    Lang.ja: ['キックオフ会議', '環境セットアップ', 'キックオフ', '中間報告', '最終報告'],
+  };
+  Future<void> makeProject(CalendarStore store, Lang lang) async {
+    final t = projTexts[lang]!;
+    final name = tl('프로젝트 A');
+    final ids = <String>{};
+    await store.addEvent(
+      calendarId: 'work',
+      title: name,
+      start: DateTime(2026, 10, 26, 13),
+      end: DateTime(2026, 10, 26, 18),
+      repeat: Repeat(RepeatKind.weekdays, until: DateTime(2026, 11, 13)),
+    );
+    ids.add(store.lastCreatedId!);
+    await store.addEvent(
+      calendarId: 'work',
+      title: t[0],
+      start: DateTime(2026, 10, 27, 14),
+      end: DateTime(2026, 10, 27, 15),
+    );
+    ids.add(store.lastCreatedId!);
+    await store.addEvent(
+      calendarId: 'work',
+      title: t[1],
+      start: DateTime(2026, 10, 27, 15, 30),
+      end: DateTime(2026, 10, 27, 17),
+    );
+    ids.add(store.lastCreatedId!);
+    await store.saveProject(Project(
+      id: 'p1',
+      name: name,
+      start: DateTime(2026, 10, 26),
+      end: DateTime(2026, 11, 13),
+      colorValue: Skin.current.events[0].toARGB32(),
+      checkpoints: [
+        Checkpoint(id: 'c1', title: t[2], date: DateTime(2026, 10, 26), done: true),
+        Checkpoint(id: 'c2', title: t[3], date: DateTime(2026, 11, 6)),
+        Checkpoint(id: 'c3', title: t[4], date: DateTime(2026, 11, 13)),
+      ],
+      eventIds: ids,
+      timeText: '13:00 – 18:00',
+    ));
+  }
   // 샘플 일정 제목: 번역된 "스프린트 플래닝 #회의" 에서 제목과 태그를 갈라요.
   String evTitle() => tl('스프린트 플래닝 #회의').replaceAll(RegExp(r'\s*#\S+'), '').trim();
   String evTag() => RegExp(r'#\S+').firstMatch(tl('스프린트 플래닝 #회의'))!.group(0)!;
@@ -203,6 +257,26 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text(tl('백업 · 복원')));
       await save(tester, '$id-12-pro');
+    });
+
+    testWidgets('$nm 프로젝트 화면', (tester) async {
+      final store = await open(tester, skin, lang, at: DateTime(2026, 10, 27, 10, 20));
+      await makeProject(store, lang);
+      await tester.pumpAndSettle();
+      final ctx = tester.element(find.byType(Scaffold).first);
+      Navigator.of(ctx).push(
+        MaterialPageRoute<void>(
+          builder: (_) => const ProjectDetailPage(projectId: 'p1', day: null),
+        ),
+      );
+      await save(tester, '$id-13-project');
+    });
+
+    testWidgets('$nm 일간 프로젝트', (tester) async {
+      final store = await open(tester, skin, lang, at: DateTime(2026, 10, 27, 10, 20));
+      await makeProject(store, lang);
+      store.setView(ViewMode.day);
+      await save(tester, '$id-14-day-project');
     });
 
     testWidgets('$nm 다크 모드', (tester) async {
