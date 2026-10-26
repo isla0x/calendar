@@ -249,7 +249,7 @@ List<_Rule> _frRules() {
     // 시각 (24시간제: 8h = 오전 8시)
     _Rule('time', _rx('${_lb}midi$_rb'), (m) => '정오', pri: 2),
     _Rule('time', _rx('${_lb}minuit$_rb'), (m) => '자정', pri: 2),
-    _Rule('time', _rx('$_lb(?:(?:à|a|de|dès)\\s+)?(\\d{1,2})\\s*h\\s*(\\d{2})?(?![\\p{L}\\d])'), (m) {
+    _Rule('time', _rx('$_lb(?:(?:à|a|de|dès)\\s+)?(\\d{1,2})\\s*h(\\d{2})?(?![\\p{L}\\d])'), (m) {
       final h = int.parse(m.group(1)!);
       if (h > 24) return null;
       final mm = m.group(2) == null ? 0 : int.parse(m.group(2)!);
