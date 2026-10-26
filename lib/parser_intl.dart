@@ -265,7 +265,8 @@ List<_Rule> _frRules() {
       return m.group(2) == null ? '${m.group(1)}$ap' : '${m.group(1)}:${m.group(2)}$ap';
     }, pri: 3),
     // 길이
-    _Rule('dur', _rx('$_lb(?:(?:pendant|durant|pour|durée(?:\\s+de)?)\\s+)?(\\d+)\\s*(?:heures?|hrs?|h)\\s*(?:et\\s+)?(\\d{1,2})\\s*(?:min|mn|minutes?)$_rb'), (m) => '${m.group(1)}시간 ${m.group(2)}분', pri: 5),
+    _Rule('dur', _rx('$_lb(?:(?:pendant|durant|pour|durée(?:\\s+de)?)\\s+)?(\\d+)\\s*(?:heures?|hrs?)\\s*(?:et\\s+)?(\\d{1,2})\\s*(?:min|mn|minutes?)$_rb'), (m) => '${m.group(1)}시간 ${m.group(2)}분', pri: 5),
+    _Rule('dur', _rx('$_lb(?:pendant|durant|pour|durée(?:\\s+de)?)\\s+(\\d+)\\s*h\\s*(?:et\\s+)?(\\d{1,2})\\s*(?:min|mn|minutes?)$_rb'), (m) => '${m.group(1)}시간 ${m.group(2)}분', pri: 5),
     _Rule('dur', _rx('$_lb(?:(?:pendant|durant|pour|durée(?:\\s+de)?)\\s+)(\\d+(?:[.,]\\d+)?)\\s*(?:heures?|hrs?|h)$_rb'), (m) => '${m.group(1)!.replaceAll(',', '.')}시간', pri: 5),
     _Rule('dur', _rx('$_lb(\\d+(?:[.,]\\d+)?)\\s*(?:heures?|hrs?)$_rb'), (m) => '${m.group(1)!.replaceAll(',', '.')}시간', pri: 3),
     _Rule('dur', _rx('$_lb(?:(?:pendant|durant|pour|durée(?:\\s+de)?)\\s+)?(\\d+)\\s*(?:min|mn|minutes?)$_rb'), (m) => '${m.group(1)}분', pri: 3),

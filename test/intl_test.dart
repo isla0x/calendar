@@ -116,6 +116,13 @@ void main() {
       expect(q.end, DateTime(2026, 10, 27, 16, 0));
     });
 
+    test('dentiste demain 15h 30 min (h 는 시각)', () {
+      final q = parse(Lang.fr, 'dentiste demain 15h 30 min');
+      expect(q.title, 'dentiste');
+      expect(q.start, DateTime(2026, 10, 27, 15, 0));
+      expect(q.end, DateTime(2026, 10, 27, 15, 30));
+    });
+
     test('réunion vendredi 9h', () {
       final q = parse(Lang.fr, 'réunion vendredi 9h');
       expect(q.title, 'réunion');
