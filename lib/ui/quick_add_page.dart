@@ -655,7 +655,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
               child: Row(
                 children: [
                   SizedBox(
-                    width: 76,
+                    width: 112,
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Tap(
@@ -673,7 +673,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
                     ),
                   ),
                   SizedBox(
-                    width: 76,
+                    width: 112,
                     child: Align(
                       alignment: Alignment.centerRight,
                       child: Tap(
