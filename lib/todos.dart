@@ -45,6 +45,7 @@ class TodoSlot {
     required this.start,
     required this.end,
     this.asked = false,
+    this.done = false,
   });
 
   final String eventId;
@@ -54,13 +55,17 @@ class TodoSlot {
   /// 끝난 뒤 "다 했어요?" 하고 이미 물어봤는지
   final bool asked;
 
+  /// 이 자리에서 할 일을 끝냈는지 (일정 옆 동그라미로 체크해요)
+  final bool done;
+
   int get minutes => end.difference(start).inMinutes;
 
-  TodoSlot copyWith({DateTime? start, DateTime? end, bool? asked}) => TodoSlot(
+  TodoSlot copyWith({DateTime? start, DateTime? end, bool? asked, bool? done}) => TodoSlot(
         eventId: eventId,
         start: start ?? this.start,
         end: end ?? this.end,
         asked: asked ?? this.asked,
+        done: done ?? this.done,
       );
 
   Map<String, Object?> toJson() => {
@@ -68,6 +73,7 @@ class TodoSlot {
         's': start.millisecondsSinceEpoch,
         't': end.millisecondsSinceEpoch,
         'a': asked,
+        'd': done,
       };
 
   static TodoSlot? fromJson(Object? j) {
@@ -81,6 +87,7 @@ class TodoSlot {
       start: DateTime.fromMillisecondsSinceEpoch(s),
       end: DateTime.fromMillisecondsSinceEpoch(t),
       asked: j['a'] == true,
+      done: j['d'] == true,
     );
   }
 }

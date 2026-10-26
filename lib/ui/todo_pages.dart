@@ -1201,9 +1201,27 @@ class _TodoPlanPageState extends State<TodoPlanPage> {
           ),
           Padding(
             padding: EdgeInsets.fromLTRB(20, 8, 20, bottom + 16),
-            child: BigButton(
-              label: items.isEmpty ? '넣을 자리가 없어요' : '모두 넣기 · 일정 ${items.length}개',
-              onTap: items.isEmpty || _busy ? null : () => _apply(store, items),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (items.isNotEmpty) ...[
+                  BigButton(
+                    label: '캘린더에서 보기',
+                    quiet: true,
+                    onTap: _busy
+                        ? null
+                        : () {
+                            store.showCandidates(items);
+                            Navigator.of(context).popUntil((r) => r.isFirst);
+                          },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                BigButton(
+                  label: items.isEmpty ? '넣을 자리가 없어요' : '모두 넣기 · 일정 ${items.length}개',
+                  onTap: items.isEmpty || _busy ? null : () => _apply(store, items),
+                ),
+              ],
             ),
           ),
         ],

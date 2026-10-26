@@ -5,7 +5,9 @@ import 'package:flutter/widgets.dart';
 import 'color_book.dart';
 import 'dates.dart';
 import 'demo_repo.dart';
+import 'flags.dart';
 import 'models.dart';
+import 'pro.dart';
 import 'projects.dart';
 import 'repo.dart';
 import 'todos.dart';
@@ -22,10 +24,14 @@ class CalendarStore extends ChangeNotifier {
     ProjectBook? projects,
     TodoBook? todos,
     TravelBook? travel,
+    AppFlags? flags,
+    ProState? pro,
   })  : _clock = clock ?? DateTime.now,
         _colors = colors ?? MemoryColorBook(),
         _projectBook = projects ?? MemoryProjectBook(),
         _todoBook = todos ?? MemoryTodoBook(),
+        flags = flags ?? MemoryFlags(),
+        pro = pro ?? ProState(),
         _travel = travel ?? MemoryTravelBook() {
     _projects = _projectBook.load();
     _todos = _todoBook.load();
@@ -42,17 +48,23 @@ class CalendarStore extends ChangeNotifier {
   final DateTime Function() _clock;
 
   /// 일정마다 따로 고른 색
-  final ColorBook _colors;
+  ColorBook _colors;
+
+  /// 작은 표시들(처음 안내를 봤는지 등)
+  final AppFlags flags;
+
+  /// Pro 결제 상태
+  final ProState pro;
 
   /// 일정마다 정한 이동시간
-  final TravelBook _travel;
+  TravelBook _travel;
 
   /// 프로젝트 저장소와 목록
-  final ProjectBook _projectBook;
+  ProjectBook _projectBook;
   List<Project> _projects = const <Project>[];
 
   /// 할 일 저장소와 목록
-  final TodoBook _todoBook;
+  TodoBook _todoBook;
   List<Todo> _todos = const <Todo>[];
 
   /// 방금 만든 일정의 id (프로젝트에 이어 줄 때 써요)
@@ -791,6 +803,7 @@ class CalendarStore extends ChangeNotifier {
   Future<int> applyProposals(List<Proposal> items) async {
     var made = 0;
     final slots = <String, List<TodoSlot>>{};
+    final createdIds = <String>[];
     for (final it in items) {
       final title = it.count > 1 ? '${it.todo.title} ${it.index}/${it.count}' : it.todo.title;
       final ok = await addEvent(
@@ -802,6 +815,7 @@ class CalendarStore extends ChangeNotifier {
       final id = lastCreatedId;
       if (ok && id != null) {
         made++;
+        createdIds.add(id);
         slots.putIfAbsent(it.todo.id, () => <TodoSlot>[]).add(
               TodoSlot(eventId: id, start: it.start, end: it.end),
             );
@@ -813,6 +827,10 @@ class CalendarStore extends ChangeNotifier {
       next.add(add == null ? t : t.copyWith(slots: [...t.slots, ...add], need: 0, clearNotBefore: true));
     }
     await _saveTodos(next);
+    if (createdIds.isNotEmpty) {
+      undo = (eventIds: createdIds, until: now.add(const Duration(seconds: 20)));
+      notifyListeners();
+    }
     return made;
   }
 
@@ -852,6 +870,142 @@ class CalendarStore extends ChangeNotifier {
       next = next.copyWith(need: more);
     }
     await saveTodo(next);
+  }
+
+  // ---------------------------------------------------------------- 후보 · 되돌리기
+
+  List<Proposal> _candidates = const <Proposal>[];
+
+  /// 자리 찾기 결과 중 아직 캘린더에 안 넣고 "후보"로만 보여주는 것들
+  List<Proposal> get candidates => List<Proposal>.unmodifiable(_candidates);
+
+  /// 후보를 일간 화면에 점선으로 보여줘요 (첫 후보가 있는 날로 이동).
+  void showCandidates(List<Proposal> items) {
+    _candidates = List<Proposal>.of(items);
+    if (_candidates.isNotEmpty) {
+      view = ViewMode.day;
+      final first = _candidates.map((x) => x.start).reduce((a, b) => a.isBefore(b) ? a : b);
+      select(first);
+    } else {
+      notifyListeners();
+    }
+  }
+
+  void removeCandidate(Proposal x) {
+    _candidates = _candidates.where((c) => c != x).toList();
+    notifyListeners();
+  }
+
+  void clearCandidates() {
+    if (_candidates.isEmpty) return;
+    _candidates = const <Proposal>[];
+    notifyListeners();
+  }
+
+  /// 후보를 캘린더에 넣어요. 만든 일정 수.
+  Future<int> confirmCandidates() async {
+    final items = _candidates;
+    _candidates = const <Proposal>[];
+    notifyListeners();
+    return applyProposals(items);
+  }
+
+  /// 방금 넣은 일정들 (되돌리기용)
+  ({List<String> eventIds, DateTime until})? undo;
+
+  /// 방금 한 번에 넣은 일정들을 지우고 할 일을 "자리 찾기 전" 으로 돌려놔요.
+  Future<void> undoLast() async {
+    final u = undo;
+    if (u == null) return;
+    undo = null;
+    final ids = u.eventIds.toSet();
+    for (final id in ids) {
+      final e = findEvent(id);
+      if (e != null) {
+        try {
+          await repo.delete(e);
+        } catch (_) {}
+      }
+    }
+    final next = <Todo>[];
+    for (final t in _todos) {
+      final gone = t.slots.where((s) => ids.contains(s.eventId)).toList();
+      if (gone.isEmpty) {
+        next.add(t);
+        continue;
+      }
+      final mins = gone.fold<int>(0, (a, s) => a + s.minutes);
+      next.add(t.copyWith(
+        slots: t.slots.where((s) => !ids.contains(s.eventId)).toList(),
+        need: t.need + mins,
+      ));
+    }
+    await _saveTodos(next);
+    await _refresh(force: true);
+  }
+
+  void dismissUndo() {
+    if (undo == null) return;
+    undo = null;
+    notifyListeners();
+  }
+
+  /// 이 일정이 이어져 있는 할 일 (없으면 null) 과 그 자리
+  ({Todo todo, TodoSlot slot})? todoForEvent(Ev e) {
+    for (final t in _todos) {
+      for (final s in t.slots) {
+        if (s.eventId == e.id) return (todo: t, slot: s);
+      }
+    }
+    return null;
+  }
+
+  /// 일정 옆 동그라미: 이 자리에서 끝냈다고 표시해요. 모든 자리가 끝나면 할 일도 끝나요.
+  Future<void> toggleSlotDone(Ev e) async {
+    final hit = todoForEvent(e);
+    if (hit == null) return;
+    final on = !hit.slot.done;
+    final slots = [
+      for (final s in hit.todo.slots)
+        s.eventId == e.id ? s.copyWith(done: on, asked: true) : s,
+    ];
+    final all = slots.every((s) => s.done) && hit.todo.need <= 0;
+    var next = hit.todo.copyWith(slots: slots, done: all);
+    if (all && !hit.todo.done) next = next.copyWith(doneAt: now);
+    await saveTodo(next);
+  }
+
+  // ---------------------------------------------------------------- 백업 · 복원
+
+  /// 백업을 가져온 뒤, 기기에 새로 쓴 값을 다시 읽어요.
+  Future<void> replaceBooks({
+    required ColorBook colors,
+    required ProjectBook projects,
+    required TodoBook todos,
+    required TravelBook travel,
+  }) async {
+    _colors = colors;
+    _projectBook = projects;
+    _todoBook = todos;
+    _travel = travel;
+    _projects = _projectBook.load();
+    _todos = _todoBook.load();
+    notifyListeners();
+    await _refresh(force: true);
+  }
+
+  // ---------------------------------------------------------------- 이동시간 장소 기억
+
+  /// 이 장소에 기억해 둔 이동시간 (없으면 Travel.none)
+  Travel travelForPlace(String place) => _travel.ofPlace(place);
+
+  /// 자주 가는 곳 (기억해 둔 장소, 최근 쓴 순서)
+  List<(String, Travel)> get knownPlaces => _travel.places();
+
+  /// 이 장소의 이동시간을 기억해요 (null 이면 잊어요)
+  Future<void> rememberPlace(String place, Travel? t) async {
+    await _travel.setPlace(place, t);
+    notifyListeners();
   }
 
   // ---------------------------------------------------------------- 시계

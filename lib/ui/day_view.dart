@@ -6,6 +6,7 @@ import '../dates.dart';
 import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
+import '../todos.dart';
 import '../travel.dart';
 import 'common.dart';
 import 'nav.dart';
@@ -516,6 +517,11 @@ class _Timeline extends StatelessWidget {
       sh = math.min(sh, math.max(0, x.s - tr.before) ~/ 60);
       eh = math.max(eh, (math.min(1440, x.t + tr.after) + 59) ~/ 60);
     }
+    final cands = store.candidates.where((c) => sameDay(c.start, day)).toList();
+    for (final c in cands) {
+      sh = math.min(sh, minOfDay(c.start, day) ~/ 60);
+      eh = math.max(eh, (minOfDay(c.end, day) + 59) ~/ 60);
+    }
     if (isToday) {
       if (folded && foldedCount > 0) {
         var c = now.hour;
@@ -678,6 +684,20 @@ class _Timeline extends StatelessWidget {
           ));
         }
 
+        // 후보 (아직 캘린더에 없는 점선 칸)
+        for (final c in cands) {
+          final cs = minOfDay(c.start, day);
+          final ce = math.max(cs + 15, minOfDay(c.end, day));
+          final h = math.max(26.0, (ce - cs) / 60 * hourH - 2);
+          children.add(Positioned(
+            left: labelW,
+            right: 0,
+            top: yOf(cs) + 1,
+            height: h,
+            child: _CandidateBlock(proposal: c, height: h),
+          ));
+        }
+
         // 지금 선
         if (showNow) {
           children.add(Positioned(
@@ -726,6 +746,111 @@ class _Timeline extends StatelessWidget {
       },
     );
   }
+}
+
+/// 후보: 초록 점선 칸. 누르면 후보에서 빠져요.
+class _CandidateBlock extends StatelessWidget {
+  const _CandidateBlock({required this.proposal, required this.height});
+
+  final Proposal proposal;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.read(context);
+    final p = Pal.of(context);
+    final t = proposal.count > 1
+        ? '${proposal.todo.title} ${proposal.index}/${proposal.count}'
+        : proposal.todo.title;
+    final tall = height >= 44;
+    return Tap(
+      onTap: () => store.removeCandidate(proposal),
+      label: '후보 빼기',
+      child: Container(
+        decoration: BoxDecoration(
+          color: p.good.withAlpha(p.dark ? 40 : 28),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: CustomPaint(
+          painter: _GoodDash(p.good),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: tall
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              t,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: ts(context, 14, weight: FontWeight.w600, color: p.good, height: 18 / 14),
+                            ),
+                            Text(
+                              '${hm(proposal.start)}–${hm(proposal.end)} · 눌러서 빼기',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: ts(context, 12, color: p.good, height: 15 / 12),
+                            ),
+                          ],
+                        )
+                      : Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            t,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: ts(context, 13, weight: FontWeight.w600, color: p.good, height: 16 / 13),
+                          ),
+                        ),
+                ),
+                Container(
+                  height: 22,
+                  margin: const EdgeInsets.only(left: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: p.good.withAlpha(40),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Text('후보', style: ts(context, 11, weight: FontWeight.w700, color: p.good)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GoodDash extends CustomPainter {
+  _GoodDash(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rrect = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(12)).deflate(0.75);
+    final path = Path()..addRRect(rrect);
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    for (final m in path.computeMetrics()) {
+      var d = 0.0;
+      while (d < m.length) {
+        canvas.drawPath(m.extractPath(d, math.min(d + 5, m.length)), paint);
+        d += 9;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GoodDash old) => old.color != color;
 }
 
 /// 이동시간 띠: 일정 색의 연한 줄무늬
@@ -788,12 +913,16 @@ class _Block extends StatelessWidget {
     final bg = hi ? c.solid : c.tint;
     final fg = hi ? c.onSolid : c.text;
     final tall = height >= 44;
+    final store = StoreScope.of(context);
+    final link = store.todoForEvent(event);
+    final isDone = link?.slot.done ?? false;
 
     final loc = event.location;
     final sub = (loc != null && loc.trim().isNotEmpty)
         ? '${hm(event.start)}–${hm(event.end)} · ${loc.trim()}'
         : '${hm(event.start)}–${hm(event.end)}';
 
+    final lineThrough = isDone ? TextDecoration.lineThrough : null;
     final Widget text = tall
         ? Column(
             mainAxisSize: MainAxisSize.min,
@@ -803,7 +932,8 @@ class _Block extends StatelessWidget {
                 event.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: ts(context, 14, weight: FontWeight.w600, color: fg, height: 18 / 14),
+                style: ts(context, 14, weight: FontWeight.w600, color: fg, height: 18 / 14)
+                    .copyWith(decoration: lineThrough),
               ),
               Text(
                 sub,
@@ -817,12 +947,13 @@ class _Block extends StatelessWidget {
             event.title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: ts(context, 13, weight: FontWeight.w600, color: fg, height: 16 / 13),
+            style: ts(context, 13, weight: FontWeight.w600, color: fg, height: 16 / 13)
+                .copyWith(decoration: lineThrough),
           );
 
-    final match = StoreScope.of(context).tagMatch(event);
+    final match = store.tagMatch(event);
     return Opacity(
-      opacity: match ? 1 : 0.28,
+      opacity: match ? (isDone ? 0.55 : 1) : 0.28,
       child: Tap(
       onTap: () => openDetail(context, event),
       child: Container(
@@ -831,6 +962,19 @@ class _Block extends StatelessWidget {
         decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
         child: Row(
           children: [
+            if (link != null)
+              Tap(
+                onTap: () => store.toggleSlotDone(event),
+                label: isDone ? '끝냄 취소' : '끝냈어요',
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: Icon(
+                    isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                    size: 22,
+                    color: fg,
+                  ),
+                ),
+              ),
             Expanded(child: text),
             if (badge != null)
               Container(

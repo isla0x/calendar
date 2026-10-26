@@ -1,7 +1,7 @@
 name: yeobaek
 description: 여백 — 한눈에 보이고, 비는 시간까지 알려주는 캘린더 앱
 publish_to: "none"
-version: 1.0.0+12
+version: 1.0.0+13
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -13,6 +13,9 @@ dependencies:
     sdk: flutter
   device_calendar_plus: ^0.12.0
   shared_preferences: ^2.3.0
+  in_app_purchase: ^3.2.0
+  share_plus: ^10.1.4
+  file_picker: ^8.1.6
 
 dev_dependencies:
   flutter_test:

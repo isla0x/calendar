@@ -124,6 +124,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
   String? _calId;
   String _location = '';
   Travel _travel = Travel.none;
+  bool _travelTouched = false;
   bool _saving = false;
 
   @override
@@ -411,12 +412,24 @@ class _QuickAddPageState extends State<QuickAddPage> {
       initial: _location,
       icon: Icons.place_outlined,
     );
-    if (r != null && mounted) setState(() => _location = r);
+    if (r == null || !mounted) return;
+    setState(() {
+      _location = r;
+      // 전에 이동시간을 기억해 둔 장소면 저절로 채워요
+      if (!_travelTouched && _travel.isNone && r.trim().isNotEmpty) {
+        _travel = StoreScope.read(context).travelForPlace(r);
+      }
+    });
   }
 
   Future<void> _askTravel() async {
-    final r = await showTravelSheet(context, initial: _travel);
-    if (r != null && mounted) setState(() => _travel = r);
+    final r = await showTravelSheet(context, initial: _travel, place: _location);
+    if (r != null && mounted) {
+      setState(() {
+        _travel = r;
+        _travelTouched = true;
+      });
+    }
   }
 
   void _applySlot(Slot s) {

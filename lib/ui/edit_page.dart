@@ -50,6 +50,7 @@ class _EventEditPageState extends State<EventEditPage> {
 
   /// 이동시간 (갈 때 / 올 때)
   Travel _travel = Travel.none;
+  bool _travelTouched = false;
 
   late final String _sig0;
 
@@ -251,9 +252,12 @@ class _EventEditPageState extends State<EventEditPage> {
   }
 
   Future<void> _pickTravel() async {
-    final r = await showTravelSheet(context, initial: _travel);
+    final r = await showTravelSheet(context, initial: _travel, place: _loc.text);
     if (r == null || !mounted) return;
-    setState(() => _travel = r);
+    setState(() {
+      _travel = r;
+      _travelTouched = true;
+    });
   }
 
   Future<void> _askDiscard() async {
@@ -639,7 +643,12 @@ class _EventEditPageState extends State<EventEditPage> {
                           controller: _loc,
                           cursorColor: p.ink,
                           textInputAction: TextInputAction.next,
-                          onChanged: (_) => setState(() {}),
+                          onChanged: (v) => setState(() {
+                            // 기억해 둔 장소면 이동시간을 저절로 채워요
+                            if (!_travelTouched && _travel.isNone && v.trim().isNotEmpty) {
+                              _travel = StoreScope.read(context).travelForPlace(v);
+                            }
+                          }),
                           style: ts(context, 15, weight: FontWeight.w500),
                           decoration: deco('장소'),
                         ),

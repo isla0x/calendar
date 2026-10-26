@@ -59,11 +59,36 @@ class Travel {
 abstract class TravelBook {
   Travel of(String eventId);
   Future<void> set(String eventId, Travel travel);
+
+  /// 장소별로 기억해 둔 이동시간 (없으면 Travel.none)
+  Travel ofPlace(String place);
+  Future<void> setPlace(String place, Travel? travel);
+
+  /// 기억해 둔 장소들 (이름, 이동시간) — 최근에 쓴 순서
+  List<(String, Travel)> places();
 }
+
+/// 장소 글자를 비교하기 좋게 다듬어요 (공백·대소문자 무시)
+String placeKey(String s) => s.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '');
 
 /// 저장 없이 메모리에만 (테스트·샘플용)
 class MemoryTravelBook implements TravelBook {
   final Map<String, Travel> _m = <String, Travel>{};
+  final Map<String, (String, Travel)> _p = <String, (String, Travel)>{};
+
+  @override
+  Travel ofPlace(String place) => _p[placeKey(place)]?.$2 ?? Travel.none;
+
+  @override
+  Future<void> setPlace(String place, Travel? travel) async {
+    final k = placeKey(place);
+    if (k.isEmpty) return;
+    _p.remove(k);
+    if (travel != null && !travel.isNone) _p[k] = (place.trim(), travel);
+  }
+
+  @override
+  List<(String, Travel)> places() => _p.values.toList().reversed.toList();
 
   @override
   Travel of(String eventId) => _m[eventId] ?? Travel.none;
@@ -83,9 +108,49 @@ class PrefsTravelBook implements TravelBook {
   PrefsTravelBook._(this._prefs, this._m);
 
   static const String _key = 'event_travel_v1';
+  static const String _keyPlaces = 'place_travel_v1';
 
   final SharedPreferences _prefs;
   final Map<String, Travel> _m;
+
+  /// 장소 키 → (보이는 이름, 이동시간). 넣은 순서가 곧 오래된 순서예요.
+  final Map<String, (String, Travel)> _p = <String, (String, Travel)>{};
+
+  void _loadPlaces() {
+    try {
+      final raw = _prefs.getString(_keyPlaces);
+      if (raw == null) return;
+      final j = jsonDecode(raw);
+      if (j is! List) return;
+      for (final x in j) {
+        if (x is List && x.length == 3 && x[0] is String && x[1] is int && x[2] is int) {
+          final t = Travel(before: x[1] as int, after: x[2] as int);
+          final k = placeKey(x[0] as String);
+          if (k.isNotEmpty && !t.isNone) _p[k] = (x[0] as String, t);
+        }
+      }
+    } catch (_) {}
+  }
+
+  @override
+  Travel ofPlace(String place) => _p[placeKey(place)]?.$2 ?? Travel.none;
+
+  @override
+  Future<void> setPlace(String place, Travel? travel) async {
+    final k = placeKey(place);
+    if (k.isEmpty) return;
+    _p.remove(k);
+    if (travel != null && !travel.isNone) _p[k] = (place.trim(), travel);
+    try {
+      await _prefs.setString(
+        _keyPlaces,
+        jsonEncode([for (final v in _p.values) [v.$1, v.$2.before, v.$2.after]]),
+      );
+    } catch (_) {}
+  }
+
+  @override
+  List<(String, Travel)> places() => _p.values.toList().reversed.toList();
 
   static Future<TravelBook> open() async {
     try {
@@ -103,7 +168,9 @@ class PrefsTravelBook implements TravelBook {
           });
         }
       }
-      return PrefsTravelBook._(prefs, m);
+      final b = PrefsTravelBook._(prefs, m);
+      b._loadPlaces();
+      return b;
     } catch (_) {
       return MemoryTravelBook();
     }
