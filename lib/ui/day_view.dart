@@ -685,6 +685,40 @@ class _Timeline extends StatelessWidget {
           ));
         }
 
+        // 프로젝트 칸 안에 그날의 속 일정을 카드로 넣어요
+        for (final x in placed) {
+          final pj = store.projectSelfOf(x.e);
+          if (pj == null) continue;
+          var inner = store.innerEventsOn(pj, day);
+          if (folded) inner = inner.where((e) => e.end.isAfter(now)).toList();
+          if (inner.isEmpty) continue;
+          final ip = <_Placed>[];
+          for (final e in inner) {
+            final s0 = minOfDay(e.start, day);
+            var t0 = minOfDay(e.end, day);
+            if (t0 <= s0) t0 = math.min(1440, s0 + 30);
+            ip.add(_Placed(e, s0, t0));
+          }
+          ip.sort((a, b) {
+            final c = a.s.compareTo(b.s);
+            return c != 0 ? c : b.t.compareTo(a.t);
+          });
+          _assignColumns(ip);
+          final blockW = bodyW / x.cols - (x.cols > 1 ? 2 : 0);
+          final innerW = blockW - 16;
+          for (final it in ip) {
+            final cw = innerW / it.cols;
+            final h = math.max(26.0, (it.t - it.s) / 60 * hourH - 4);
+            children.add(Positioned(
+              left: labelW + x.col * (bodyW / x.cols) + 8 + it.col * cw,
+              top: yOf(it.s) + 2,
+              width: cw - (it.cols > 1 ? 2 : 0),
+              height: h,
+              child: _InnerCard(event: it.e, height: h),
+            ));
+          }
+        }
+
         // 후보 (아직 캘린더에 없는 점선 칸)
         for (final c in cands) {
           final cs = minOfDay(c.start, day);
@@ -745,6 +779,62 @@ class _Timeline extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// 프로젝트 칸 안에 들어가는 속 일정 카드
+class _InnerCard extends StatelessWidget {
+  const _InnerCard({required this.event, required this.height});
+
+  final Ev event;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    final c = evColors(event.color, p);
+    final tall = height >= 40;
+    final sub = '${hm(event.start)}–${hm(event.end)}';
+    return Opacity(
+      opacity: StoreScope.of(context).tagMatch(event) ? 1 : 0.28,
+      child: Tap(
+        onTap: () => openDetail(context, event),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          alignment: Alignment.centerLeft,
+          decoration: BoxDecoration(
+            color: p.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: c.strong.withAlpha(110)),
+          ),
+          child: tall
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      event.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: ts(context, 14, weight: FontWeight.w600, height: 18 / 14),
+                    ),
+                    Text(
+                      sub,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: ts(context, 12, color: p.muted, height: 15 / 12),
+                    ),
+                  ],
+                )
+              : Text(
+                  event.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: ts(context, 13, weight: FontWeight.w600, height: 16 / 13),
+                ),
+        ),
+      ),
     );
   }
 }

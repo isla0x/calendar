@@ -571,6 +571,13 @@ class CalendarStore extends ChangeNotifier {
     return null;
   }
 
+  /// 그날 이 프로젝트 안에 넣은 속 일정 (프로젝트 자체는 빼고)
+  List<Ev> innerEventsOn(Project p, DateTime d) {
+    return eventsOn(d)
+        .where((e) => !e.allDay && p.eventIds.contains(e.id) && e.title.trim() != p.name.trim())
+        .toList();
+  }
+
   /// 그날의 일정 중 바깥 화면에 늘어놓을 것 (프로젝트 안 일정은 뺀 것)
   List<Ev> listedOn(DateTime d) {
     final all = eventsOn(d);
