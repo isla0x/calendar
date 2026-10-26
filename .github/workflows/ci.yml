@@ -50,11 +50,12 @@ jobs:
       - name: 플랫폼 폴더 준비
         run: bash tools/bootstrap.sh
       - name: 위젯 붙이기
-        run: bash tools/add_widgets.sh
+        run: bash tools/ci_report.sh add_widgets bash tools/add_widgets.sh
       - name: 한 번 더 붙여도 괜찮은지 (여러 번 실행)
-        run: bash tools/add_widgets.sh
+        run: bash tools/ci_report.sh add_widgets bash tools/add_widgets.sh
       - run: flutter pub get
-      - run: flutter build ios --release --no-codesign
+      - name: iOS 빌드
+        run: bash tools/ci_report.sh ios_build flutter build ios --release --no-codesign
 
   # 커밋 메시지에 [shots]가 들어 있거나 수동으로 실행했을 때, 앱스토어용 스크린샷을 만들어
   # screenshots 브랜치에 올려요.

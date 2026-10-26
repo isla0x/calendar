@@ -8,7 +8,6 @@ import 'package:home_widget/home_widget.dart';
 import 'dates.dart';
 import 'projects.dart';
 import 'store.dart';
-import 'todos.dart';
 
 /// iOS 위젯과 나눠 쓰는 저장 칸 (앱 그룹)
 const String kWidgetGroup = 'group.com.isla0x.yeobaek';
