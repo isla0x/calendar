@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../dates.dart';
@@ -136,7 +138,7 @@ class ProjectBar extends StatelessWidget {
     final done = pr.dayNumber(today);
     final col = pr.color;
     final track = _tint(col, p, 40);
-    if (pr.cells && total > 0 && total <= 31) {
+    if (total > 0 && total <= 31) {
       return SizedBox(
         height: height,
         child: Row(
@@ -177,10 +179,7 @@ String _stateLine(Project pr, DateTime today) {
     case ProjectStatus.done:
       return '끝났어요 · 근무일 ${pr.totalDays}일';
     case ProjectStatus.active:
-      final pct = (pr.progress(today) * 100).round();
-      return pr.cells
-          ? '${pr.dayNumber(today)}일째 · 근무일 ${pr.totalDays}일 중'
-          : '${pr.dayNumber(today)}일째 · ${pr.totalDays}일 중 · $pct%';
+      return '근무일 ${pr.totalDays}일 중 ${pr.dayNumber(today)}일째';
   }
 }
 
@@ -1451,6 +1450,11 @@ class _ProjectFormState extends State<_ProjectForm> {
   late Set<int> _rest;
   late Color _color;
 
+  /// 달력에도 매일 일정을 만들지 (새 프로젝트일 때만) 와 그 시간
+  bool _withEvents = false;
+  int _fromMin = 9 * 60;
+  int _toMin = 18 * 60;
+
   @override
   void initState() {
     super.initState();
@@ -1483,27 +1487,90 @@ class _ProjectFormState extends State<_ProjectForm> {
     setState(() => _end = d);
   }
 
+  String _tm(int m) => '${two(m ~/ 60)}:${two(m % 60)}';
+
+  Future<void> _pickTime(bool from) async {
+    final base = DateTime(2000, 1, 1, (from ? _fromMin : _toMin) ~/ 60, (from ? _fromMin : _toMin) % 60);
+    final r = await showTimeSheet(context, initial: base, title: from ? '시작 시각' : '끝나는 시각');
+    if (r == null) return;
+    setState(() {
+      final m = r.hour * 60 + r.minute;
+      if (from) {
+        _fromMin = m;
+        if (_toMin <= m) _toMin = math.min(1439, m + 60);
+      } else {
+        _toMin = m > _fromMin ? m : math.min(1439, _fromMin + 30);
+      }
+    });
+  }
+
   Future<void> _save() async {
     final store = StoreScope.read(context);
     final name = _name.text.trim();
     if (name.isEmpty) return;
     final old = widget.project;
-    final pr = old == null
-        ? Project(
-            id: store.newProjectId(),
-            name: name,
-            start: _start,
-            end: _end,
-            colorValue: _color.toARGB32(),
-            rest: _rest,
-          )
-        : old.copyWith(
-            name: name,
-            start: _start,
-            end: _end,
-            colorValue: _color.toARGB32(),
-            rest: _rest,
+    final Project pr;
+    if (old == null) {
+      pr = Project(
+        id: store.newProjectId(),
+        name: name,
+        start: _start,
+        end: _end,
+        colorValue: _color.toARGB32(),
+        rest: _rest,
+        cells: true,
+      );
+      if (_withEvents) {
+        // 달력 입력으로 만든 프로젝트와 똑같이: 쉬는 요일을 뺀 매일 반복 일정을 만들어요.
+        var first = _start;
+        var guard = 0;
+        while (_rest.contains(first.weekday) && guard < 7) {
+          first = addDays(first, 1);
+          guard++;
+        }
+        final Repeat repeat;
+        if (_rest.isEmpty) {
+          repeat = Repeat(RepeatKind.daily, until: _end);
+        } else if (_rest.length == 2 && _rest.contains(6) && _rest.contains(7)) {
+          repeat = Repeat(RepeatKind.weekdays, until: _end);
+        } else {
+          repeat = Repeat(
+            RepeatKind.days,
+            until: _end,
+            days: {for (var i = 1; i <= 7; i++) if (!_rest.contains(i)) i},
           );
+        }
+        final s0 = DateTime(first.year, first.month, first.day, _fromMin ~/ 60, _fromMin % 60);
+        final e0 = DateTime(first.year, first.month, first.day, _toMin ~/ 60, _toMin % 60);
+        final ok = await store.addEvent(
+          title: name,
+          start: s0,
+          end: e0,
+          repeat: repeat,
+          color: _color,
+        );
+        final id = store.lastCreatedId;
+        if (ok && id != null) {
+          final prefix = _rest.isEmpty
+              ? '매일 '
+              : (_rest.length == 2 && _rest.contains(6) && _rest.contains(7) ? '평일 ' : '');
+          await store.saveProject(
+            pr.copyWith(eventIds: {id}, timeText: '$prefix${_tm(_fromMin)} – ${_tm(_toMin)}'),
+          );
+          if (mounted) Navigator.of(context).pop();
+          return;
+        }
+      }
+    } else {
+      pr = old.copyWith(
+        name: name,
+        start: _start,
+        end: _end,
+        colorValue: _color.toARGB32(),
+        rest: _rest,
+        cells: true,
+      );
+    }
     await store.saveProject(pr);
     if (mounted) Navigator.of(context).pop();
   }
@@ -1596,6 +1663,50 @@ class _ProjectFormState extends State<_ProjectForm> {
           ),
           const SizedBox(height: 6),
           Text('근무일 $total일', style: ts(context, 13, color: p.muted)),
+          if (!editing) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Text('달력에도 매일 일정 넣기', style: ts(context, 14, weight: FontWeight.w700)),
+                ),
+                AppSwitch(
+                  value: _withEvents,
+                  onChanged: (v) => setState(() => _withEvents = v),
+                  label: '달력에도 매일 일정 넣기',
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _withEvents
+                  ? '근무일마다 같은 시간에 일정이 하나씩 생겨요.'
+                  : '끄면 진행 카드만 만들고, 일정은 나중에 직접 넣어요.',
+              style: ts(context, 13, color: p.muted),
+            ),
+            if (_withEvents) ...[
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: Tap(
+                      onTap: () => _pickTime(true),
+                      label: '시작 시각',
+                      child: _TimePill(label: '시작', text: _tm(_fromMin)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Tap(
+                      onTap: () => _pickTime(false),
+                      label: '끝나는 시각',
+                      child: _TimePill(label: '끝', text: _tm(_toMin)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
           const SizedBox(height: 16),
           Wrap(
             spacing: 10,
@@ -1624,6 +1735,30 @@ class _ProjectFormState extends State<_ProjectForm> {
                 ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimePill extends StatelessWidget {
+  const _TimePill({required this.label, required this.text});
+
+  final String label;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(color: p.soft, borderRadius: BorderRadius.circular(24)),
+      child: Row(
+        children: [
+          Text(label, style: ts(context, 13, color: p.muted)),
+          const Spacer(),
+          Text(text, style: ts(context, 15, weight: FontWeight.w600)),
         ],
       ),
     );

@@ -582,7 +582,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
             checkpoints: _draft!.checkpoints,
             eventIds: {id},
             timeText: q.allDay ? '종일' : '$prefix${hm(start)} – ${hm(end)}',
-            cells: !q.allDay,
+            cells: true,
           ),
         );
       }

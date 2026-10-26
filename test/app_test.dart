@@ -8,6 +8,7 @@ import 'package:yeobaek/projects.dart';
 import 'package:yeobaek/store.dart';
 import 'package:yeobaek/todos.dart';
 import 'package:yeobaek/theme.dart';
+import 'package:yeobaek/ui/common.dart';
 import 'package:yeobaek/ui/event_tile.dart';
 
 void main() {
@@ -388,7 +389,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('진행 중 1'), findsOneWidget);
     expect(find.text('남은 14일'), findsOneWidget);
-    expect(find.text('1일째 · 근무일 15일 중'), findsOneWidget);
+    expect(find.text('근무일 15일 중 1일째'), findsOneWidget);
 
     await tester.tap(find.text('교보증권 프로젝트'));
     await tester.pumpAndSettle();
@@ -421,6 +422,27 @@ void main() {
     final e = store.eventsOn(DateTime(2026, 10, 28)).firstWhere((x) => x.title == '킥오프');
     expect(store.projectOf(e)?.id, pr.id);
     expect(e.tags, isEmpty);
+  });
+
+  testWidgets('프로젝트: 프로젝트 화면에서 "달력에도 일정 넣기"를 켜면 일정까지 같이 생겨요', (tester) async {
+    final store = await open(tester);
+    await tester.tap(find.byIcon(Icons.flag_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('+ 새 프로젝트'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '야근 없는 주');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(AppSwitch).last);
+    await tester.pumpAndSettle();
+    expect(find.text('근무일마다 같은 시간에 일정이 하나씩 생겨요.'), findsOneWidget);
+    await tester.tap(find.text('저장'));
+    await tester.pumpAndSettle();
+
+    expect(store.projects.length, 1);
+    final pr = store.projects.first;
+    expect(pr.cells, true);
+    expect(pr.eventIds.length, 1);
+    expect(pr.timeText, contains('09:00 – 18:00'));
   });
 
   testWidgets('프로젝트: 일정을 넣고 빼도 일정은 그대로예요', (tester) async {
