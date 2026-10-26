@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 import 'common.dart';
+import '../l10n.dart';
 
 /// 화면 아래에 떠 있는 "한 줄 입력" 막대.
 /// 모양·위치를 바꾸고 싶으면 이 파일만 고치면 돼요.
@@ -15,7 +16,7 @@ class QuickBar extends StatelessWidget {
     final p = Pal.of(context);
     return Tap(
       onTap: onTap,
-      label: '일정 추가',
+      label: tl('일정 추가'),
       child: Container(
         height: 56,
         padding: const EdgeInsets.only(left: 20, right: 6),
@@ -33,7 +34,7 @@ class QuickBar extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                '한 줄로 추가 · 예) 내일 3시 치과',
+                tl('한 줄로 추가 · 예) 내일 3시 치과'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: ts(context, 15, weight: FontWeight.w400, color: p.muted),

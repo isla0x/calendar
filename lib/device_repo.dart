@@ -7,6 +7,7 @@ import 'repo.dart';
 import 'skins.dart';
 import 'tags.dart';
 import 'theme.dart';
+import 'l10n.dart';
 
 /// 실제 기기 캘린더(iOS 캘린더, 구글 캘린더 등)를 읽고 쓰는 저장소
 class DeviceRepo implements CalendarRepo {
@@ -95,7 +96,7 @@ class DeviceRepo implements CalendarRepo {
         instanceId: e.instanceId,
         calendarId: e.calendarId,
         calendarName: calName,
-        title: rawTitle.isEmpty ? '(제목 없음)' : parts.title,
+        title: rawTitle.isEmpty ? tl('(제목 없음)') : parts.title,
         tags: rawTitle.isEmpty ? const <String>[] : parts.tags,
         start: s,
         end: t,
@@ -133,7 +134,7 @@ class DeviceRepo implements CalendarRepo {
         if (c.isPrimary) break;
       }
     }
-    if (cid == null) throw StateError('쓸 수 있는 캘린더가 없어요');
+    if (cid == null) throw StateError(tl('쓸 수 있는 캘린더가 없어요'));
     return _plugin.createEvent(
       calendarId: cid,
       title: joinTags(title, tags),
@@ -168,7 +169,7 @@ class DeviceRepo implements CalendarRepo {
       );
     }
     final rule = RecurrenceRule.fromRruleString(b.toString());
-    if (rule == null) throw StateError('반복 규칙을 만들지 못했어요');
+    if (rule == null) throw StateError(tl('반복 규칙을 만들지 못했어요'));
     return rule;
   }
 

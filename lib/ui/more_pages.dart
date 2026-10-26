@@ -16,6 +16,7 @@ import '../todos.dart';
 import '../travel.dart';
 import 'common.dart';
 import 'sheets.dart';
+import '../l10n.dart';
 
 /// PRO 표시 (작은 검은 알약)
 class ProBadge extends StatelessWidget {
@@ -61,14 +62,14 @@ Future<void> showMoreMenu(BuildContext context) {
             ),
           );
       return SheetFrame(
-        title: '더보기',
+        title: tl('더보기'),
         child: Column(
           children: [
-            row(Icons.cloud_outlined, '백업 · 복원', () {
+            row(Icons.cloud_outlined, tl('백업 · 복원'), () {
               Navigator.of(ctx).pop();
               openBackup(context);
             }, pro: true),
-            row(Icons.info_outline_rounded, '사용 방법', () {
+            row(Icons.info_outline_rounded, tl('사용 방법'), () {
               Navigator.of(ctx).pop();
               showWelcomeSheet(context, first: false);
             }),
@@ -115,16 +116,16 @@ Future<void> showWelcomeSheet(BuildContext context, {required bool first}) async
             ),
           );
       return SheetFrame(
-        title: '여백은 이렇게 써요',
-        subtitle: '네 가지만 알면 돼요.',
+        title: tl('여백은 이렇게 써요'),
+        subtitle: tl('네 가지만 알면 돼요.'),
         footer: Column(
           children: [
-            BigButton(label: first ? '시작하기' : '닫기', onTap: () => Navigator.of(ctx).pop()),
+            BigButton(label: first ? tl('시작하기') : tl('닫기'), onTap: () => Navigator.of(ctx).pop()),
             if (first) ...[
               const SizedBox(height: 10),
               Center(
                 child: Text(
-                  '나중에 ⋯ → 사용 방법에서 다시 볼 수 있어요',
+                  tl('나중에 ⋯ → 사용 방법에서 다시 볼 수 있어요'),
                   style: ts(ctx, 13, color: p.muted),
                 ),
               ),
@@ -133,10 +134,10 @@ Future<void> showWelcomeSheet(BuildContext context, {required bool first}) async
         ),
         child: Column(
           children: [
-            item(Icons.short_text_rounded, '한 줄로 일정 쓰기', '"내일 3시 치과 1시간"처럼 쓰면 날짜·시간·길이를 알아서 읽어요.'),
-            item(Icons.crop_free_rounded, '비는 시간 보기', '약속 사이의 빈틈이 점선 상자로 보여요. 눌러서 바로 추가해요.'),
-            item(Icons.checklist_rounded, '할 일은 길이와 마감만', '"운동 1시간 주 2번"이라고 쓰고 자리 찾기를 누르면 빈 시간에 넣어줘요.'),
-            item(Icons.flag_outlined, '기간이 있는 일은 프로젝트', '일정에서 "프로젝트" 칩을 켜면 진행 바와 D-day로 보여요.'),
+            item(Icons.short_text_rounded, tl('한 줄로 일정 쓰기'), tl('"내일 3시 치과 1시간"처럼 쓰면 날짜·시간·길이를 알아서 읽어요.')),
+            item(Icons.crop_free_rounded, tl('비는 시간 보기'), tl('약속 사이의 빈틈이 점선 상자로 보여요. 눌러서 바로 추가해요.')),
+            item(Icons.checklist_rounded, tl('할 일은 길이와 마감만'), tl('"운동 1시간 주 2번"이라고 쓰고 자리 찾기를 누르면 빈 시간에 넣어줘요.')),
+            item(Icons.flag_outlined, tl('기간이 있는 일은 프로젝트'), tl('일정에서 "프로젝트" 칩을 켜면 진행 바와 D-day로 보여요.')),
           ],
         ),
       );
@@ -164,13 +165,13 @@ Future<bool> showProSheet(BuildContext context) async {
           });
         }
         return SheetFrame(
-          title: '여백 Pro',
+          title: tl('여백 Pro'),
           action: const ProBadge(),
-          subtitle: '기록이 날아갈 걱정 없이 쓰고 싶은 분을 위한 기능이에요.',
+          subtitle: tl('기록이 날아갈 걱정 없이 쓰고 싶은 분을 위한 기능이에요.'),
           footer: Column(
             children: [
               BigButton(
-                label: pro.busy ? '잠시만요…' : (pro.price == null ? 'Pro 열기' : 'Pro 열기 · ${pro.price}'),
+                label: pro.busy ? tl('잠시만요…') : (pro.price == null ? tl('Pro 열기') : tl('Pro 열기 · {0}', [pro.price])),
                 onTap: pro.busy ? null : pro.buy,
               ),
               const SizedBox(height: 6),
@@ -179,7 +180,7 @@ Future<bool> showProSheet(BuildContext context) async {
                 child: SizedBox(
                   height: 40,
                   child: Center(
-                    child: Text('구매 복원', style: ts(ctx, 14, weight: FontWeight.w600, color: p.muted)),
+                    child: Text(tl('구매 복원'), style: ts(ctx, 14, weight: FontWeight.w600, color: p.muted)),
                   ),
                 ),
               ),
@@ -225,9 +226,9 @@ Future<bool> showProSheet(BuildContext context) async {
                   TextSpan(
                     style: ts(ctx, 13, color: p.muted, height: 19 / 13),
                     children: [
-                      const TextSpan(text: '일정 보기, 한 줄 입력, 비는 시간, 프로젝트, 할 일, 이동시간은 '),
-                      TextSpan(text: '계속 무료', style: ts(ctx, 13, weight: FontWeight.w700, color: p.ink)),
-                      const TextSpan(text: '예요. 한 번만 결제하면 평생 쓸 수 있어요.'),
+                      TextSpan(text: tl('일정 보기, 한 줄 입력, 비는 시간, 프로젝트, 할 일, 이동시간은 ')),
+                      TextSpan(text: tl('계속 무료'), style: ts(ctx, 13, weight: FontWeight.w700, color: p.ink)),
+                      TextSpan(text: tl('예요. 한 번만 결제하면 평생 쓸 수 있어요.')),
                     ],
                   ),
                 ),
@@ -298,7 +299,7 @@ class _BackupPageState extends State<BackupPage> {
         sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
       );
     } catch (_) {
-      if (mounted) _snack('내보내지 못했어요');
+      if (mounted) _snack(tl('내보내지 못했어요'));
     }
     if (mounted) setState(() => _busy = false);
   }
@@ -318,10 +319,10 @@ class _BackupPageState extends State<BackupPage> {
       if (!mounted) return;
       final yes = await showConfirmSheet(
         context,
-        title: '이 백업으로 되돌릴까요?',
-        body: '지금 여백에 있는 색 · 프로젝트 · 할 일 · 이동시간이 백업의 것으로 바뀌어요.',
-        yes: '되돌리기',
-        no: '취소',
+        title: tl('이 백업으로 되돌릴까요?'),
+        body: tl('지금 여백에 있는 색 · 프로젝트 · 할 일 · 이동시간이 백업의 것으로 바뀌어요.'),
+        yes: tl('되돌리기'),
+        no: tl('취소'),
         danger: true,
       );
       if (!yes || !mounted) {
@@ -330,7 +331,7 @@ class _BackupPageState extends State<BackupPage> {
       }
       final sum = await Backup.import(prefs, utf8.decode(bytes, allowMalformed: true));
       if (sum == null) {
-        if (mounted) _snack('여백 백업 파일이 아니에요');
+        if (mounted) _snack(tl('여백 백업 파일이 아니에요'));
       } else {
         await store.replaceBooks(
           colors: await PrefsColorBook.open(),
@@ -339,11 +340,11 @@ class _BackupPageState extends State<BackupPage> {
           travel: await PrefsTravelBook.open(),
         );
         if (mounted) {
-          _snack('되돌렸어요 · 프로젝트 ${sum.projects}개 · 할 일 ${sum.todos}개');
+          _snack(tl('되돌렸어요 · 프로젝트 {0}개 · 할 일 {1}개', [sum.projects, sum.todos]));
         }
       }
     } catch (_) {
-      if (mounted) _snack('가져오지 못했어요');
+      if (mounted) _snack(tl('가져오지 못했어요'));
     }
     if (mounted) setState(() => _busy = false);
   }
@@ -381,7 +382,7 @@ class _BackupPageState extends State<BackupPage> {
               children: [
                 Tap(
                   onTap: () => Navigator.of(context).maybePop(),
-                  label: '뒤로',
+                  label: tl('뒤로'),
                   child: SizedBox(
                     width: 52,
                     height: 44,
@@ -401,7 +402,7 @@ class _BackupPageState extends State<BackupPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: Row(
                       children: [
-                        Text('백업 · 복원', style: ts(context, 30, weight: FontWeight.w700, letterSpacing: -0.9)),
+                        Text(tl('백업 · 복원'), style: ts(context, 30, weight: FontWeight.w700, letterSpacing: -0.9)),
                         const SizedBox(width: 10),
                         const ProBadge(),
                       ],
@@ -410,7 +411,7 @@ class _BackupPageState extends State<BackupPage> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
                     child: Text(
-                      '일정은 아이폰 캘린더에 있어서 그대로예요.\n여백에서 따로 정한 것들만 백업해요.',
+                      tl('일정은 아이폰 캘린더에 있어서 그대로예요.\n여백에서 따로 정한 것들만 백업해요.'),
                       style: ts(context, 13, color: p.muted, height: 19 / 13),
                     ),
                   ),
@@ -425,23 +426,23 @@ class _BackupPageState extends State<BackupPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('백업에 들어 있는 것', style: ts(context, 15, weight: FontWeight.w700)),
+                        Text(tl('백업에 들어 있는 것'), style: ts(context, 15, weight: FontWeight.w700)),
                         const SizedBox(height: 4),
-                        line('일정 색', '${sum.colors}개'),
-                        line('프로젝트', '${sum.projects}개'),
-                        line('할 일', '${sum.todos}개'),
-                        line('이동시간', '${sum.travel}곳', last: true),
+                        line(tl('일정 색'), tl('{0}개', [sum.colors])),
+                        line(tl('프로젝트'), tl('{0}개', [sum.projects])),
+                        line(tl('할 일'), tl('{0}개', [sum.todos])),
+                        line(tl('이동시간'), tl('{0}곳', [sum.travel]), last: true),
                       ],
                     ),
                   ),
                   const SizedBox(height: 18),
-                  BigButton(label: '파일로 내보내기', onTap: _prefs == null || _busy ? null : _export),
+                  BigButton(label: tl('파일로 내보내기'), onTap: _prefs == null || _busy ? null : _export),
                   const SizedBox(height: 10),
-                  BigButton(label: '파일에서 가져오기', quiet: true, onTap: _prefs == null || _busy ? null : _import),
+                  BigButton(label: tl('파일에서 가져오기'), quiet: true, onTap: _prefs == null || _busy ? null : _import),
                   const SizedBox(height: 18),
                   Center(
                     child: Text(
-                      '폰을 바꾸거나 앱을 다시 깔았다면\n저장해 둔 파일을 "가져오기"로 불러오세요.',
+                      tl('폰을 바꾸거나 앱을 다시 깔았다면\n저장해 둔 파일을 "가져오기"로 불러오세요.'),
                       textAlign: TextAlign.center,
                       style: ts(context, 13, color: p.muted, height: 19 / 13),
                     ),

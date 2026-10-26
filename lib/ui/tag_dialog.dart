@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../store.dart';
 import '../theme.dart';
 import 'sheets.dart';
+import '../l10n.dart';
 
 /// 태그를 쓰거나 고르는 창. 취소하면 null, 완료하면 태그 목록(비어 있을 수 있어요).
 Future<List<String>?> showTagDialog(
@@ -37,16 +38,16 @@ class _TagFilterSheet extends StatelessWidget {
     }
 
     return SheetFrame(
-      title: '태그로 보기',
-      subtitle: '고른 태그가 붙은 일정만 또렷하게 보여요',
+      title: tl('태그로 보기'),
+      subtitle: tl('고른 태그가 붙은 일정만 또렷하게 보여요'),
       footer: cur == null
           ? null
-          : BigButton(label: '전체 보기', quiet: true, onTap: () => pick(null)),
+          : BigButton(label: tl('전체 보기'), quiet: true, onTap: () => pick(null)),
       child: tags.isEmpty
           ? Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: Text(
-                '아직 태그가 없어요.\n일정에 #태그를 붙이면 여기에 나타나요.',
+                tl('아직 태그가 없어요.\n일정에 #태그를 붙이면 여기에 나타나요.'),
                 style: ts(context, 14, color: p.muted, height: 1.6),
               ),
             )

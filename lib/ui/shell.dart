@@ -19,6 +19,7 @@ import 'quick_bar.dart';
 import 'sheets.dart';
 import 'tag_dialog.dart';
 import 'week_view.dart';
+import '../l10n.dart';
 
 /// 앱의 첫 화면. 권한이 없으면 안내 화면, 있으면 월/주/일 화면.
 class HomeShell extends StatelessWidget {
@@ -140,7 +141,7 @@ class _UndoBar extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              '일정 $count개를 넣었어요',
+              tl('일정 {0}개를 넣었어요', [count]),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: ts(context, 15, weight: FontWeight.w600, color: p.bg),
@@ -148,13 +149,13 @@ class _UndoBar extends StatelessWidget {
           ),
           Tap(
             onTap: store.undoLast,
-            label: '되돌리기',
+            label: tl('되돌리기'),
             child: Container(
               height: 40,
               padding: const EdgeInsets.symmetric(horizontal: 14),
               alignment: Alignment.center,
               child: Text(
-                '되돌리기',
+                tl('되돌리기'),
                 style: ts(context, 15, weight: FontWeight.w700, color: p.bg),
               ),
             ),
@@ -186,10 +187,10 @@ class _CandidateCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('이렇게 넣어볼까요?', style: ts(context, 16, weight: FontWeight.w700)),
+          Text(tl('이렇게 넣어볼까요?'), style: ts(context, 16, weight: FontWeight.w700)),
           const SizedBox(height: 2),
           Text(
-            '점선 칸은 아직 캘린더에 없어요. 눌러서 빼도 돼요.',
+            tl('점선 칸은 아직 캘린더에 없어요. 눌러서 빼도 돼요.'),
             style: ts(context, 13, color: p.muted, height: 18 / 13),
           ),
           const SizedBox(height: 12),
@@ -197,12 +198,12 @@ class _CandidateCard extends StatelessWidget {
             children: [
               Expanded(
                 flex: 2,
-                child: BigButton(label: '후보 지우기', quiet: true, onTap: store.clearCandidates),
+                child: BigButton(label: tl('후보 지우기'), quiet: true, onTap: store.clearCandidates),
               ),
               const SizedBox(width: 10),
               Expanded(
                 flex: 3,
-                child: BigButton(label: '캘린더에 넣기 · $n개', onTap: store.confirmCandidates),
+                child: BigButton(label: tl('캘린더에 넣기 · {0}개', [n]), onTap: store.confirmCandidates),
               ),
             ],
           ),
@@ -225,20 +226,20 @@ class _Header extends StatelessWidget {
     String big;
 
     if (store.view == ViewMode.month) {
-      small = '${store.month.year}년';
-      big = '${store.month.month}월';
+      small = '${yText(store.month.year)}';
+      big = '${mText(store.month.month)}';
     } else if (store.view == ViewMode.week) {
       final a = weekStartSunday(store.selected);
       final b = addDays(a, 6);
       small = a.month == b.month
-          ? '${a.year}년 ${a.month}월'
-          : '${a.year}년 ${a.month}월 – ${b.month}월';
-      big = '${a.day}일 – ${b.day}일';
+          ? '${ymText(a)}'
+          : '${ymText(a)} – ${mText(b.month)}';
+      big = '${dText(a.day)} – ${dText(b.day)}';
     } else {
       final d = store.selected;
       final h = store.holidayOn(d);
       small = h == null ? wdFull(d) : '${wdFull(d)} · $h';
-      big = '${d.month}월 ${d.day}일';
+      big = '${mdText(d)}';
     }
 
     return Padding(
@@ -277,7 +278,7 @@ class _Header extends StatelessWidget {
           ),
           Tap(
             onTap: () => openSearch(context),
-            label: '검색',
+            label: tl('검색'),
             child: SizedBox(
               width: 40,
               height: 44,
@@ -286,7 +287,7 @@ class _Header extends StatelessWidget {
           ),
           Tap(
             onTap: () => showMoreMenu(context),
-            label: '더보기',
+            label: tl('더보기'),
             child: SizedBox(
               width: 40,
               height: 44,
@@ -302,7 +303,7 @@ class _Header extends StatelessWidget {
                   height: 34,
                   ring: true,
                   padding: const EdgeInsets.symmetric(horizontal: 14),
-                  child: Text('오늘', style: ts(context, 14, weight: FontWeight.w600)),
+                  child: Text(tl('오늘'), style: ts(context, 14, weight: FontWeight.w600)),
                 ),
               ),
             ),
@@ -356,23 +357,23 @@ class _PillRow extends StatelessWidget {
         children: [
           pill(
             Icons.checklist_rounded,
-            todos > 0 ? '할 일 $todos' : '할 일',
+            todos > 0 ? tl('할 일 {0}', [todos]) : tl('할 일'),
             () => openTodos(context),
-            '할 일',
+            tl('할 일'),
           ),
           const SizedBox(width: 8),
           pill(
             Icons.flag_outlined,
-            projects > 0 ? '프로젝트 $projects' : '프로젝트',
+            projects > 0 ? tl('프로젝트 {0}', [projects]) : tl('프로젝트'),
             () => openProjects(context),
-            '프로젝트',
+            tl('프로젝트'),
           ),
           const SizedBox(width: 8),
           pill(
             Icons.tag_rounded,
-            '태그',
+            tl('태그'),
             () => showTagFilterSheet(context),
-            '태그로 보기',
+            tl('태그로 보기'),
             color: tagCol,
           ),
         ],
@@ -398,7 +399,7 @@ class _TagFilterBar extends StatelessWidget {
         children: [
           Tap(
             onTap: () => store.setTagFilter(null),
-            label: '태그 걸러보기 끄기',
+            label: tl('태그 걸러보기 끄기'),
             child: Container(
               height: 32,
               padding: const EdgeInsets.only(left: 12, right: 8),
@@ -422,7 +423,7 @@ class _TagFilterBar extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              '이 태그의 일정만 보는 중',
+              tl('이 태그의 일정만 보는 중'),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: ts(context, 13, color: p.muted),
@@ -482,11 +483,11 @@ class _Switcher extends StatelessWidget {
       ),
       child: Row(
         children: [
-          seg('월', ViewMode.month),
+          seg(tl('월'), ViewMode.month),
           const SizedBox(width: 2),
-          seg('주', ViewMode.week),
+          seg(tl('주'), ViewMode.week),
           const SizedBox(width: 2),
-          seg('일', ViewMode.day),
+          seg(tl('일'), ViewMode.day),
         ],
       ),
     );

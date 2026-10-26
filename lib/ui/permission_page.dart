@@ -5,6 +5,7 @@ import '../repo.dart';
 import '../store.dart';
 import '../theme.dart';
 import 'common.dart';
+import '../l10n.dart';
 
 /// 캘린더 접근 권한을 받기 전에 보이는 안내 화면
 class PermissionPage extends StatelessWidget {
@@ -13,13 +14,13 @@ class PermissionPage extends StatelessWidget {
   String _message(PermState s) {
     switch (s) {
       case PermState.denied:
-        return '캘린더 접근이 꺼져 있어요.\n설정에서 캘린더를 켜 주세요.';
+        return tl('캘린더 접근이 꺼져 있어요.\n설정에서 캘린더를 켜 주세요.');
       case PermState.writeOnly:
-        return '일정을 읽으려면 "모든 일정" 접근이 필요해요.\n설정에서 바꿔 주세요.';
+        return tl('일정을 읽으려면 "모든 일정" 접근이 필요해요.\n설정에서 바꿔 주세요.');
       case PermState.restricted:
-        return '이 기기에서는 캘린더 접근이 제한되어 있어요.';
+        return tl('이 기기에서는 캘린더 접근이 제한되어 있어요.');
       default:
-        return '기기 캘린더의 일정을 그대로 불러와요.\n일정은 이 기기 안에서만 다뤄요.';
+        return tl('기기 캘린더의 일정을 그대로 불러와요.\n일정은 이 기기 안에서만 다뤄요.');
     }
   }
 
@@ -54,7 +55,7 @@ class PermissionPage extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            '비는 시간까지 한눈에 보여주는 캘린더',
+            tl('비는 시간까지 한눈에 보여주는 캘린더'),
             style: ts(context, 16, color: p.muted, height: 22 / 16),
           ),
           const SizedBox(height: 32),
@@ -64,11 +65,11 @@ class PermissionPage extends StatelessWidget {
           ),
           const Spacer(),
           if (needSettings && store.perm != PermState.restricted)
-            _BigButton(label: '설정 열기', filled: true, onTap: store.openSettings)
+            _BigButton(label: tl('설정 열기'), filled: true, onTap: store.openSettings)
           else if (!needSettings)
-            _BigButton(label: '캘린더 접근 허용하기', filled: true, onTap: store.requestPermission),
+            _BigButton(label: tl('캘린더 접근 허용하기'), filled: true, onTap: store.requestPermission),
           const SizedBox(height: 10),
-          _BigButton(label: '샘플로 먼저 둘러보기', filled: false, onTap: store.useDemo),
+          _BigButton(label: tl('샘플로 먼저 둘러보기'), filled: false, onTap: store.useDemo),
         ],
       ),
     );

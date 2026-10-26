@@ -9,6 +9,7 @@ import '../theme.dart';
 import 'common.dart';
 import 'event_tile.dart';
 import 'nav.dart';
+import '../l10n.dart';
 
 /// 월간 화면: 달력 + 고른 날의 일정 목록 (목록은 위로 끌어올리면 화면 가득 펼쳐져요)
 class MonthView extends StatefulWidget {
@@ -158,7 +159,7 @@ class _MonthViewState extends State<MonthView> {
                             Expanded(
                               child: Center(
                                 child: Text(
-                                  kWeekdayKo[(i + 6) % 7],
+                                  wdHead((i + 6) % 7 + 1),
                                   style: ts(
                                     context,
                                     12,
@@ -585,10 +586,10 @@ class _DaySheet extends StatelessWidget {
 
     final parts = <String>[];
     if (holiday != null) parts.add(holiday);
-    parts.add(evs.isEmpty ? '일정 없음' : '일정 ${evs.length}개');
+    parts.add(evs.isEmpty ? tl('일정 없음') : tl('일정 {0}개', [evs.length]));
     if (!isPast) {
       final free = store.freeMinutes(day, from: isToday ? store.now : null);
-      parts.add(free <= 0 ? '여유 없음' : '여유 ${durText(Duration(minutes: free))}');
+      parts.add(free <= 0 ? tl('여유 없음') : tl('여유 {0}', [durText(Duration(minutes: free))]));
     }
 
     return Container(
@@ -604,7 +605,7 @@ class _DaySheet extends StatelessWidget {
         children: [
           Tap(
             onTap: onToggle,
-            label: '목록 크게 보기',
+            label: tl('목록 크게 보기'),
             child: SizedBox(
               height: 24,
               child: Center(
@@ -626,7 +627,7 @@ class _DaySheet extends StatelessWidget {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
-                  '${day.month}월 ${day.day}일 ${wdFull(day)}',
+                  '${dateFull(day)}',
                   style: ts(context, 18, weight: FontWeight.w700, letterSpacing: -0.36),
                 ),
                 const SizedBox(width: 8),
@@ -648,8 +649,8 @@ class _DaySheet extends StatelessWidget {
               child: Center(
                 child: Text(
                   filter != null
-                      ? '이 날은 #$filter 일정이 없어요'
-                      : (isPast ? '이 날은 일정이 없었어요' : '비어 있는 날이에요'),
+                      ? tl('이 날은 #{0} 일정이 없어요', [filter])
+                      : (isPast ? tl('이 날은 일정이 없었어요') : tl('비어 있는 날이에요')),
                   style: ts(context, 14, color: p.muted),
                 ),
               ),

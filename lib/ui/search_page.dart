@@ -7,6 +7,7 @@ import '../theme.dart';
 import 'common.dart';
 import 'event_tile.dart';
 import 'nav.dart';
+import '../l10n.dart';
 
 /// 일정 검색: 앞뒤 1년 안에서 제목·장소·태그로 찾아요.
 class SearchPage extends StatefulWidget {
@@ -98,19 +99,19 @@ class _SearchPageState extends State<SearchPage> {
 
     Widget body;
     if (_loading) {
-      body = Center(child: Text('불러오는 중…', style: ts(context, 14, color: p.muted)));
+      body = Center(child: Text(tl('불러오는 중…'), style: ts(context, 14, color: p.muted)));
     } else if (_failed) {
-      body = Center(child: Text('일정을 불러오지 못했어요', style: ts(context, 14, color: p.muted)));
+      body = Center(child: Text(tl('일정을 불러오지 못했어요'), style: ts(context, 14, color: p.muted)));
     } else if (_q.trim().isEmpty && _tag == null) {
       body = Center(
         child: Text(
-          '제목·장소·태그로 찾아요\n(앞뒤 1년 안의 일정)',
+          tl('제목·장소·태그로 찾아요\n(앞뒤 1년 안의 일정)'),
           textAlign: TextAlign.center,
           style: ts(context, 14, color: p.muted, height: 1.6),
         ),
       );
     } else if (results.isEmpty) {
-      body = Center(child: Text('찾는 일정이 없어요', style: ts(context, 14, color: p.muted)));
+      body = Center(child: Text(tl('찾는 일정이 없어요'), style: ts(context, 14, color: p.muted)));
     } else {
       body = ListView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -141,7 +142,7 @@ class _SearchPageState extends State<SearchPage> {
               children: [
                 Tap(
                   onTap: () => Navigator.of(context).pop(),
-                  label: '뒤로',
+                  label: tl('뒤로'),
                   child: SizedBox(
                     width: 44,
                     height: 44,
@@ -169,7 +170,7 @@ class _SearchPageState extends State<SearchPage> {
                             onChanged: (v) => setState(() => _q = v),
                             style: ts(context, 16, weight: FontWeight.w500),
                             decoration: InputDecoration.collapsed(
-                              hintText: '일정 검색',
+                              hintText: tl('일정 검색'),
                               hintStyle: ts(context, 16, weight: FontWeight.w500, color: p.muted),
                             ),
                           ),

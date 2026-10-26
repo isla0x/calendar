@@ -12,6 +12,7 @@ import 'projects.dart';
 import 'repo.dart';
 import 'todos.dart';
 import 'travel.dart';
+import 'l10n.dart';
 
 enum ViewMode { month, week, day }
 
@@ -172,7 +173,7 @@ class CalendarStore extends ChangeNotifier {
       _syncTodoSlots();
       error = null;
     } catch (e) {
-      error = '일정을 불러오지 못했어요';
+      error = tl('일정을 불러오지 못했어요');
     }
     loading = false;
     notifyListeners();
@@ -455,7 +456,7 @@ class CalendarStore extends ChangeNotifier {
       await _refresh(force: true);
       return true;
     } catch (e) {
-      error = '일정을 저장하지 못했어요';
+      error = tl('일정을 저장하지 못했어요');
       notifyListeners();
       return false;
     }
@@ -467,7 +468,7 @@ class CalendarStore extends ChangeNotifier {
       await _refresh(force: true);
       return true;
     } catch (_) {
-      error = '일정을 옮기지 못했어요';
+      error = tl('일정을 옮기지 못했어요');
       notifyListeners();
       return false;
     }
@@ -498,7 +499,7 @@ class CalendarStore extends ChangeNotifier {
       await _refresh(force: true);
       return true;
     } catch (_) {
-      error = '일정을 저장하지 못했어요';
+      error = tl('일정을 저장하지 못했어요');
       notifyListeners();
       return false;
     }
@@ -534,7 +535,7 @@ class CalendarStore extends ChangeNotifier {
       await _refresh(force: true);
       return true;
     } catch (_) {
-      error = '태그를 바꾸지 못했어요';
+      error = tl('태그를 바꾸지 못했어요');
       notifyListeners();
       return false;
     }
@@ -582,7 +583,7 @@ class CalendarStore extends ChangeNotifier {
       await _refresh(force: true);
       return true;
     } catch (_) {
-      error = '일정을 지우지 못했어요';
+      error = tl('일정을 지우지 못했어요');
       notifyListeners();
       return false;
     }

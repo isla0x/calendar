@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'l10n.dart';
 
 /// 일정 하나에 붙은 이동시간 (분). 갈 때 = 시작 전, 올 때 = 끝난 뒤.
 class Travel {
@@ -28,30 +29,30 @@ class Travel {
 
   /// '30분', '1시간', '1시간 30분'
   static String minText(int m) {
-    if (m < 60) return '$m분';
+    if (m < 60) return tl('{0}분', [m]);
     final h = m ~/ 60;
     final r = m % 60;
-    return r == 0 ? '$h시간' : '$h시간 $r분';
+    return r == 0 ? tl('{0}시간', [h]) : tl('{0}시간 {1}분', [h, r]);
   }
 
   /// 한 줄 설명. 같으면 '왕복 30분씩', 다르면 '갈 때 30분 · 올 때 10분'
   String get label {
-    if (isNone) return '없음';
-    if (before == after) return '갈 때·올 때 ${minText(before)}씩';
+    if (isNone) return tl('없음');
+    if (before == after) return tl('갈 때·올 때 {0}씩', [minText(before)]);
     final parts = <String>[
-      if (before > 0) '갈 때 ${minText(before)}',
-      if (after > 0) '올 때 ${minText(after)}',
+      if (before > 0) tl('갈 때 {0}', [minText(before)]),
+      if (after > 0) tl('올 때 {0}', [minText(after)]),
     ];
     return parts.join(' · ');
   }
 
   /// 칩에 넣을 짧은 글자
   String get shortLabel {
-    if (isNone) return '이동시간';
-    if (before == after) return '이동 ${minText(before)}씩';
-    if (after == 0) return '이동 ${minText(before)}';
-    if (before == 0) return '귀가 ${minText(after)}';
-    return '이동 ${minText(before)}+${minText(after)}';
+    if (isNone) return tl('이동시간');
+    if (before == after) return tl('이동 {0}씩', [minText(before)]);
+    if (after == 0) return tl('이동 {0}', [minText(before)]);
+    if (before == 0) return tl('귀가 {0}', [minText(after)]);
+    return tl('이동 {0}+{1}', [minText(before), minText(after)]);
   }
 }
 

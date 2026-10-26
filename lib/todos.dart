@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dates.dart';
 import 'models.dart';
 import 'parser.dart';
+import 'l10n.dart';
+import 'parser_intl.dart';
 
 /// 좋아하는 시간대
 enum DayPart { any, morning, afternoon, evening }
@@ -13,13 +15,13 @@ extension DayPartText on DayPart {
   String get label {
     switch (this) {
       case DayPart.any:
-        return '상관없어요';
+        return tl('상관없어요');
       case DayPart.morning:
-        return '오전';
+        return tl('오전');
       case DayPart.afternoon:
-        return '오후';
+        return tl('오후');
       case DayPart.evening:
-        return '저녁';
+        return tl('저녁');
     }
   }
 
@@ -329,7 +331,7 @@ class TodoParse {
 }
 
 TodoParse parseTodo(String text, {required DateTime now}) {
-  var t = text;
+  var t = L10n.lang == Lang.ko ? text : normalizeIntl(text, L10n.lang).text;
   final today = dayOnly(now);
   var perWeek = 0;
   var someday = false;
@@ -355,7 +357,7 @@ TodoParse parseTodo(String text, {required DateTime now}) {
   }
   t = t.replaceAll('까지', ' ');
 
-  final q = parseQuick(t, now: now, defaultDay: today);
+  final q = parseQuickRaw(t, now: now, defaultDay: today);
   if (due == null && !someday && q.hasDate) due = dayOnly(q.start);
   final minutes = q.hasDuration ? q.end.difference(q.start).inMinutes : null;
   final title = q.title.replaceAll(RegExp(r'\s+'), ' ').trim();

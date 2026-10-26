@@ -1,5 +1,7 @@
 import 'dates.dart';
+import 'l10n.dart';
 import 'models.dart';
+import 'parser_intl.dart';
 
 /// 한 줄 입력에서 찾아낸 부분의 종류 (색 표시용)
 enum HitKind { date, time, duration, tag, repeat }
@@ -577,6 +579,36 @@ _Range? _findRangeEnd(String s, _Dt a, DateTime now) {
 /// - 시각을 안 쓰고 길이도 없으면 종일 일정이에요.
 /// - 시각만 쓰면 1시간이에요.
 QuickParse parseQuick(
+  String input, {
+  required DateTime now,
+  required DateTime defaultDay,
+}) {
+  if (L10n.lang == Lang.ko) {
+    return parseQuickRaw(input, now: now, defaultDay: defaultDay);
+  }
+  // 영어·프랑스어·중국어·일본어는 한국어 글로 바꿔 읽고, 색칠 자리만 원래 글로 되돌려요.
+  final nz = normalizeIntl(input, L10n.lang);
+  final r = parseQuickRaw(nz.text, now: now, defaultDay: defaultDay);
+  final hits = <Hit>[
+    for (final h in r.hits) Hit(nz.mapStart(h.start), nz.mapEnd(h.end), h.kind),
+  ];
+  return QuickParse(
+    title: r.title,
+    start: r.start,
+    end: r.end,
+    allDay: r.allDay,
+    hasDate: r.hasDate,
+    hasTime: r.hasTime,
+    hasDuration: r.hasDuration,
+    hits: List<Hit>.unmodifiable(hits),
+    tags: r.tags,
+    lastDay: r.lastDay,
+    repeat: r.repeat,
+  );
+}
+
+/// 한국어 글을 읽는 본체. (다른 언어는 [parseQuick] 이 한국어 글로 바꿔서 여기로 보내요.)
+QuickParse parseQuickRaw(
   String input, {
   required DateTime now,
   required DateTime defaultDay,

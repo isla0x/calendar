@@ -1,6 +1,7 @@
 import 'package:flutter/painting.dart';
 
 import 'theme.dart';
+import 'l10n.dart';
 
 /// 앱 전체 색 조합 하나. 바탕·글자·포인트색과 일정 색 5개(업무·개인·약속·운동·공부)를 한 묶음으로 가져요.
 class Skin {
@@ -36,7 +37,7 @@ class Skin {
   /// 파스텔: 남색·초록·분홍·노랑·보라 계열은 그대로, 전부 부드러운 파스텔로
   static final Skin pastel = Skin(
     id: 'pastel',
-    name: '파스텔',
+    name: tl('파스텔'),
     light: const Pal(
       dark: false,
       bg: Color(0xFFFAF7F2),
@@ -77,7 +78,7 @@ class Skin {
   /// 이전에 쓰던 진한 조합 (비교용)
   static final Skin classic = Skin(
     id: 'classic',
-    name: '이전 색',
+    name: tl('이전 색'),
     light: Pal.light,
     dark: Pal.darkPal,
     events: const [

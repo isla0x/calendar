@@ -11,6 +11,7 @@ import 'common.dart';
 import 'sheets.dart';
 import 'travel_sheet.dart';
 import 'tag_dialog.dart';
+import '../l10n.dart';
 
 /// 일정 편집 화면. 저장하면 고친 일정을 돌려줘요. (취소하면 null)
 class EventEditPage extends StatefulWidget {
@@ -143,12 +144,12 @@ class _EventEditPageState extends State<EventEditPage> {
   }
 
   Future<void> _pickStartDate() async {
-    final d = await showDateSheet(context, initial: _start, title: '시작하는 날');
+    final d = await showDateSheet(context, initial: _start, title: tl('시작하는 날'));
     if (d != null && mounted) setState(() => _setStartDate(d));
   }
 
   Future<void> _pickStartTime() async {
-    final t = await showTimeSheet(context, initial: _start, title: '시작 시각');
+    final t = await showTimeSheet(context, initial: _start, title: tl('시작 시각'));
     if (t != null && mounted) setState(() => _setStartTime(t));
   }
 
@@ -157,13 +158,13 @@ class _EventEditPageState extends State<EventEditPage> {
       context,
       initial: _end,
       first: dayOnly(_start),
-      title: '끝나는 날',
+      title: tl('끝나는 날'),
     );
     if (d != null && mounted) setState(() => _setEndDate(d));
   }
 
   Future<void> _pickEndTime() async {
-    final t = await showTimeSheet(context, initial: _end, title: '끝나는 시각');
+    final t = await showTimeSheet(context, initial: _end, title: tl('끝나는 시각'));
     if (t != null && mounted) setState(() => _setEndTime(t));
   }
 
@@ -202,7 +203,7 @@ class _EventEditPageState extends State<EventEditPage> {
     if (!ok) {
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(store.error ?? '일정을 저장하지 못했어요')),
+        SnackBar(content: Text(store.error ?? tl('일정을 저장하지 못했어요'))),
       );
       return;
     }
@@ -236,11 +237,11 @@ class _EventEditPageState extends State<EventEditPage> {
               ),
             );
         return SheetFrame(
-          title: '프로젝트',
-          subtitle: '태그와는 별개로 이 일정을 프로젝트에 넣어요.',
+          title: tl('프로젝트'),
+          subtitle: tl('태그와는 별개로 이 일정을 프로젝트에 넣어요.'),
           child: Column(
             children: [
-              row(null, '없음', null),
+              row(null, tl('없음'), null),
               for (final pr in list) row(pr.id, pr.name, pr.color),
             ],
           ),
@@ -263,10 +264,10 @@ class _EventEditPageState extends State<EventEditPage> {
   Future<void> _askDiscard() async {
     final yes = await showConfirmSheet(
       context,
-      title: '고친 내용을 버릴까요?',
-      body: '저장하지 않은 변경은 사라져요.',
-      yes: '버리기',
-      no: '계속 고치기',
+      title: tl('고친 내용을 버릴까요?'),
+      body: tl('저장하지 않은 변경은 사라져요.'),
+      yes: tl('버리기'),
+      no: tl('계속 고치기'),
       danger: true,
     );
     if (yes && mounted) Navigator.of(context).pop();
@@ -275,8 +276,8 @@ class _EventEditPageState extends State<EventEditPage> {
   // ---------------------------------------------------------------- 화면
 
   String _dateText(DateTime d, DateTime today) {
-    final y = d.year == today.year ? '' : '${d.year}년 ';
-    return '$y${d.month}월 ${d.day}일 ${wd(d)}';
+    final y = d.year == today.year ? '' : '${yText(d.year)} ';
+    return '${y}${dateChip(d)}';
   }
 
   List<Ev> _conflicts(CalendarStore s) {
@@ -312,24 +313,24 @@ class _EventEditPageState extends State<EventEditPage> {
     Color summaryColor = p.muted;
     IconData? summaryIcon;
     if (!_valid) {
-      summary = '끝나는 시각이 시작보다 빨라요';
+      summary = tl('끝나는 시각이 시작보다 빨라요');
       summaryColor = p.red;
       summaryIcon = Icons.error_outline_rounded;
     } else if (_allDay) {
       final n = daysBetween(_start, _end) + 1;
-      summary = n > 1 ? '$n일 동안' : '하루 종일';
+      summary = n > 1 ? tl('{0}일 동안', [n]) : tl('하루 종일');
     } else {
       final dur = durText(_end.difference(_start));
       if (conflicts.isNotEmpty) {
-        summary = '$dur · 겹치는 일정 ${conflicts.length}개';
+        summary = tl('{0} · 겹치는 일정 {1}개', [dur, conflicts.length]);
         summaryColor = p.red;
         summaryIcon = Icons.error_outline_rounded;
       } else if (sameDay(_start, _end)) {
-        summary = '$dur · 겹치는 일정 없음';
+        summary = tl('{0} · 겹치는 일정 없음', [dur]);
         summaryColor = p.good;
         summaryIcon = Icons.check_rounded;
       } else {
-        summary = '$dur · 여러 날에 걸친 하나의 일정이에요 (매일 반복이 아니에요)';
+        summary = tl('{0} · 여러 날에 걸친 하나의 일정이에요 (매일 반복이 아니에요)', [dur]);
       }
     }
 
@@ -427,7 +428,7 @@ class _EventEditPageState extends State<EventEditPage> {
           _color = c;
           _colorTouched = true;
         }),
-        label: c == null ? '캘린더 색' : '색 고르기',
+        label: c == null ? tl('캘린더 색') : tl('색 고르기'),
         child: Container(
           width: c == null ? null : 34,
           height: 34,
@@ -447,7 +448,7 @@ class _EventEditPageState extends State<EventEditPage> {
                   children: [
                     Dot(fill, size: 10),
                     const SizedBox(width: 6),
-                    Text('기본', style: ts(context, 13, weight: FontWeight.w600)),
+                    Text(tl('기본'), style: ts(context, 13, weight: FontWeight.w600)),
                   ],
                 )
               : (on ? Icon(Icons.check_rounded, size: 18, color: evColors(fill, p).onSolid.withAlpha(230)) : null),
@@ -479,14 +480,14 @@ class _EventEditPageState extends State<EventEditPage> {
                           onTap: () => Navigator.of(context).maybePop(),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            child: Text('취소', style: ts(context, 16)),
+                            child: Text(tl('취소'), style: ts(context, 16)),
                           ),
                         ),
                       ),
                     ),
                     Expanded(
                       child: Center(
-                        child: Text('일정 편집', style: ts(context, 17, weight: FontWeight.w700)),
+                        child: Text(tl('일정 편집'), style: ts(context, 17, weight: FontWeight.w700)),
                       ),
                     ),
                     SizedBox(
@@ -502,7 +503,7 @@ class _EventEditPageState extends State<EventEditPage> {
                               color: p.ink,
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               child: Text(
-                                '저장',
+                                tl('저장'),
                                 style: ts(context, 15, weight: FontWeight.w600, color: p.bg),
                               ),
                             ),
@@ -538,7 +539,7 @@ class _EventEditPageState extends State<EventEditPage> {
                           letterSpacing: -0.78,
                         ),
                         decoration: InputDecoration.collapsed(
-                          hintText: '제목',
+                          hintText: tl('제목'),
                           hintStyle: ts(
                             context,
                             26,
@@ -590,7 +591,7 @@ class _EventEditPageState extends State<EventEditPage> {
                                   Icon(Icons.repeat_rounded, size: 15, color: p.muted),
                                   const SizedBox(width: 6),
                                   Text(
-                                    '반복 일정 · 이 일정만 바뀌어요',
+                                    tl('반복 일정 · 이 일정만 바뀌어요'),
                                     style: ts(context, 13, weight: FontWeight.w600, color: p.muted),
                                   ),
                                 ],
@@ -607,16 +608,16 @@ class _EventEditPageState extends State<EventEditPage> {
                             Icon(Icons.schedule_rounded, size: 20, color: p.muted),
                             const SizedBox(width: 14),
                             Expanded(
-                              child: Text('종일', style: ts(context, 16, weight: FontWeight.w600)),
+                              child: Text(tl('종일'), style: ts(context, 16, weight: FontWeight.w600)),
                             ),
-                            AppSwitch(value: _allDay, onChanged: _toggleAllDay, label: '종일'),
+                            AppSwitch(value: _allDay, onChanged: _toggleAllDay, label: tl('종일')),
                           ],
                         ),
                       ),
                       divider(),
-                      timeRow('시작', _start, _pickStartDate, _pickStartTime),
+                      timeRow(tl('시작'), _start, _pickStartDate, _pickStartTime),
                       divider(),
-                      timeRow('끝', _end, _pickEndDate, _pickEndTime),
+                      timeRow(tl('끝'), _end, _pickEndDate, _pickEndTime),
                       divider(),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
@@ -650,7 +651,7 @@ class _EventEditPageState extends State<EventEditPage> {
                             }
                           }),
                           style: ts(context, 15, weight: FontWeight.w500),
-                          decoration: deco('장소'),
+                          decoration: deco(tl('장소')),
                         ),
                       ),
                       divider(),
@@ -664,7 +665,7 @@ class _EventEditPageState extends State<EventEditPage> {
                           keyboardType: TextInputType.multiline,
                           onChanged: (_) => setState(() {}),
                           style: ts(context, 15, weight: FontWeight.w500, height: 21 / 15),
-                          decoration: deco('메모'),
+                          decoration: deco(tl('메모')),
                         ),
                         top: true,
                       ),
@@ -672,13 +673,13 @@ class _EventEditPageState extends State<EventEditPage> {
                         divider(),
                         Tap(
                           onTap: _pickTravel,
-                          label: '이동시간 정하기',
+                          label: tl('이동시간 정하기'),
                           child: iconRow(
                             Icons.directions_car_outlined,
                             Row(
                               children: [
                                 Expanded(
-                                  child: Text('이동시간', style: ts(context, 15, weight: FontWeight.w600)),
+                                  child: Text(tl('이동시간'), style: ts(context, 15, weight: FontWeight.w600)),
                                 ),
                                 Flexible(
                                   child: Text(
@@ -705,7 +706,7 @@ class _EventEditPageState extends State<EventEditPage> {
                             for (final t in _tags) TagPill(tag: t, on: true, height: 32, onTap: _editTags),
                             Tap(
                               onTap: _editTags,
-                              label: '태그 바꾸기',
+                              label: tl('태그 바꾸기'),
                               child: DashedBox(
                                 radius: 16,
                                 child: Container(
@@ -715,7 +716,7 @@ class _EventEditPageState extends State<EventEditPage> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        _tags.isEmpty ? '+ 태그 추가' : '편집',
+                                        _tags.isEmpty ? tl('+ 태그 추가') : tl('편집'),
                                         style: ts(context, 13, weight: FontWeight.w600, color: p.muted),
                                       ),
                                     ],
@@ -743,16 +744,16 @@ class _EventEditPageState extends State<EventEditPage> {
                       divider(),
                       Tap(
                         onTap: _pickProject,
-                        label: '프로젝트 고르기',
+                        label: tl('프로젝트 고르기'),
                         child: iconRow(
                           Icons.flag_outlined,
                           Row(
                             children: [
                               Expanded(
-                                child: Text('프로젝트', style: ts(context, 15, weight: FontWeight.w600)),
+                                child: Text(tl('프로젝트'), style: ts(context, 15, weight: FontWeight.w600)),
                               ),
                               Text(
-                                StoreScope.of(context).projectById(_projectId ?? '')?.name ?? '없음',
+                                StoreScope.of(context).projectById(_projectId ?? '')?.name ?? tl('없음'),
                                 style: ts(context, 14, color: p.muted),
                               ),
                               Icon(Icons.chevron_right_rounded, size: 20, color: p.muted),

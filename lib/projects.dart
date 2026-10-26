@@ -4,6 +4,7 @@ import 'package:flutter/painting.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'dates.dart';
+import 'l10n.dart';
 
 /// 프로젝트 안의 체크포인트 (착수, 중간 보고, 최종 보고 …)
 class Checkpoint {
@@ -82,6 +83,15 @@ class Project {
 
   /// 카드에 보여줄 시간 설명 (예: "매일 09:00 – 18:00", "종일")
   final String timeText;
+
+  /// 화면에 보여줄 시간 글 (저장은 한국어 그대로, 보일 때만 지금 언어로 바꿔요)
+  String get timeLabel {
+    final t = timeText;
+    if (t == '종일') return tl('종일');
+    if (t.startsWith('매일 ')) return tl('매일 {0}', [t.substring(3)]);
+    if (t.startsWith('평일 ')) return tl('평일 {0}', [t.substring(3)]);
+    return t;
+  }
 
   /// 근무일마다 칸으로 보여줄지 (아니면 이어진 막대)
   final bool cells;

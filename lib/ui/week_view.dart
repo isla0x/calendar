@@ -8,6 +8,7 @@ import '../store.dart';
 import '../theme.dart';
 import 'common.dart';
 import 'pager.dart';
+import '../l10n.dart';
 
 /// 주간 화면: 7일을 가로 막대로 쌓아서 한눈에 비교
 class WeekView extends StatelessWidget {
@@ -72,17 +73,17 @@ class _WeekPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: _InsightCard(
-                    label: '가장 여유로운 날',
-                    value: '${wd(best)}요일 · ${freeText(free[dayKey(best)] ?? 0)}',
+                    label: tl('가장 여유로운 날'),
+                    value: '${wdFull(best)} · ${freeText(free[dayKey(best)] ?? 0)}',
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: _InsightCard(
-                    label: '가장 바쁜 날',
+                    label: tl('가장 바쁜 날'),
                     value: (free[dayKey(busy)] ?? 0) <= 0
-                        ? '${wd(busy)}요일 · 여유 없음'
-                        : '${wd(busy)}요일 · 여유 ${freeText(free[dayKey(busy)] ?? 0)}',
+                        ? tl('{0} · 여유 없음', [wdFull(busy)])
+                        : tl('{0} · 여유 {1}', [wdFull(busy), freeText(free[dayKey(busy)] ?? 0)]),
                   ),
                 ),
               ],
@@ -99,7 +100,7 @@ class _WeekPage extends StatelessWidget {
                     top: 0,
                     child: FractionalTranslation(
                       translation: const Offset(-0.5, 0),
-                      child: Text('$hour시', style: st),
+                      child: Text(tl('{0}시', [hour]), style: st),
                     ),
                   );
               return SizedBox(
@@ -193,7 +194,7 @@ class _WeekRow extends StatelessWidget {
     final names = <String>[];
     if (hol != null) names.add(hol);
     if (evs.isEmpty) {
-      if (hol == null) names.add('일정 없음');
+      if (hol == null) names.add(tl('일정 없음'));
     } else {
       Ev? first;
       for (final e in evs) {
@@ -202,18 +203,18 @@ class _WeekRow extends StatelessWidget {
         break;
       }
       first ??= evs.first;
-      names.add(evs.length == 1 ? first.title : '${first.title} 외 ${evs.length - 1}개');
+      names.add(evs.length == 1 ? first.title : tl('{0} 외 {1}개', [first.title, evs.length - 1]));
     }
 
     String freeLabel;
     if (isPast) {
-      freeLabel = '지난 날';
+      freeLabel = tl('지난 날');
     } else if (isToday) {
-      freeLabel = '남은 여유 ${freeText(store.freeMinutes(day, from: now))}';
+      freeLabel = tl('남은 여유 {0}', [freeText(store.freeMinutes(day, from: now))]);
     } else {
-      freeLabel = '여유 ${freeText(store.freeMinutes(day))}';
+      freeLabel = tl('여유 {0}', [freeText(store.freeMinutes(day))]);
     }
-    if (freeLabel.endsWith('여유 없음')) freeLabel = '여유 없음';
+    if (freeLabel.endsWith(tl('여유 없음'))) freeLabel = tl('여유 없음');
 
     const rs = _WeekPage._rs;
     const re = _WeekPage._re;

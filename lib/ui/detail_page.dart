@@ -12,6 +12,7 @@ import 'common.dart';
 import 'edit_page.dart';
 import 'sheets.dart';
 import 'tag_dialog.dart';
+import '../l10n.dart';
 
 /// 일정 상세: 한눈에 보기, 겹치지 않는 시간으로 옮기기, 편집·삭제·공유
 class EventDetailPage extends StatefulWidget {
@@ -33,40 +34,40 @@ class _EventDetailPageState extends State<EventDetailPage> {
     if (e.allDay) {
       final last = addDays(e.end, -1);
       if (!last.isAfter(e.start)) {
-        return '${relDay(e.start, today)} · ${wdFull(e.start)} · 종일';
+        return tl('{0} · {1} · 종일', [relDay(e.start, today), wdFull(e.start)]);
       }
-      return '${e.start.month}월 ${e.start.day}일 – ${last.month}월 ${last.day}일 · 종일';
+      return tl('{0} – {1} · 종일', [mdText(e.start), mdText(last)]);
     }
     final head = '${relDay(e.start, today)} · ${wdFull(e.start)}';
     final endsSameDay = sameDay(e.start, e.end) ||
         (e.end.hour == 0 && e.end.minute == 0 && daysBetween(e.start, e.end) == 1);
     if (endsSameDay) return '$head ${hm(e.start)} – ${hm(e.end)}';
-    return '$head ${hm(e.start)} – ${e.end.month}월 ${e.end.day}일 ${hm(e.end)}';
+    return '${head} ${hm(e.start)} – ${mdText(e.end)} ${hm(e.end)}';
   }
 
   String? _status(Ev e, DateTime now) {
     if (e.allDay) {
       final n = daysBetween(e.start, e.end);
-      return n > 1 ? '$n일 동안' : null;
+      return n > 1 ? tl('{0}일 동안', [n]) : null;
     }
     final dur = durText(e.duration);
-    if (!e.end.isAfter(now)) return '종료됨 · $dur';
-    if (!e.start.isAfter(now)) return '진행 중 · $dur';
+    if (!e.end.isAfter(now)) return tl('종료됨 · {0}', [dur]);
+    if (!e.start.isAfter(now)) return tl('진행 중 · {0}', [dur]);
     final m = e.start.difference(now).inMinutes;
-    if (m < 24 * 60) return '${leftText(math.max(1, m))} 후 시작 · $dur';
+    if (m < 24 * 60) return tl('{0} 후 시작 · {1}', [leftText(math.max(1, m)), dur]);
     return dur;
   }
 
   String _reminderText(Duration d) {
     final m = d.inMinutes.abs();
-    if (m == 0) return '시작할 때 알림';
-    if (m < 60) return '$m분 전 알림';
+    if (m == 0) return tl('시작할 때 알림');
+    if (m < 60) return tl('{0}분 전 알림', [m]);
     if (m < 24 * 60) {
       final h = m ~/ 60;
       final r = m % 60;
-      return r == 0 ? '$h시간 전 알림' : '$h시간 $r분 전 알림';
+      return r == 0 ? tl('{0}시간 전 알림', [h]) : tl('{0}시간 {1}분 전 알림', [h, r]);
     }
-    return '${m ~/ (24 * 60)}일 전 알림';
+    return tl('{0}일 전 알림', [m ~/ (24 * 60)]);
   }
 
   // ---------------------------------------------------------------- 동작
@@ -108,11 +109,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
       final m = ScaffoldMessenger.of(context);
       m.hideCurrentSnackBar();
       m.showSnackBar(SnackBar(
-        content: Text('${hm(s.start)}–${hm(s.end)} 로 옮겼어요'),
-        action: SnackBarAction(label: '되돌리기', onPressed: () => _undoMove(old)),
+        content: Text(tl('{0}–{1} 로 옮겼어요', [hm(s.start), hm(s.end)])),
+        action: SnackBarAction(label: tl('되돌리기'), onPressed: () => _undoMove(old)),
       ));
     } else {
-      _snack(store.error ?? '일정을 옮기지 못했어요');
+      _snack(store.error ?? tl('일정을 옮기지 못했어요'));
     }
   }
 
@@ -133,24 +134,24 @@ class _EventDetailPageState extends State<EventDetailPage> {
       final scope = await showAppSheet<DeleteScope>(
         context: context,
         builder: (ctx) => SheetFrame(
-          title: '반복 일정을 지울까요?',
+          title: tl('반복 일정을 지울까요?'),
           subtitle: e.title,
           child: Column(
             children: [
               BigButton(
-                label: '이 일정만',
+                label: tl('이 일정만'),
                 quiet: true,
                 onTap: () => Navigator.of(ctx).pop(DeleteScope.one),
               ),
               const SizedBox(height: 10),
               BigButton(
-                label: '이후 모든 일정',
+                label: tl('이후 모든 일정'),
                 quiet: true,
                 onTap: () => Navigator.of(ctx).pop(DeleteScope.following),
               ),
               const SizedBox(height: 10),
               BigButton(
-                label: '반복 일정 전체',
+                label: tl('반복 일정 전체'),
                 color: Pal.of(ctx).red,
                 onTap: () => Navigator.of(ctx).pop(DeleteScope.all),
               ),
@@ -164,15 +165,15 @@ class _EventDetailPageState extends State<EventDetailPage> {
       if (done) {
         Navigator.of(context).pop();
       } else {
-        _snack(store.error ?? '일정을 지우지 못했어요');
+        _snack(store.error ?? tl('일정을 지우지 못했어요'));
       }
       return;
     }
     final yes = await showConfirmSheet(
       context,
-      title: '이 일정을 지울까요?',
+      title: tl('이 일정을 지울까요?'),
       body: e.title,
-      yes: '지우기',
+      yes: tl('지우기'),
       danger: true,
     );
     if (!yes || !mounted) return;
@@ -181,7 +182,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
     if (done) {
       Navigator.of(context).pop();
     } else {
-      _snack(store.error ?? '일정을 지우지 못했어요');
+      _snack(store.error ?? tl('일정을 지우지 못했어요'));
     }
   }
 
@@ -205,7 +206,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
         _ev = store.findEvent(old.id, start: old.start) ?? old.copyWith(tags: r);
       }
     });
-    if (!ok) _snack(store.error ?? '태그를 바꾸지 못했어요');
+    if (!ok) _snack(store.error ?? tl('태그를 바꾸지 못했어요'));
   }
 
   Future<void> _share() async {
@@ -215,7 +216,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
     if (loc != null && loc.trim().isNotEmpty) lines.add(loc.trim());
     if (e.tags.isNotEmpty) lines.add(e.tags.map((t) => '#$t').join(' '));
     await Clipboard.setData(ClipboardData(text: lines.join('\n')));
-    if (mounted) _snack('일정 정보를 복사했어요');
+    if (mounted) _snack(tl('일정 정보를 복사했어요'));
   }
 
   // ---------------------------------------------------------------- 화면
@@ -243,12 +244,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
     final loc = e.location;
     if (loc != null && loc.trim().isNotEmpty) addRow(Icons.place_outlined, loc.trim());
     final travel = store.travelOf(e);
-    if (!travel.isNone && !e.allDay) addRow(Icons.directions_car_outlined, '이동시간 ${travel.label}');
-    if (e.attendees > 0) addRow(Icons.people_outline_rounded, '참석 ${e.attendees}명');
+    if (!travel.isNone && !e.allDay) addRow(Icons.directions_car_outlined, tl('이동시간 {0}', [travel.label]));
+    if (e.attendees > 0) addRow(Icons.people_outline_rounded, tl('참석 {0}명', [e.attendees]));
     for (final r in e.reminders.take(3)) {
       addRow(Icons.notifications_none_rounded, _reminderText(r));
     }
-    if (e.recurring) addRow(Icons.repeat_rounded, '반복 일정');
+    if (e.recurring) addRow(Icons.repeat_rounded, tl('반복 일정'));
     final note = e.note;
     if (note != null && note.trim().isNotEmpty) addRow(Icons.notes_rounded, note.trim());
 
@@ -282,7 +283,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 children: [
                   Tap(
                     onTap: () => Navigator.of(context).pop(),
-                    label: '뒤로',
+                    label: tl('뒤로'),
                     child: SizedBox(
                       width: 44,
                       height: 44,
@@ -294,7 +295,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       onTap: _openEditor,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        child: Text('편집', style: ts(context, 16, weight: FontWeight.w600)),
+                        child: Text(tl('편집'), style: ts(context, 16, weight: FontWeight.w600)),
                       ),
                     ),
                 ],
@@ -397,7 +398,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                               if (!e.readOnly)
                                 Tap(
                                   onTap: _editTags,
-                                  label: '태그 바꾸기',
+                                  label: tl('태그 바꾸기'),
                                   child: Container(
                                     height: 30,
                                     padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -409,7 +410,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Text(
-                                          e.tags.isEmpty ? '+ 태그' : '편집',
+                                          e.tags.isEmpty ? tl('+ 태그') : tl('편집'),
                                           style: ts(
                                             context,
                                             14,
@@ -468,7 +469,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '겹치지 않는 시간으로 옮기기',
+                            tl('겹치지 않는 시간으로 옮기기'),
                             style: ts(context, 13, weight: FontWeight.w600, color: p.muted, height: 17 / 13),
                           ),
                           const SizedBox(height: 8),
@@ -516,7 +517,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           border: Border.all(color: p.line),
                         ),
                         child: Text(
-                          '삭제',
+                          tl('삭제'),
                           style: ts(context, 16, weight: FontWeight.w600, color: p.red),
                         ),
                       ),
@@ -536,7 +537,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         borderRadius: BorderRadius.circular(28),
                       ),
                       child: Text(
-                        '공유하기',
+                        tl('공유하기'),
                         style: ts(context, 16, weight: FontWeight.w600, color: p.bg),
                       ),
                     ),

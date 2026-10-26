@@ -5,6 +5,7 @@ import '../theme.dart';
 import '../travel.dart';
 import 'common.dart';
 import 'sheets.dart';
+import '../l10n.dart';
 
 /// 이동시간 고르는 창. 저장하면 [Travel], 닫으면 null.
 /// [place] 를 넣으면 "앞으로도 이 시간으로" 스위치가 나오고, 켜 두면 그 장소의 이동시간을 기억해요.
@@ -64,7 +65,7 @@ class _TravelSheetState extends State<_TravelSheet> {
         for (final m in Travel.choices)
           Tap(
             onTap: () => onPick(m),
-            label: m == 0 ? '$key 없음' : '$key ${Travel.minText(m)}',
+            label: m == 0 ? tl('{0} 없음', [key]) : '$key ${Travel.minText(m)}',
             child: Container(
               height: 40,
               padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -75,7 +76,7 @@ class _TravelSheetState extends State<_TravelSheet> {
                 border: Border.all(color: value == m ? p.ink : p.line),
               ),
               child: Text(
-                m == 0 ? '없음' : Travel.minText(m),
+                m == 0 ? tl('없음') : Travel.minText(m),
                 style: ts(context, 14, weight: FontWeight.w600, color: value == m ? p.bg : p.ink),
               ),
             ),
@@ -90,17 +91,17 @@ class _TravelSheetState extends State<_TravelSheet> {
     final t = Travel(before: _before, after: _same ? _before : _after);
     final places = StoreScope.of(context).knownPlaces;
     return SheetFrame(
-      title: '이동시간',
-      subtitle: '정해 두면 비는 시간과 할 일 자리 찾기에서 이 시간을 빼고 계산해요.',
+      title: tl('이동시간'),
+      subtitle: tl('정해 두면 비는 시간과 할 일 자리 찾기에서 이 시간을 빼고 계산해요.'),
       footer: Row(
         children: [
           Expanded(
-            child: BigButton(label: '이동시간 없음', quiet: true, onTap: () => _finish(Travel.none)),
+            child: BigButton(label: tl('이동시간 없음'), quiet: true, onTap: () => _finish(Travel.none)),
           ),
           const SizedBox(width: 10),
           Expanded(
             flex: 2,
-            child: BigButton(label: '저장', onTap: () => _finish(t)),
+            child: BigButton(label: tl('저장'), onTap: () => _finish(t)),
           ),
         ],
       ),
@@ -108,7 +109,7 @@ class _TravelSheetState extends State<_TravelSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (places.isNotEmpty) ...[
-            Text('자주 가는 곳', style: ts(context, 14, weight: FontWeight.w700)),
+            Text(tl('자주 가는 곳'), style: ts(context, 14, weight: FontWeight.w700)),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
@@ -136,25 +137,25 @@ class _TravelSheetState extends State<_TravelSheet> {
             ),
             const SizedBox(height: 18),
           ],
-          Text('가는 데', style: ts(context, 14, weight: FontWeight.w700)),
+          Text(tl('가는 데'), style: ts(context, 14, weight: FontWeight.w700)),
           const SizedBox(height: 10),
-          _chips('가는 데', _before, (m) => setState(() => _before = m)),
+          _chips(tl('가는 데'), _before, (m) => setState(() => _before = m)),
           const SizedBox(height: 18),
           Row(
             children: [
-              Expanded(child: Text('올 때도 같게', style: ts(context, 14, weight: FontWeight.w700))),
-              AppSwitch(value: _same, onChanged: (v) => setState(() => _same = v), label: '올 때도 같게'),
+              Expanded(child: Text(tl('올 때도 같게'), style: ts(context, 14, weight: FontWeight.w700))),
+              AppSwitch(value: _same, onChanged: (v) => setState(() => _same = v), label: tl('올 때도 같게')),
             ],
           ),
           if (!_same) ...[
             const SizedBox(height: 14),
-            Text('돌아오는 데', style: ts(context, 14, weight: FontWeight.w700)),
+            Text(tl('돌아오는 데'), style: ts(context, 14, weight: FontWeight.w700)),
             const SizedBox(height: 10),
-            _chips('오는 데', _after, (m) => setState(() => _after = m)),
+            _chips(tl('오는 데'), _after, (m) => setState(() => _after = m)),
           ],
           const SizedBox(height: 14),
           Text(
-            t.isNone ? '이동시간 없음' : t.label,
+            t.isNone ? tl('이동시간 없음') : t.label,
             style: ts(context, 13, color: p.muted),
           ),
           if (widget.place.isNotEmpty) ...[
@@ -163,7 +164,7 @@ class _TravelSheetState extends State<_TravelSheet> {
               children: [
                 Expanded(
                   child: Text(
-                    '"${widget.place}"은(는) 앞으로도 이 시간으로',
+                    tl('"{0}"은(는) 앞으로도 이 시간으로', [widget.place]),
                     style: ts(context, 14, weight: FontWeight.w700, height: 20 / 14),
                   ),
                 ),
@@ -171,7 +172,7 @@ class _TravelSheetState extends State<_TravelSheet> {
                 AppSwitch(
                   value: _remember,
                   onChanged: (v) => setState(() => _remember = v),
-                  label: '앞으로도 이 시간으로',
+                  label: tl('앞으로도 이 시간으로'),
                 ),
               ],
             ),

@@ -11,6 +11,7 @@ import '../travel.dart';
 import 'common.dart';
 import 'nav.dart';
 import 'pager.dart';
+import '../l10n.dart';
 
 /// 일간(오늘) 화면: 주 띠 + 남은 여유 카드 + 시간표
 class DayView extends StatelessWidget {
@@ -177,16 +178,16 @@ class _FlowCard extends StatelessWidget {
     String value;
     String? right;
     if (isPast) {
-      label = '지난 날';
-      value = evs.isEmpty ? '일정 없음' : '일정 ${evs.length}개';
+      label = tl('지난 날');
+      value = evs.isEmpty ? tl('일정 없음') : tl('일정 {0}개', [evs.length]);
     } else if (isToday) {
-      label = '오늘 남은 여유';
+      label = tl('오늘 남은 여유');
       value = freeText(store.freeMinutes(day, from: now));
-      right = '22시까지';
+      right = tl('22시까지');
     } else {
-      label = '이 날의 여유';
+      label = tl('이 날의 여유');
       value = freeText(store.freeMinutes(day));
-      right = '9시~22시';
+      right = tl('9시~22시');
     }
 
     return Container(
@@ -301,10 +302,10 @@ class _FlowCard extends StatelessWidget {
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    Positioned(left: 0, top: 0, child: Text('7시', style: st)),
-                    at(5 / 16, '12시'),
-                    at(11 / 16, '18시'),
-                    Positioned(right: 0, top: 0, child: Text('23시', style: st)),
+                    Positioned(left: 0, top: 0, child: Text(tl('7시'), style: st)),
+                    at(5 / 16, tl('12시')),
+                    at(11 / 16, tl('18시')),
+                    Positioned(right: 0, top: 0, child: Text(tl('23시'), style: st)),
                   ],
                 ),
               );
@@ -351,7 +352,7 @@ class _PastChip extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    open ? '지난 일정 접기' : '지난 일정 $count개',
+                    open ? tl('지난 일정 접기') : tl('지난 일정 {0}개', [count]),
                     style: ts(context, 12, weight: FontWeight.w600, color: p.muted),
                   ),
                 ],
@@ -398,7 +399,7 @@ class _AllDayRow extends StatelessWidget {
                     children: [
                       Flexible(
                         child: Text(
-                          '종일 · ${e.title}',
+                          tl('종일 · {0}', [e.title]),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: ts(context, 12, weight: FontWeight.w600, color: evColors(e.color, p).text),
@@ -491,7 +492,7 @@ class _Timeline extends StatelessWidget {
         alignment: Alignment.topCenter,
         child: Padding(
           padding: const EdgeInsets.only(top: 40),
-          child: Text('이 날은 일정이 없었어요', style: ts(context, 14, color: p.muted)),
+          child: Text(tl('이 날은 일정이 없었어요'), style: ts(context, 14, color: p.muted)),
         ),
       );
     }
@@ -546,7 +547,7 @@ class _Timeline extends StatelessWidget {
       for (final x in placed) {
         if (!x.e.start.isAfter(now) && x.e.end.isAfter(now)) {
           hiId = x.e.instanceId;
-          badge = '진행 중';
+          badge = tl('진행 중');
           break;
         }
       }
@@ -554,7 +555,7 @@ class _Timeline extends StatelessWidget {
         for (final x in placed) {
           if (x.e.start.isAfter(now)) {
             hiId = x.e.instanceId;
-            badge = '${leftText(math.max(1, x.e.start.difference(now).inMinutes))} 후';
+            badge = tl('{0} 후', [leftText(math.max(1, x.e.start.difference(now).inMinutes))]);
             break;
           }
         }
@@ -616,7 +617,7 @@ class _Timeline extends StatelessWidget {
             child: Tap(
               onTap: () => openQuickAdd(
                 context,
-                initialText: '${from.month}월 ${from.day}일 ${timeWords(from.hour, from.minute)} ',
+                initialText: '${mdText(from)} ${timeWords(from.hour, from.minute)} ',
               ),
               child: DashedBox(
                 radius: 12,
@@ -627,7 +628,7 @@ class _Timeline extends StatelessWidget {
                       Icon(Icons.add_rounded, size: 14, color: p.muted),
                       const SizedBox(width: 6),
                       Text(
-                        '비는 시간 ${durText(g.length)}',
+                        tl('비는 시간 {0}', [durText(g.length)]),
                         style: ts(context, 12, weight: FontWeight.w600, color: p.muted),
                       ),
                     ],
@@ -652,7 +653,7 @@ class _Timeline extends StatelessWidget {
               top: yOf(b) + 1,
               width: width,
               height: math.max(10.0, (x.s - b) / 60 * hourH - 2),
-              child: _TravelBand(event: x.e, text: '이동 ${Travel.minText(tr.before)}'),
+              child: _TravelBand(event: x.e, text: tl('이동 {0}', [Travel.minText(tr.before)])),
             ));
           }
           if (tr.after > 0) {
@@ -662,7 +663,7 @@ class _Timeline extends StatelessWidget {
               top: yOf(x.t) + 1,
               width: width,
               height: math.max(10.0, (a - x.t) / 60 * hourH - 2),
-              child: _TravelBand(event: x.e, text: '이동 ${Travel.minText(tr.after)}'),
+              child: _TravelBand(event: x.e, text: tl('이동 {0}', [Travel.minText(tr.after)])),
             ));
           }
         }
@@ -765,7 +766,7 @@ class _CandidateBlock extends StatelessWidget {
     final tall = height >= 44;
     return Tap(
       onTap: () => store.removeCandidate(proposal),
-      label: '후보 빼기',
+      label: tl('후보 빼기'),
       child: Container(
         decoration: BoxDecoration(
           color: p.good.withAlpha(p.dark ? 40 : 28),
@@ -790,7 +791,7 @@ class _CandidateBlock extends StatelessWidget {
                               style: ts(context, 14, weight: FontWeight.w600, color: p.good, height: 18 / 14),
                             ),
                             Text(
-                              '${hm(proposal.start)}–${hm(proposal.end)} · 눌러서 빼기',
+                              tl('{0}–{1} · 눌러서 빼기', [hm(proposal.start), hm(proposal.end)]),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: ts(context, 12, color: p.good, height: 15 / 12),
@@ -816,7 +817,7 @@ class _CandidateBlock extends StatelessWidget {
                     color: p.good.withAlpha(40),
                     borderRadius: BorderRadius.circular(11),
                   ),
-                  child: Text('후보', style: ts(context, 11, weight: FontWeight.w700, color: p.good)),
+                  child: Text(tl('후보'), style: ts(context, 11, weight: FontWeight.w700, color: p.good)),
                 ),
               ],
             ),
@@ -965,7 +966,7 @@ class _Block extends StatelessWidget {
             if (link != null)
               Tap(
                 onTap: () => store.toggleSlotDone(event),
-                label: isDone ? '끝냄 취소' : '끝냈어요',
+                label: isDone ? tl('끝냄 취소') : tl('끝냈어요'),
                 child: Padding(
                   padding: const EdgeInsets.only(right: 10),
                   child: Icon(

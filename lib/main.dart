@@ -9,6 +9,7 @@ import 'color_book.dart';
 import 'dates.dart';
 import 'device_repo.dart';
 import 'flags.dart';
+import 'l10n.dart';
 import 'pro.dart';
 import 'projects.dart';
 import 'skins.dart';
@@ -23,6 +24,8 @@ import 'ui/shell.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // 폰 언어 설정을 따라가요 (한국어·영어·프랑스어·중국어·일본어, 그 밖에는 영어)
+  L10n.lang = L10n.pick(WidgetsBinding.instance.platformDispatcher.locales);
   final colors = await PrefsColorBook.open();
   final projects = await PrefsProjectBook.open();
   final todos = await PrefsTodoBook.open();
@@ -107,7 +110,7 @@ class _YeobaekAppState extends State<YeobaekApp> with WidgetsBindingObserver {
           var text = '';
           if (ms != null) {
             final f = DateTime.fromMillisecondsSinceEpoch(ms);
-            text = '${f.month}월 ${f.day}일 ${timeWords(f.hour, f.minute)} ';
+            text = '${mdText(f)} ${timeWords(f.hour, f.minute)} ';
           }
           openQuickAdd(ctx, initialText: text);
         case 'todos':
@@ -131,6 +134,12 @@ class _YeobaekAppState extends State<YeobaekApp> with WidgetsBindingObserver {
   }
 
   @override
+  void didChangeLocales(List<Locale>? locales) {
+    final next = L10n.pick(locales ?? const <Locale>[]);
+    if (next != L10n.lang) setState(() => L10n.lang = next);
+  }
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // 설정 앱에 다녀오거나 다른 앱에서 일정을 고친 뒤 돌아오면 다시 읽어요.
     if (state == AppLifecycleState.resumed) _store.reload();
@@ -147,8 +156,8 @@ class _YeobaekAppState extends State<YeobaekApp> with WidgetsBindingObserver {
         theme: buildTheme(Skin.current.light),
         darkTheme: buildTheme(Skin.current.dark),
         themeMode: ThemeMode.system,
-        locale: const Locale('ko', 'KR'),
-        supportedLocales: const [Locale('ko', 'KR')],
+        locale: L10n.locale,
+        supportedLocales: L10n.supported,
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,

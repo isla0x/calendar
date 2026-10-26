@@ -3,6 +3,7 @@ import 'models.dart';
 import 'repo.dart';
 import 'skins.dart';
 import 'tags.dart';
+import 'l10n.dart';
 
 class _T {
   const _T(this.h1, this.h2, this.title, this.cal, [this.loc]);
@@ -24,14 +25,14 @@ class DemoRepo implements CalendarRepo {
 
   /// 일정 색은 지금 고른 색 조합(Skin)을 따라가요.
   final List<CalInfo> _cals = [
-    CalInfo(id: 'work', name: '업무', color: Skin.current.events[0]),
-    CalInfo(id: 'personal', name: '개인', color: Skin.current.events[1], isPrimary: true),
-    CalInfo(id: 'meet', name: '약속', color: Skin.current.events[2]),
-    CalInfo(id: 'fit', name: '운동', color: Skin.current.events[3]),
-    CalInfo(id: 'study', name: '공부', color: Skin.current.events[4]),
+    CalInfo(id: 'work', name: tl('업무'), color: Skin.current.events[0]),
+    CalInfo(id: 'personal', name: tl('개인'), color: Skin.current.events[1], isPrimary: true),
+    CalInfo(id: 'meet', name: tl('약속'), color: Skin.current.events[2]),
+    CalInfo(id: 'fit', name: tl('운동'), color: Skin.current.events[3]),
+    CalInfo(id: 'study', name: tl('공부'), color: Skin.current.events[4]),
     CalInfo(
       id: 'holiday',
-      name: '대한민국 공휴일',
+      name: tl('대한민국 공휴일'),
       color: Skin.current.holiday,
       readOnly: true,
     ),
@@ -39,52 +40,52 @@ class DemoRepo implements CalendarRepo {
 
   static const Map<int, List<_T>> _week = {
     1: [
-      _T(9.5, 10.5, '주간 싱크 #회의', 'work', '회의실 A'),
-      _T(12, 13, '점심 약속 #약속', 'meet'),
-      _T(14.5, 15.5, '스프린트 플래닝 #회의', 'work', '회의실 B'),
-      _T(16.5, 17.5, '보고서 작성 #집중', 'work', '집중 시간'),
-      _T(19, 20, '러닝 #운동', 'fit', '공원'),
-      _T(21, 22, '영어 공부 #공부', 'study', '온라인 수업'),
+      _T(9.5, 10.5, tl('주간 싱크 #회의'), 'work', tl('회의실 A')),
+      _T(12, 13, tl('점심 약속 #약속'), 'meet'),
+      _T(14.5, 15.5, tl('스프린트 플래닝 #회의'), 'work', tl('회의실 B')),
+      _T(16.5, 17.5, tl('보고서 작성 #집중'), 'work', tl('집중 시간')),
+      _T(19, 20, tl('러닝 #운동'), 'fit', tl('공원')),
+      _T(21, 22, tl('영어 공부 #공부'), 'study', tl('온라인 수업')),
     ],
     2: [
-      _T(9, 10, '디자인 리뷰 #회의', 'work', '회의실 A'),
-      _T(10.5, 12, '고객 인터뷰 #회의', 'work'),
-      _T(18.5, 20, '저녁 약속 #약속', 'meet'),
+      _T(9, 10, tl('디자인 리뷰 #회의'), 'work', tl('회의실 A')),
+      _T(10.5, 12, tl('고객 인터뷰 #회의'), 'work'),
+      _T(18.5, 20, tl('저녁 약속 #약속'), 'meet'),
     ],
     3: [
-      _T(10, 11.5, '스프린트 리뷰 #회의', 'work', '회의실 A'),
-      _T(12.5, 13.5, '점심 약속 #약속', 'meet'),
-      _T(19, 20, '요가 #운동', 'fit', '스튜디오'),
+      _T(10, 11.5, tl('스프린트 리뷰 #회의'), 'work', tl('회의실 A')),
+      _T(12.5, 13.5, tl('점심 약속 #약속'), 'meet'),
+      _T(19, 20, tl('요가 #운동'), 'fit', tl('스튜디오')),
     ],
     4: [
-      _T(9.5, 17.5, '오프사이트 워크숍 #집중', 'work'),
-      _T(19.5, 21, '영어 공부 #공부', 'study', '온라인 수업'),
+      _T(9.5, 17.5, tl('오프사이트 워크숍 #집중'), 'work'),
+      _T(19.5, 21, tl('영어 공부 #공부'), 'study', tl('온라인 수업')),
     ],
     5: [
-      _T(10, 11, '1:1 미팅 #회의', 'work'),
-      _T(13, 14, '팀 점심 #약속', 'work'),
-      _T(18.5, 22, '저녁 약속 #약속', 'meet'),
+      _T(10, 11, tl('1:1 미팅 #회의'), 'work'),
+      _T(13, 14, tl('팀 점심 #약속'), 'work'),
+      _T(18.5, 22, tl('저녁 약속 #약속'), 'meet'),
     ],
     6: [
-      _T(11, 13, '브런치 #약속', 'meet'),
-      _T(15, 17, '산책 #운동', 'personal'),
-      _T(19, 22, '모임 #약속', 'meet'),
+      _T(11, 13, tl('브런치 #약속'), 'meet'),
+      _T(15, 17, tl('산책 #운동'), 'personal'),
+      _T(19, 22, tl('모임 #약속'), 'meet'),
     ],
     7: [
-      _T(10.5, 12, '브런치 #약속', 'personal'),
-      _T(14, 15.5, '러닝 #운동', 'fit', '공원'),
+      _T(10.5, 12, tl('브런치 #약속'), 'personal'),
+      _T(14, 15.5, tl('러닝 #운동'), 'fit', tl('공원')),
     ],
   };
 
   static const Map<int, String> _holidays = {
-    101: '신정',
-    301: '삼일절',
-    505: '어린이날',
-    606: '현충일',
-    815: '광복절',
-    1003: '개천절',
-    1009: '한글날',
-    1225: '성탄절',
+    101: tl('신정'),
+    301: tl('삼일절'),
+    505: tl('어린이날'),
+    606: tl('현충일'),
+    815: tl('광복절'),
+    1003: tl('개천절'),
+    1009: tl('한글날'),
+    1225: tl('성탄절'),
   };
 
   final List<Ev> _evs = <Ev>[];
@@ -101,8 +102,8 @@ class DemoRepo implements CalendarRepo {
       instanceId: 'p$n',
       calendarId: c.id,
       calendarName: c.name,
-      title: '프로젝트 A',
-      tags: const <String>['프로젝트'],
+      title: tl('프로젝트 A'),
+      tags: <String>[tl('프로젝트')],
       start: addDays(today, -38),
       end: addDays(today, 3),
       allDay: true,

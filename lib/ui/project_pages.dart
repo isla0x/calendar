@@ -8,9 +8,12 @@ import '../projects.dart';
 import '../skins.dart';
 import '../store.dart';
 import '../theme.dart';
+import '../travel.dart';
 import 'common.dart';
 import 'nav.dart';
 import 'sheets.dart';
+import 'travel_sheet.dart';
+import '../l10n.dart';
 
 // ---------------------------------------------------------------- 도우미
 
@@ -20,7 +23,6 @@ String _md(DateTime d) => '${d.month}/${d.day}';
 
 DateTime _mondayOf(DateTime d) => addDays(dayOnly(d), -(d.weekday - 1));
 
-const List<String> _wdHead = ['월', '화', '수', '목', '금', '토', '일'];
 
 /// 위쪽 줄: 뒤로 가기 + 오른쪽 위젯
 class _TopBar extends StatelessWidget {
@@ -41,7 +43,7 @@ class _TopBar extends StatelessWidget {
           children: [
             Tap(
               onTap: () => Navigator.of(context).pop(),
-              label: '뒤로',
+              label: tl('뒤로'),
               child: SizedBox(
                 height: 44,
                 child: Row(
@@ -175,11 +177,11 @@ class ProjectBar extends StatelessWidget {
 String _stateLine(Project pr, DateTime today) {
   switch (pr.statusOn(today)) {
     case ProjectStatus.upcoming:
-      return '${daysBetween(dayOnly(today), pr.start)}일 뒤 시작 · 근무일 ${pr.totalDays}일';
+      return tl('{0}일 뒤 시작 · 근무일 {1}일', [daysBetween(dayOnly(today), pr.start), pr.totalDays]);
     case ProjectStatus.done:
-      return '끝났어요 · 근무일 ${pr.totalDays}일';
+      return tl('끝났어요 · 근무일 {0}일', [pr.totalDays]);
     case ProjectStatus.active:
-      return '근무일 ${pr.totalDays}일 중 ${pr.dayNumber(today)}일째';
+      return tl('근무일 {0}일 중 {1}일째', [pr.totalDays, pr.dayNumber(today)]);
   }
 }
 
@@ -231,8 +233,8 @@ class _ProjectListPageState extends State<ProjectListPage> {
       body: Column(
         children: [
           _TopBar(
-            back: '달력',
-            trailing: _SmallBtn(text: '+ 새 프로젝트', onTap: () => showProjectForm(context)),
+            back: tl('달력'),
+            trailing: _SmallBtn(text: tl('+ 새 프로젝트'), onTap: () => showProjectForm(context)),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
@@ -247,9 +249,9 @@ class _ProjectListPageState extends State<ProjectListPage> {
             decoration: BoxDecoration(color: p.soft, borderRadius: BorderRadius.circular(22)),
             child: Row(
               children: [
-                tab('진행 중', ProjectStatus.active),
-                tab('예정', ProjectStatus.upcoming),
-                tab('끝남', ProjectStatus.done),
+                tab(tl('진행 중'), ProjectStatus.active),
+                tab(tl('예정'), ProjectStatus.upcoming),
+                tab(tl('끝남'), ProjectStatus.done),
               ],
             ),
           ),
@@ -260,8 +262,8 @@ class _ProjectListPageState extends State<ProjectListPage> {
                       padding: const EdgeInsets.symmetric(horizontal: 40),
                       child: Text(
                         all.isEmpty
-                            ? '아직 프로젝트가 없어요.\n새 일정을 쓸 때 "프로젝트로 보기"를 켜거나,\n위의 "+ 새 프로젝트"를 눌러 보세요.'
-                            : '이 칸에는 프로젝트가 없어요.',
+                            ? tl('아직 프로젝트가 없어요.\n새 일정을 쓸 때 "프로젝트로 보기"를 켜거나,\n위의 "+ 새 프로젝트"를 눌러 보세요.')
+                            : tl('이 칸에는 프로젝트가 없어요.'),
                         textAlign: TextAlign.center,
                         style: ts(context, 14, color: p.muted, height: 21 / 14),
                       ),
@@ -327,7 +329,7 @@ class _ProjectCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '${pr.rangeText} · ${pr.timeText}',
+              '${pr.rangeText} · ${pr.timeLabel}',
               style: ts(context, 13, color: p.muted, height: 18 / 13),
             ),
             const SizedBox(height: 12),
@@ -339,7 +341,7 @@ class _ProjectCard extends StatelessWidget {
                   child: Text(_stateLine(pr, today), style: ts(context, 13, color: p.muted)),
                 ),
                 if (active)
-                  Text('남은 ${pr.remainingDays(today)}일', style: ts(context, 13, weight: FontWeight.w700)),
+                  Text(tl('남은 {0}일', [pr.remainingDays(today)]), style: ts(context, 13, weight: FontWeight.w700)),
               ],
             ),
             if (next != null) ...[
@@ -353,7 +355,7 @@ class _ProjectCard extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Text('다음 체크포인트', style: ts(context, 12, color: p.muted)),
+                    Text(tl('다음 체크포인트'), style: ts(context, 12, color: p.muted)),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -415,8 +417,8 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
   Future<void> _addCheckpoint(Project pr) async {
     final title = await showTextSheet(
       context,
-      title: '체크포인트 이름',
-      hint: '예) 중간 보고',
+      title: tl('체크포인트 이름'),
+      hint: tl('예) 중간 보고'),
       icon: Icons.flag_outlined,
     );
     if (title == null || title.isEmpty || !mounted) return;
@@ -426,7 +428,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
       initial: store.today.isBefore(pr.start) ? pr.start : (store.today.isAfter(pr.end) ? pr.end : store.today),
       first: pr.start,
       last: pr.end,
-      title: '체크포인트 날짜',
+      title: tl('체크포인트 날짜'),
     );
     if (d == null) return;
     final cps = [...pr.checkpoints, Checkpoint(id: 'c${DateTime.now().microsecondsSinceEpoch}', title: title, date: d)]
@@ -444,9 +446,9 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
   Future<void> _removeCp(Project pr, Checkpoint c) async {
     final yes = await showConfirmSheet(
       context,
-      title: '체크포인트를 지울까요?',
+      title: tl('체크포인트를 지울까요?'),
       body: c.title,
-      yes: '지우기',
+      yes: tl('지우기'),
       danger: true,
     );
     if (!yes || !mounted) return;
@@ -468,7 +470,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
           children: [
             const _TopBar(back: '프로젝트'),
             Expanded(
-              child: Center(child: Text('지워진 프로젝트예요', style: ts(context, 15, color: p.muted))),
+              child: Center(child: Text(tl('지워진 프로젝트예요'), style: ts(context, 15, color: p.muted))),
             ),
           ],
         ),
@@ -490,7 +492,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
               onTap: () => showProjectForm(context, project: pr),
               child: SizedBox(
                 height: 44,
-                child: Center(child: Text('수정', style: ts(context, 16, weight: FontWeight.w600))),
+                child: Center(child: Text(tl('수정'), style: ts(context, 16, weight: FontWeight.w600))),
               ),
             ),
           ),
@@ -509,7 +511,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${pr.start.month}월 ${pr.start.day}일 – ${pr.end.month}월 ${pr.end.day}일 · ${pr.timeText}',
+                        '${mdText(pr.start)} – ${mdText(pr.end)} · ${pr.timeLabel}',
                         style: ts(context, 13, color: p.muted, height: 18 / 13),
                       ),
                     ],
@@ -524,13 +526,13 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                       Expanded(
                         child: Column(
                           children: [
-                            _Stat('남은 근무일', status == ProjectStatus.done ? '없음' : '${pr.remainingDays(today)}일'),
+                            _Stat(tl('남은 근무일'), status == ProjectStatus.done ? tl('없음') : tl('{0}일', [pr.remainingDays(today)])),
                             const SizedBox(height: 10),
-                            _Stat('끝나는 날', '${pr.end.month}/${pr.end.day} ${wd(pr.end)}'),
+                            _Stat(tl('끝나는 날'), '${pr.end.month}/${pr.end.day} ${wd(pr.end)}'),
                             const SizedBox(height: 10),
                             _Stat(
-                              '하루 여유',
-                              status == ProjectStatus.done ? '-' : '약 ${(avg / 60).toStringAsFixed(avg % 60 == 0 ? 0 : 1)}시간',
+                              tl('하루 여유'),
+                              status == ProjectStatus.done ? '-' : tl('약 {0}시간', [(avg / 60).toStringAsFixed(avg % 60 == 0 ? 0 : 1)]),
                               color: p.good,
                             ),
                           ],
@@ -546,11 +548,11 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                     children: [
                       Row(
                         children: [
-                          Expanded(child: Text('체크포인트', style: ts(context, 15, weight: FontWeight.w700))),
+                          Expanded(child: Text(tl('체크포인트'), style: ts(context, 15, weight: FontWeight.w700))),
                           Tap(
                             onTap: () => _addCheckpoint(pr),
                             child: Text(
-                              '+ 추가',
+                              tl('+ 추가'),
                               style: ts(context, 14, weight: FontWeight.w600, color: p.blue),
                             ),
                           ),
@@ -560,7 +562,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                         Padding(
                           padding: const EdgeInsets.only(top: 10),
                           child: Text(
-                            '중간 보고, 마감처럼 챙길 날을 적어 두세요.',
+                            tl('중간 보고, 마감처럼 챙길 날을 적어 두세요.'),
                             style: ts(context, 13, color: p.muted),
                           ),
                         ),
@@ -619,7 +621,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                       if (cps.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
-                          child: Text('눌러서 완료 표시 · 길게 누르면 지워요', style: ts(context, 12, color: p.muted)),
+                          child: Text(tl('눌러서 완료 표시 · 길게 누르면 지워요'), style: ts(context, 12, color: p.muted)),
                         ),
                     ],
                   ),
@@ -637,7 +639,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                           project: pr,
                           events: evs,
                           day: focusDay,
-                          label: status == ProjectStatus.active ? '이 프로젝트의 오늘 일정' : '이 프로젝트의 첫날 일정',
+                          label: status == ProjectStatus.active ? tl('이 프로젝트의 오늘 일정') : tl('이 프로젝트의 첫날 일정'),
                           onAdd: () => _addEvent(pr),
                         ),
                       ],
@@ -649,7 +651,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                   children: [
                     Expanded(
                       child: BigButton(
-                        label: '날짜별로 보기',
+                        label: tl('날짜별로 보기'),
                         quiet: true,
                         onTap: () async {
                           await Navigator.of(context).push<void>(
@@ -662,7 +664,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: BigButton(
-                        label: '있던 일정 넣기',
+                        label: tl('있던 일정 넣기'),
                         quiet: true,
                         onTap: () async {
                           await Navigator.of(context).push<void>(
@@ -734,13 +736,13 @@ class _Ring extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                st == ProjectStatus.done ? '끝' : project.dDayLabel(today),
+                st == ProjectStatus.done ? tl('끝') : project.dDayLabel(today),
                 style: ts(context, 24, weight: FontWeight.w700, height: 30 / 24),
               ),
               Text(
                 st == ProjectStatus.active
-                    ? '${project.dayNumber(today)}일째'
-                    : (st == ProjectStatus.upcoming ? '시작 전' : '마무리'),
+                    ? tl('{0}일째', [project.dayNumber(today)])
+                    : (st == ProjectStatus.upcoming ? tl('시작 전') : tl('마무리')),
                 style: ts(context, 12, color: p.muted, height: 16 / 12),
               ),
             ],
@@ -781,10 +783,10 @@ class _WeekHours extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('주별 일정 시간', style: ts(context, 15, weight: FontWeight.w700)),
+          Text(tl('주별 일정 시간'), style: ts(context, 15, weight: FontWeight.w700)),
           const SizedBox(height: 10),
           if (mins.isEmpty)
-            Text('일정을 넣으면 주마다 몇 시간인지 보여요.', style: ts(context, 13, color: p.muted))
+            Text(tl('일정을 넣으면 주마다 몇 시간인지 보여요.'), style: ts(context, 13, color: p.muted))
           else
             for (final wk in weeks)
               Padding(
@@ -793,7 +795,7 @@ class _WeekHours extends StatelessWidget {
                   children: [
                     SizedBox(
                       width: 58,
-                      child: Text('${_md(wk)} 주', style: ts(context, 13, color: p.muted)),
+                      child: Text(tl('{0} 주', [_md(wk)]), style: ts(context, 13, color: p.muted)),
                     ),
                     Expanded(
                       child: Container(
@@ -865,14 +867,14 @@ class _TodayBox extends StatelessWidget {
           Row(
             children: [
               Expanded(child: Text(label, style: ts(context, 15, weight: FontWeight.w700))),
-              _SmallBtn(text: '+ 일정 추가', onTap: onAdd),
+              _SmallBtn(text: tl('+ 일정 추가'), onTap: onAdd),
             ],
           ),
           const SizedBox(height: 6),
           if (list.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text('이 날은 아직 일정이 없어요.', style: ts(context, 13, color: p.muted)),
+              child: Text(tl('이 날은 아직 일정이 없어요.'), style: ts(context, 13, color: p.muted)),
             ),
           for (final e in list)
             Tap(
@@ -892,7 +894,7 @@ class _TodayBox extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      e.allDay ? '종일' : '${hm(e.start)} – ${hm(e.end)}',
+                      e.allDay ? tl('종일') : '${hm(e.start)} – ${hm(e.end)}',
                       style: ts(context, 13, color: p.muted),
                     ),
                   ],
@@ -979,7 +981,7 @@ class _ProjectDaysPageState extends State<ProjectDaysPage> {
               _TopBar(
                 back: pr.name,
                 trailing: _SmallBtn(
-                  text: '+ 일정 추가',
+                  text: tl('+ 일정 추가'),
                   onTap: () async {
                     await openQuickAdd(context, project: pr);
                     if (mounted) {
@@ -995,7 +997,7 @@ class _ProjectDaysPageState extends State<ProjectDaysPage> {
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('프로젝트 일정', style: ts(context, 26, weight: FontWeight.w700, height: 34 / 26)),
+                  child: Text(tl('프로젝트 일정'), style: ts(context, 26, weight: FontWeight.w700, height: 34 / 26)),
                 ),
               ),
               Container(
@@ -1004,8 +1006,8 @@ class _ProjectDaysPageState extends State<ProjectDaysPage> {
                 decoration: BoxDecoration(color: p.soft, borderRadius: BorderRadius.circular(22)),
                 child: Row(
                   children: [
-                    seg('날짜별', _byDay, () => setState(() => _byDay = true)),
-                    seg('전체 목록 ${evs.length}', !_byDay, () => setState(() => _byDay = false)),
+                    seg(tl('날짜별'), _byDay, () => setState(() => _byDay = true)),
+                    seg(tl('전체 목록 {0}', [evs.length]), !_byDay, () => setState(() => _byDay = false)),
                   ],
                 ),
               ),
@@ -1053,7 +1055,7 @@ class _ProjectDaysPageState extends State<ProjectDaysPage> {
                                 ),
                                 const SizedBox(height: 2),
                                 if (rest)
-                                  Text('쉼', style: ts(context, 10, color: on ? p.bg : p.muted, height: 12 / 10))
+                                  Text(tl('쉼'), style: ts(context, 10, color: on ? p.bg : p.muted, height: 12 / 10))
                                 else
                                   Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -1081,12 +1083,12 @@ class _ProjectDaysPageState extends State<ProjectDaysPage> {
                     children: [
                       Expanded(
                         child: Text(
-                          '${sel.month}월 ${sel.day}일 ${wdFull(sel)}',
+                          '${dateFull(sel)}',
                           style: ts(context, 18, weight: FontWeight.w700),
                         ),
                       ),
                       Text(
-                        pr.isRestDay(sel) ? '쉬는 날' : '일정 ${dayEvs.length}개',
+                        pr.isRestDay(sel) ? tl('쉬는 날') : tl('일정 {0}개', [dayEvs.length]),
                         style: ts(context, 13, color: p.muted),
                       ),
                     ],
@@ -1103,7 +1105,7 @@ class _ProjectDaysPageState extends State<ProjectDaysPage> {
                           padding: const EdgeInsets.symmetric(vertical: 24),
                           child: Center(
                             child: Text(
-                              '이 날은 프로젝트 일정이 없어요.',
+                              tl('이 날은 프로젝트 일정이 없어요.'),
                               style: ts(context, 14, color: p.muted),
                             ),
                           ),
@@ -1122,7 +1124,7 @@ class _ProjectDaysPageState extends State<ProjectDaysPage> {
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 24),
                           child: Center(
-                            child: Text('아직 넣은 일정이 없어요.', style: ts(context, 14, color: p.muted)),
+                            child: Text(tl('아직 넣은 일정이 없어요.'), style: ts(context, 14, color: p.muted)),
                           ),
                         )
                       else
@@ -1200,7 +1202,7 @@ class _EventList extends StatelessWidget {
                           color: _tint(project.color, p, 70),
                           borderRadius: BorderRadius.circular(13),
                         ),
-                        child: Text('체크포인트', style: ts(context, 12, weight: FontWeight.w700)),
+                        child: Text(tl('체크포인트'), style: ts(context, 12, weight: FontWeight.w700)),
                       ),
                   ],
                 ),
@@ -1233,7 +1235,7 @@ class _FreeLine extends StatelessWidget {
         border: Border.all(color: p.good.withAlpha(120)),
       ),
       child: Text(
-        '이 날 비는 시간 ${durText(Duration(minutes: free))} · ${hm(first.a)} – ${hm(first.b)}${gaps.length > 1 ? ' 외' : ''}',
+        tl('이 날 비는 시간 {0} · {1} – {2}{3}', [durText(Duration(minutes: free)), hm(first.a), hm(first.b), gaps.length > 1 ? tl(' 외') : '']),
         style: ts(context, 14, weight: FontWeight.w700, color: p.good),
       ),
     );
@@ -1294,13 +1296,13 @@ class _ProjectLinkPageState extends State<ProjectLinkPage> {
       backgroundColor: p.bg,
       body: Column(
         children: [
-          const _TopBar(back: '닫기'),
+          _TopBar(back: tl('닫기')),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                '이미 있는 일정도\n프로젝트에 넣을 수 있어요',
+                tl('이미 있는 일정도\n프로젝트에 넣을 수 있어요'),
                 style: ts(context, 24, weight: FontWeight.w700, height: 32 / 24),
               ),
             ),
@@ -1312,7 +1314,7 @@ class _ProjectLinkPageState extends State<ProjectLinkPage> {
               child: Text(
                 pr == null
                     ? ''
-                    : '${pr.name} 기간(${_md(pr.start)} – ${_md(pr.end)})에 있고, 어디에도 안 들어간 일정',
+                    : tl('{0} 기간({1} – {2})에 있고, 어디에도 안 들어간 일정', [pr.name, _md(pr.start), _md(pr.end)]),
                 style: ts(context, 13, weight: FontWeight.w600, color: p.muted, height: 18 / 13),
               ),
             ),
@@ -1322,7 +1324,7 @@ class _ProjectLinkPageState extends State<ProjectLinkPage> {
                 ? const SizedBox.shrink()
                 : (list.isEmpty
                     ? Center(
-                        child: Text('넣을 수 있는 일정이 없어요.', style: ts(context, 14, color: p.muted)),
+                        child: Text(tl('넣을 수 있는 일정이 없어요.'), style: ts(context, 14, color: p.muted)),
                       )
                     : ListView(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
@@ -1390,7 +1392,7 @@ class _ProjectLinkPageState extends State<ProjectLinkPage> {
                           Padding(
                             padding: const EdgeInsets.fromLTRB(8, 10, 8, 0),
                             child: Text(
-                              '제목에 "프로젝트", "보고" 같은 말이 있으면 미리 체크해 둬요.',
+                              tl('제목에 "프로젝트", "보고" 같은 말이 있으면 미리 체크해 둬요.'),
                               style: ts(context, 13, color: p.muted, height: 19 / 13),
                             ),
                           ),
@@ -1403,12 +1405,12 @@ class _ProjectLinkPageState extends State<ProjectLinkPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '태그와는 별개예요 · 태그를 지워도 프로젝트에는 남아요',
+                  tl('태그와는 별개예요 · 태그를 지워도 프로젝트에는 남아요'),
                   style: ts(context, 13, color: p.muted),
                 ),
                 const SizedBox(height: 10),
                 BigButton(
-                  label: '${_picked.length}개 넣기',
+                  label: tl('{0}개 넣기', [_picked.length]),
                   onTap: _picked.isEmpty || pr == null
                       ? null
                       : () async {
@@ -1454,6 +1456,7 @@ class _ProjectFormState extends State<_ProjectForm> {
   bool _withEvents = false;
   int _fromMin = 9 * 60;
   int _toMin = 18 * 60;
+  Travel _travel = Travel.none;
 
   @override
   void initState() {
@@ -1473,7 +1476,7 @@ class _ProjectFormState extends State<_ProjectForm> {
   }
 
   Future<void> _pickStart() async {
-    final d = await showDateSheet(context, initial: _start, title: '시작하는 날');
+    final d = await showDateSheet(context, initial: _start, title: tl('시작하는 날'));
     if (d == null) return;
     setState(() {
       _start = d;
@@ -1482,7 +1485,7 @@ class _ProjectFormState extends State<_ProjectForm> {
   }
 
   Future<void> _pickEnd() async {
-    final d = await showDateSheet(context, initial: _end, first: _start, title: '끝나는 날');
+    final d = await showDateSheet(context, initial: _end, first: _start, title: tl('끝나는 날'));
     if (d == null) return;
     setState(() => _end = d);
   }
@@ -1491,7 +1494,7 @@ class _ProjectFormState extends State<_ProjectForm> {
 
   Future<void> _pickTime(bool from) async {
     final base = DateTime(2000, 1, 1, (from ? _fromMin : _toMin) ~/ 60, (from ? _fromMin : _toMin) % 60);
-    final r = await showTimeSheet(context, initial: base, title: from ? '시작 시각' : '끝나는 시각');
+    final r = await showTimeSheet(context, initial: base, title: from ? tl('시작 시각') : tl('끝나는 시각'));
     if (r == null) return;
     setState(() {
       final m = r.hour * 60 + r.minute;
@@ -1551,6 +1554,7 @@ class _ProjectFormState extends State<_ProjectForm> {
         );
         final id = store.lastCreatedId;
         if (ok && id != null) {
+          if (!_travel.isNone) await store.setTravelById(id, _travel);
           final prefix = _rest.isEmpty
               ? '매일 '
               : (_rest.length == 2 && _rest.contains(6) && _rest.contains(7) ? '평일 ' : '');
@@ -1580,9 +1584,9 @@ class _ProjectFormState extends State<_ProjectForm> {
     if (old == null) return;
     final yes = await showConfirmSheet(
       context,
-      title: '프로젝트를 지울까요?',
-      body: '일정은 그대로 남고, 프로젝트 묶음만 없어져요.',
-      yes: '지우기',
+      title: tl('프로젝트를 지울까요?'),
+      body: tl('일정은 그대로 남고, 프로젝트 묶음만 없어져요.'),
+      yes: tl('지우기'),
       danger: true,
     );
     if (!yes || !mounted) return;
@@ -1605,20 +1609,20 @@ class _ProjectFormState extends State<_ProjectForm> {
       rest: _rest,
     ).totalDays;
     return SheetFrame(
-      title: editing ? '프로젝트 고치기' : '새 프로젝트',
-      subtitle: '기간을 정하면 진행 바와 D-day 를 보여줘요.',
+      title: editing ? tl('프로젝트 고치기') : tl('새 프로젝트'),
+      subtitle: tl('기간을 정하면 진행 바와 D-day 를 보여줘요.'),
       footer: Row(
         children: [
           if (editing) ...[
             Expanded(
               flex: 2,
-              child: BigButton(label: '지우기', quiet: true, color: p.red, onTap: _delete),
+              child: BigButton(label: tl('지우기'), quiet: true, color: p.red, onTap: _delete),
             ),
             const SizedBox(width: 10),
           ],
           Expanded(
             flex: 3,
-            child: BigButton(label: '저장', onTap: _name.text.trim().isEmpty ? null : _save),
+            child: BigButton(label: tl('저장'), onTap: _name.text.trim().isEmpty ? null : _save),
           ),
         ],
       ),
@@ -1637,7 +1641,7 @@ class _ProjectFormState extends State<_ProjectForm> {
               style: ts(context, 16, weight: FontWeight.w600),
               decoration: InputDecoration(
                 border: InputBorder.none,
-                hintText: '프로젝트 이름',
+                hintText: tl('프로젝트 이름'),
                 hintStyle: ts(context, 16, color: p.dash),
               ),
             ),
@@ -1646,42 +1650,42 @@ class _ProjectFormState extends State<_ProjectForm> {
           Row(
             children: [
               Expanded(
-                child: _DatePill(label: '시작', date: _start, onTap: _pickStart),
+                child: _DatePill(label: tl('시작'), date: _start, onTap: _pickStart),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _DatePill(label: '끝', date: _end, onTap: _pickEnd),
+                child: _DatePill(label: tl('끝'), date: _end, onTap: _pickEnd),
               ),
             ],
           ),
           const SizedBox(height: 18),
-          Text('쉬는 요일', style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
+          Text(tl('쉬는 요일'), style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
           const SizedBox(height: 8),
           RestDayChips(
             rest: _rest,
             onChanged: (v) => setState(() => _rest = v),
           ),
           const SizedBox(height: 6),
-          Text('근무일 $total일', style: ts(context, 13, color: p.muted)),
+          Text(tl('근무일 {0}일', [total]), style: ts(context, 13, color: p.muted)),
           if (!editing) ...[
             const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
-                  child: Text('달력에도 매일 일정 넣기', style: ts(context, 14, weight: FontWeight.w700)),
+                  child: Text(tl('달력에도 매일 일정 넣기'), style: ts(context, 14, weight: FontWeight.w700)),
                 ),
                 AppSwitch(
                   value: _withEvents,
                   onChanged: (v) => setState(() => _withEvents = v),
-                  label: '달력에도 매일 일정 넣기',
+                  label: tl('달력에도 매일 일정 넣기'),
                 ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
               _withEvents
-                  ? '근무일마다 같은 시간에 일정이 하나씩 생겨요.'
-                  : '끄면 진행 카드만 만들고, 일정은 나중에 직접 넣어요.',
+                  ? tl('근무일마다 같은 시간에 일정이 하나씩 생겨요.')
+                  : tl('끄면 진행 카드만 만들고, 일정은 나중에 직접 넣어요.'),
               style: ts(context, 13, color: p.muted),
             ),
             if (_withEvents) ...[
@@ -1691,19 +1695,28 @@ class _ProjectFormState extends State<_ProjectForm> {
                   Expanded(
                     child: Tap(
                       onTap: () => _pickTime(true),
-                      label: '시작 시각',
-                      child: _TimePill(label: '시작', text: _tm(_fromMin)),
+                      label: tl('시작 시각'),
+                      child: _TimePill(label: tl('시작'), text: _tm(_fromMin)),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Tap(
                       onTap: () => _pickTime(false),
-                      label: '끝나는 시각',
-                      child: _TimePill(label: '끝', text: _tm(_toMin)),
+                      label: tl('끝나는 시각'),
+                      child: _TimePill(label: tl('끝'), text: _tm(_toMin)),
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 10),
+              Tap(
+                onTap: () async {
+                  final r = await showTravelSheet(context, initial: _travel);
+                  if (r != null && mounted) setState(() => _travel = r);
+                },
+                label: tl('이동시간'),
+                child: _TimePill(label: tl('이동'), text: _travel.isNone ? tl('없음') : _travel.shortLabel),
               ),
             ],
           ],
@@ -1715,7 +1728,7 @@ class _ProjectFormState extends State<_ProjectForm> {
               for (final c in Skin.palette)
                 Tap(
                   onTap: () => setState(() => _color = c),
-                  label: '프로젝트 색',
+                  label: tl('프로젝트 색'),
                   child: Container(
                     width: 36,
                     height: 36,
@@ -1791,7 +1804,7 @@ class _DatePill extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                '${date.month}월 ${date.day}일 ${wd(date)}',
+                '${dateChip(date)}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: ts(context, 15, weight: FontWeight.w600),
@@ -1827,7 +1840,7 @@ class RestDayChips extends StatelessWidget {
                 if (next.length >= 7) return;
                 onChanged(next);
               },
-              label: '${_wdHead[i - 1]}요일 ${rest.contains(i) ? '쉼' : '근무'}',
+              label: tl('{0} {1}', [wdHeadFull(i), rest.contains(i) ? tl('쉼') : tl('근무')]),
               child: Container(
                 height: 40,
                 alignment: Alignment.center,
@@ -1836,7 +1849,7 @@ class RestDayChips extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Text(
-                  _wdHead[i - 1],
+                  wdHead(i),
                   style: ts(
                     context,
                     14,
@@ -1892,9 +1905,9 @@ class _OptionsSheet extends StatefulWidget {
 
 class _OptionsSheetState extends State<_OptionsSheet> {
   late Set<int> _rest = Set<int>.of(widget.initial?.rest ?? const <int>{6, 7});
-  late bool _kick = widget.initial?.checkpoints.any((c) => c.title == '착수') ?? false;
-  late bool _mid = widget.initial?.checkpoints.any((c) => c.title == '중간 보고') ?? true;
-  late bool _fin = widget.initial?.checkpoints.any((c) => c.title == '최종 보고') ?? true;
+  late bool _kick = widget.initial?.checkpoints.any((c) => c.title == tl('착수')) ?? false;
+  late bool _mid = widget.initial?.checkpoints.any((c) => c.title == tl('중간 보고')) ?? true;
+  late bool _fin = widget.initial?.checkpoints.any((c) => c.title == tl('최종 보고')) ?? true;
 
   Project get _tmp => Project(
         id: 'x',
@@ -1923,9 +1936,9 @@ class _OptionsSheetState extends State<_OptionsSheet> {
 
   ProjectDraft _result() {
     final cps = <Checkpoint>[
-      if (_kick) Checkpoint(id: 'k${widget.start.microsecondsSinceEpoch}', title: '착수', date: _firstWorkDay()),
-      if (_mid) Checkpoint(id: 'm${widget.start.microsecondsSinceEpoch}', title: '중간 보고', date: _midDay()),
-      if (_fin) Checkpoint(id: 'f${widget.start.microsecondsSinceEpoch}', title: '최종 보고', date: _lastWorkDay()),
+      if (_kick) Checkpoint(id: 'k${widget.start.microsecondsSinceEpoch}', title: tl('착수'), date: _firstWorkDay()),
+      if (_mid) Checkpoint(id: 'm${widget.start.microsecondsSinceEpoch}', title: tl('중간 보고'), date: _midDay()),
+      if (_fin) Checkpoint(id: 'f${widget.start.microsecondsSinceEpoch}', title: tl('최종 보고'), date: _lastWorkDay()),
     ];
     return ProjectDraft(rest: _rest, checkpoints: cps);
   }
@@ -1951,34 +1964,34 @@ class _OptionsSheetState extends State<_OptionsSheet> {
           ),
         );
     return SheetFrame(
-      title: '프로젝트로 보기',
-      subtitle: '진행 바 · D-day 를 보여줘요.',
-      footer: BigButton(label: '완료', onTap: () => Navigator.of(context).pop(_result())),
+      title: tl('프로젝트로 보기'),
+      subtitle: tl('진행 바 · D-day 를 보여줘요.'),
+      footer: BigButton(label: tl('완료'), onTap: () => Navigator.of(context).pop(_result())),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('쉬는 요일', style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
+          Text(tl('쉬는 요일'), style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
           const SizedBox(height: 8),
           RestDayChips(rest: _rest, onChanged: (v) => setState(() => _rest = v)),
           const SizedBox(height: 6),
           Text(
-            '검게 칠한 요일에만 일정이 생겨요 · 근무일 ${_tmp.totalDays}일',
+            tl('검게 칠한 요일에만 일정이 생겨요 · 근무일 {0}일', [_tmp.totalDays]),
             style: ts(context, 13, color: p.muted),
           ),
           const SizedBox(height: 18),
-          Text('체크포인트', style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
+          Text(tl('체크포인트'), style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              chip('착수 · ${_md(_firstWorkDay())}', _kick, () => setState(() => _kick = !_kick)),
-              chip('중간 보고 · ${_md(_midDay())}', _mid, () => setState(() => _mid = !_mid)),
-              chip('최종 보고 · ${_md(_lastWorkDay())}', _fin, () => setState(() => _fin = !_fin)),
+              chip(tl('착수 · {0}', [_md(_firstWorkDay())]), _kick, () => setState(() => _kick = !_kick)),
+              chip(tl('중간 보고 · {0}', [_md(_midDay())]), _mid, () => setState(() => _mid = !_mid)),
+              chip(tl('최종 보고 · {0}', [_md(_lastWorkDay())]), _fin, () => setState(() => _fin = !_fin)),
             ],
           ),
           const SizedBox(height: 4),
-          Text('날짜와 이름은 나중에 프로젝트 화면에서 고칠 수 있어요.', style: ts(context, 12, color: p.muted)),
+          Text(tl('날짜와 이름은 나중에 프로젝트 화면에서 고칠 수 있어요.'), style: ts(context, 12, color: p.muted)),
         ],
       ),
     );

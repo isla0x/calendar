@@ -16,6 +16,7 @@ import 'project_pages.dart';
 import 'travel_sheet.dart';
 import 'sheets.dart';
 import 'tag_dialog.dart';
+import '../l10n.dart';
 
 /// 입력한 글에서 읽힌 날짜·시간·길이에 배경색을 입혀 보여주는 입력 컨트롤러
 class ParsedController extends TextEditingController {
@@ -175,8 +176,8 @@ class _QuickAddPageState extends State<QuickAddPage> {
   void _setDate(DateTime d) {
     final t = StoreScope.of(context).today;
     final text = (d.year == t.year && !d.isBefore(t))
-        ? '${d.month}월 ${d.day}일'
-        : '${d.year}년 ${d.month}월 ${d.day}일';
+        ? '${mdText(d)}'
+        : '${ymdText(d)}';
     _rewrite({HitKind.date}, text);
   }
 
@@ -184,11 +185,11 @@ class _QuickAddPageState extends State<QuickAddPage> {
   /// 아니면 연도까지 써요.
   String _rangeText(DateTime a, DateTime b) {
     final store = StoreScope.of(context);
-    final short = '${a.month}월 ${a.day}일~${b.month}월 ${b.day}일';
+    final short = '${mdText(a)}~${mdText(b)}';
     final r = parseQuick(short, now: store.now, defaultDay: store.selected);
     final last = r.lastDay;
     if (last != null && sameDay(r.start, a) && sameDay(last, b)) return short;
-    return '${a.year}년 ${a.month}월 ${a.day}일~${b.year}년 ${b.month}월 ${b.day}일';
+    return '${ymdText(a)}~${ymdText(b)}';
   }
 
   void _setRange(DateTime a, DateTime b) {
@@ -225,7 +226,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
   }
 
   void _setTime(int startMin, int minutes) {
-    final ins = '${timeWords(startMin ~/ 60, startMin % 60)}, ${durText(Duration(minutes: minutes))}';
+    final ins = '${timeWords(startMin ~/ 60, startMin % 60)}, ${durInput(Duration(minutes: minutes))}';
     final store = StoreScope.of(context);
     final q = _parse(store);
     final targets = q.hits
@@ -256,7 +257,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
   }
 
   Future<void> _pickDate(QuickParse q) async {
-    final d = await showDateSheet(context, initial: dayOnly(q.start), title: '날짜');
+    final d = await showDateSheet(context, initial: dayOnly(q.start), title: tl('날짜'));
     if (d == null || !mounted) return;
     final last = q.lastDay;
     if (last != null) {
@@ -273,7 +274,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
       context,
       initial: q.lastDay ?? first,
       first: first,
-      title: '끝나는 날',
+      title: tl('끝나는 날'),
     );
     if (d != null && mounted) _setRange(first, d);
   }
@@ -296,7 +297,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
     );
     if (r == null || !mounted) return;
     if (r.allDay) {
-      _rewrite({HitKind.time, HitKind.duration}, '종일');
+      _rewrite({HitKind.time, HitKind.duration}, tl('종일'));
     } else {
       _setTime(r.startMin, r.minutes);
     }
@@ -313,7 +314,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
           final fill = c ?? calColor ?? p.soft;
           return Tap(
             onTap: () => Navigator.of(ctx).pop(_ColorPick(c)),
-            label: c == null ? '캘린더 색' : '색 고르기',
+            label: c == null ? tl('캘린더 색') : tl('색 고르기'),
             child: Container(
               width: 44,
               height: 44,
@@ -331,8 +332,8 @@ class _QuickAddPageState extends State<QuickAddPage> {
         }
 
         return SheetFrame(
-          title: '일정 색',
-          subtitle: '이 일정만 다른 색으로 보여요. 첫 번째 칸은 캘린더 색이에요.',
+          title: tl('일정 색'),
+          subtitle: tl('이 일정만 다른 색으로 보여요. 첫 번째 칸은 캘린더 색이에요.'),
           child: Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -374,14 +375,14 @@ class _QuickAddPageState extends State<QuickAddPage> {
               ),
             );
         return SheetFrame(
-          title: '반복',
-          subtitle: '끝나는 날을 적으면 그날까지만 반복해요 (예: 10/26~11/13)',
+          title: tl('반복'),
+          subtitle: tl('끝나는 날을 적으면 그날까지만 반복해요 (예: 10/26~11/13)'),
           child: Column(
             children: [
-              row('none', '반복 안 함', null, cur == null),
-              row('daily', '매일', '예) 매일 9시~6시', cur == RepeatKind.daily),
-              row('weekdays', '평일마다', '월~금', cur == RepeatKind.weekdays),
-              row('weekly', '매주', '시작하는 날의 요일마다', cur == RepeatKind.weekly),
+              row('none', tl('반복 안 함'), null, cur == null),
+              row('daily', tl('매일'), tl('예) 매일 9시~6시'), cur == RepeatKind.daily),
+              row('weekdays', tl('평일마다'), tl('월~금'), cur == RepeatKind.weekdays),
+              row('weekly', tl('매주'), tl('시작하는 날의 요일마다'), cur == RepeatKind.weekly),
             ],
           ),
         );
@@ -394,7 +395,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
       // 기간 + 시각은 자동으로 "매일" 이라서, 반복을 끄려면 종일(기간)로 바꿔요.
       return;
     }
-    final word = r == 'daily' ? '매일' : (r == 'weekdays' ? '평일마다' : '매주');
+    final word = r == 'daily' ? tl('매일') : (r == 'weekdays' ? tl('평일마다') : tl('매주'));
     _rewrite({HitKind.repeat}, word);
   }
 
@@ -406,9 +407,9 @@ class _QuickAddPageState extends State<QuickAddPage> {
   Future<void> _askLocation() async {
     final r = await showTextSheet(
       context,
-      title: '장소',
-      subtitle: '어디서 만나나요?',
-      hint: '예) 강남역 2번 출구',
+      title: tl('장소'),
+      subtitle: tl('어디서 만나나요?'),
+      hint: tl('예) 강남역 2번 출구'),
       initial: _location,
       icon: Icons.place_outlined,
     );
@@ -447,13 +448,13 @@ class _QuickAddPageState extends State<QuickAddPage> {
     final last = q.lastDay;
     if (last == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('기간("10/26~11/13")이나 "매일 …까지"처럼 끝나는 날이 있는 일정만 프로젝트로 볼 수 있어요')),
+        SnackBar(content: Text(tl('기간("10/26~11/13")이나 "매일 …까지"처럼 끝나는 날이 있는 일정만 프로젝트로 볼 수 있어요'))),
       );
       return;
     }
     final r = await showProjectOptionsSheet(
       context,
-      name: q.title.isEmpty ? '새 일정' : q.title,
+      name: q.title.isEmpty ? tl('새 일정') : q.title,
       start: dayOnly(q.start),
       end: last,
       initial: _draft,
@@ -494,17 +495,17 @@ class _QuickAddPageState extends State<QuickAddPage> {
       final day = dayOnly(q.start);
       String? why;
       if (!into.contains(day)) {
-        why = '프로젝트 기간(${into.start.month}/${into.start.day} – ${into.end.month}/${into.end.day}) 밖이에요';
+        why = tl('프로젝트 기간({0}/{1} – {2}/{3}) 밖이에요', [into.start.month, into.start.day, into.end.month, into.end.day]);
       } else if (into.isRestDay(day)) {
-        why = '${wdFull(day)}은 쉬는 요일이에요';
+        why = tl('{0}은 쉬는 요일이에요', [wdFull(day)]);
       }
       if (why != null) {
         final yes = await showConfirmSheet(
           context,
           title: why,
-          body: '그래도 이 프로젝트에 추가할까요?',
-          yes: '그래도 추가',
-          no: '다시 정할게요',
+          body: tl('그래도 이 프로젝트에 추가할까요?'),
+          yes: tl('그래도 추가'),
+          no: tl('다시 정할게요'),
         );
         if (!yes || !mounted) return;
       }
@@ -530,7 +531,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
     setState(() => _saving = true);
     final ok = await store.addEvent(
       calendarId: cal?.id,
-      title: q.title.isEmpty ? '새 일정' : q.title,
+      title: q.title.isEmpty ? tl('새 일정') : q.title,
       start: start,
       end: end,
       allDay: q.allDay,
@@ -552,7 +553,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
               ...fresh.checkpoints,
               Checkpoint(
                 id: 'c${DateTime.now().microsecondsSinceEpoch}',
-                title: q.title.isEmpty ? '새 일정' : q.title,
+                title: q.title.isEmpty ? tl('새 일정') : q.title,
                 date: dayOnly(q.start),
               ),
             ]..sort((a, b) => a.date.compareTo(b.date));
@@ -574,7 +575,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
         await store.saveProject(
           Project(
             id: store.newProjectId(),
-            name: q.title.isEmpty ? '새 프로젝트' : q.title,
+            name: q.title.isEmpty ? tl('새 프로젝트') : q.title,
             start: firstDay,
             end: q.lastDay!,
             colorValue: (_color ?? cal?.color ?? Skin.palette.first).toARGB32(),
@@ -596,7 +597,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
     } else {
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(store.error ?? '일정을 저장하지 못했어요')),
+        SnackBar(content: Text(store.error ?? tl('일정을 저장하지 못했어요'))),
       );
     }
   }
@@ -616,7 +617,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
     final hasText = _ctl.text.trim().isNotEmpty;
     final cal = _calendar(store);
     final writable = _writable(store);
-    final title = q.title.isEmpty ? '새 일정' : q.title;
+    final title = q.title.isEmpty ? tl('새 일정') : q.title;
     final conflicts = hasText ? _conflicts(store, q) : const <Ev>[];
     final calColors = cal == null ? null : evColors(cal.color, p);
     final last = q.lastDay;
@@ -624,15 +625,15 @@ class _QuickAddPageState extends State<QuickAddPage> {
 
     String hint;
     if (!hasText) {
-      hint = '날짜 · 시간 · 길이를 같이 쓰면 자동으로 읽어요';
+      hint = tl('날짜 · 시간 · 길이를 같이 쓰면 자동으로 읽어요');
     } else {
       final parts = <String>[];
-      if (q.hasDate) parts.add(q.isRange ? '기간' : '날짜');
-      if (q.hasTime) parts.add('시간');
-      if (q.hasDuration) parts.add('길이');
-      if (q.allDay) parts.add('종일');
-      if (q.repeat != null) parts.add('반복');
-      hint = parts.isEmpty ? '' : '${parts.join(' · ')} 자동으로 읽었어요';
+      if (q.hasDate) parts.add(q.isRange ? tl('기간') : tl('날짜'));
+      if (q.hasTime) parts.add(tl('시간'));
+      if (q.hasDuration) parts.add(tl('길이'));
+      if (q.allDay) parts.add(tl('종일'));
+      if (q.repeat != null) parts.add(tl('반복'));
+      hint = parts.isEmpty ? '' : tl('{0} 자동으로 읽었어요', [parts.join(' · ')]);
     }
 
     final suggestions = (hasText && !q.allDay)
@@ -661,14 +662,14 @@ class _QuickAddPageState extends State<QuickAddPage> {
                         onTap: () => Navigator.of(context).pop(),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          child: Text('취소', style: ts(context, 16)),
+                          child: Text(tl('취소'), style: ts(context, 16)),
                         ),
                       ),
                     ),
                   ),
                   Expanded(
                     child: Center(
-                      child: Text('새 일정', style: ts(context, 17, weight: FontWeight.w700)),
+                      child: Text(tl('새 일정'), style: ts(context, 17, weight: FontWeight.w700)),
                     ),
                   ),
                   SizedBox(
@@ -684,7 +685,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
                             color: p.ink,
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Text(
-                              '추가',
+                              tl('추가'),
                               style: ts(context, 15, weight: FontWeight.w600, color: p.bg),
                             ),
                           ),
@@ -727,7 +728,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
                             letterSpacing: -0.78,
                           ),
                           decoration: InputDecoration.collapsed(
-                            hintText: '내일 오후 3시 치과 30분',
+                            hintText: tl('내일 오후 3시 치과 30분'),
                             hintStyle: ts(
                               context,
                               26,
@@ -766,11 +767,11 @@ class _QuickAddPageState extends State<QuickAddPage> {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text('체크포인트로 표시', style: ts(context, 14, weight: FontWeight.w600)),
+                              Text(tl('체크포인트로 표시'), style: ts(context, 14, weight: FontWeight.w600)),
                               const SizedBox(width: 8),
                               AppSwitch(
                                 value: _asCheckpoint,
-                                label: '체크포인트로 표시',
+                                label: tl('체크포인트로 표시'),
                                 onChanged: (v) => setState(() => _asCheckpoint = v),
                               ),
                             ],
@@ -788,31 +789,31 @@ class _QuickAddPageState extends State<QuickAddPage> {
                           icon: Icons.calendar_today_rounded,
                           text: last == null
                               ? dateChip(q.start)
-                              : '${q.start.month}월 ${q.start.day}일 ~ ${last.month}월 ${last.day}일',
+                              : '${mdText(q.start)} ~ ${mdText(last)}',
                           onTap: () => _pickDate(q),
                         ),
                         if (q.allDay)
                           _Chip(
                             icon: Icons.date_range_rounded,
-                            text: last == null ? '끝나는 날' : '${daysBetween(q.start, q.end)}일 동안',
+                            text: last == null ? tl('끝나는 날') : tl('{0}일 동안', [daysBetween(q.start, q.end)]),
                             dashed: last == null,
                             onTap: () => _pickEnd(q),
                           ),
                         _Chip(
                           icon: Icons.schedule_rounded,
-                          text: q.allDay ? '종일' : rangeText(q.start, q.end),
+                          text: q.allDay ? tl('종일') : rangeText(q.start, q.end),
                           onTap: !q.isRange ? () => _pickTime(q) : null,
                         ),
                         _Chip(
                           icon: Icons.repeat_rounded,
-                          text: q.repeatRule?.label ?? '반복',
+                          text: q.repeatRule?.label ?? tl('반복'),
                           dashed: q.repeat == null,
                           onTap: () => _pickRepeat(q),
                         ),
                         _Chip(
                           dot: _color,
                           icon: _color == null ? Icons.palette_outlined : null,
-                          text: _color == null ? '색' : '색 고름',
+                          text: _color == null ? tl('색') : tl('색 고름'),
                           dashed: _color == null,
                           onTap: () => _pickColor(cal?.color),
                         ),
@@ -835,7 +836,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
                       children: [
                         _Chip(
                           icon: Icons.place_outlined,
-                          text: _location.isEmpty ? '장소' : _location,
+                          text: _location.isEmpty ? tl('장소') : _location,
                           dashed: _location.isEmpty,
                           onTap: _askLocation,
                         ),
@@ -845,14 +846,14 @@ class _QuickAddPageState extends State<QuickAddPage> {
                           dashed: _travel.isNone,
                           onTap: q.allDay
                               ? () => ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('이동시간은 시간이 있는 일정에만 넣을 수 있어요. 예) 내일 3시 치과')),
+                                    SnackBar(content: Text(tl('이동시간은 시간이 있는 일정에만 넣을 수 있어요. 예) 내일 3시 치과'))),
                                   )
                               : _askTravel,
                         ),
                         if (_into == null)
                           _Chip(
                             icon: _projectOn ? Icons.close_rounded : Icons.flag_outlined,
-                            text: _projectOn ? '프로젝트로 보기' : '프로젝트',
+                            text: _projectOn ? tl('프로젝트로 보기') : tl('프로젝트'),
                             dashed: !_projectOn,
                             onTap: () => _toggleProject(q),
                           ),
@@ -870,7 +871,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
                           ),
                         _Chip(
                           icon: Icons.tag_rounded,
-                          text: '태그',
+                          text: tl('태그'),
                           dashed: true,
                           onTap: _askTag,
                         ),
@@ -886,7 +887,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            conflicts.isNotEmpty ? '이 시간이 어렵다면' : '비어 있는 다른 시간',
+                            conflicts.isNotEmpty ? tl('이 시간이 어렵다면') : tl('비어 있는 다른 시간'),
                             style: ts(context, 13, weight: FontWeight.w600, color: p.muted, height: 17 / 13),
                           ),
                           const SizedBox(height: 8),
@@ -1090,9 +1091,9 @@ class _PreviewState extends State<_Preview> {
     if (q.allDay) {
       final String msg;
       if (last != null) {
-        msg = '${daysBetween(q.start, q.end)}일 동안';
+        msg = tl('{0}일 동안', [daysBetween(q.start, q.end)]);
       } else {
-        msg = others.isEmpty ? '이 날은 일정이 없어요' : '이 날 일정 ${others.length}개';
+        msg = others.isEmpty ? tl('이 날은 일정이 없어요') : tl('이 날 일정 {0}개', [others.length]);
       }
       status = Text(
         msg,
@@ -1106,7 +1107,7 @@ class _PreviewState extends State<_Preview> {
           Icon(bad ? Icons.error_outline_rounded : Icons.check_rounded, size: 16, color: c),
           const SizedBox(width: 4),
           Text(
-            bad ? '겹치는 일정 ${conflicts.length}개' : '겹치는 일정 없음',
+            bad ? tl('겹치는 일정 {0}개', [conflicts.length]) : tl('겹치는 일정 없음'),
             style: ts(context, 13, weight: FontWeight.w600, color: c),
           ),
         ],
@@ -1129,8 +1130,8 @@ class _PreviewState extends State<_Preview> {
               Expanded(
                 child: Text(
                   last == null
-                      ? '${wdFull(day)} ${day.day}일'
-                      : '${q.start.month}월 ${q.start.day}일 – ${last.month}월 ${last.day}일',
+                      ? '${wdFull(day)} ${dText(day.day)}'
+                      : '${mdText(q.start)} – ${mdText(last)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: ts(context, 15, weight: FontWeight.w700),
@@ -1279,7 +1280,7 @@ class _PreviewState extends State<_Preview> {
                       top: 0,
                       child: FractionalTranslation(
                         translation: const Offset(-0.5, 0),
-                        child: Text('$hour시', style: st),
+                        child: Text(tl('{0}시', [hour]), style: st),
                       ),
                     );
                 return SizedBox(
@@ -1321,7 +1322,7 @@ class _TimeSheetState extends State<_TimeSheet> {
 
   Future<void> _pickStart() async {
     final base = DateTime(2000, 1, 1, (_startMin ~/ 60) % 24, _startMin % 60);
-    final t = await showTimeSheet(context, initial: base, title: '시작 시각');
+    final t = await showTimeSheet(context, initial: base, title: tl('시작 시각'));
     // 시작을 옮기면 길이는 그대로 두고 끝도 같이 움직여요.
     if (t != null && mounted) {
       setState(() {
@@ -1334,7 +1335,7 @@ class _TimeSheetState extends State<_TimeSheet> {
   Future<void> _pickEnd() async {
     final e = _startMin + _minutes;
     final base = DateTime(2000, 1, 1, (e ~/ 60) % 24, e % 60);
-    final t = await showTimeSheet(context, initial: base, title: '끝나는 시각');
+    final t = await showTimeSheet(context, initial: base, title: tl('끝나는 시각'));
     if (t == null || !mounted) return;
     final total = t.hour * 60 + t.minute;
     setState(() {
@@ -1377,9 +1378,9 @@ class _TimeSheetState extends State<_TimeSheet> {
     final p = Pal.of(context);
     final endMin = _startMin + _minutes;
     return SheetFrame(
-      title: '시간',
+      title: tl('시간'),
       footer: BigButton(
-        label: '적용',
+        label: tl('적용'),
         onTap: () => Navigator.of(context).pop(_TimeResult(_allDay, _startMin, _minutes)),
       ),
       child: Column(
@@ -1387,8 +1388,8 @@ class _TimeSheetState extends State<_TimeSheet> {
         children: [
           Row(
             children: [
-              Expanded(child: Text('종일', style: ts(context, 16, weight: FontWeight.w600))),
-              AppSwitch(value: _allDay, onChanged: (v) => setState(() => _allDay = v), label: '종일'),
+              Expanded(child: Text(tl('종일'), style: ts(context, 16, weight: FontWeight.w600))),
+              AppSwitch(value: _allDay, onChanged: (v) => setState(() => _allDay = v), label: tl('종일')),
             ],
           ),
           if (!_allDay) ...[
@@ -1397,13 +1398,13 @@ class _TimeSheetState extends State<_TimeSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _timePill(
-                  '시작',
+                  tl('시작'),
                   timeWords((_startMin ~/ 60) % 24, _startMin % 60),
                   _pickStart,
                 ),
                 const SizedBox(width: 12),
                 _timePill(
-                  '끝',
+                  tl('끝'),
                   '${endMin >= 1440 ? '다음날 ' : ''}${timeWords((endMin ~/ 60) % 24, endMin % 60)}',
                   _pickEnd,
                 ),
@@ -1412,12 +1413,12 @@ class _TimeSheetState extends State<_TimeSheet> {
             if (_badEnd) ...[
               const SizedBox(height: 8),
               Text(
-                '끝나는 시각은 시작보다 뒤여야 해요',
+                tl('끝나는 시각은 시작보다 뒤여야 해요'),
                 style: ts(context, 13, color: p.red, height: 17 / 13),
               ),
             ],
             const SizedBox(height: 18),
-            Text('빠른 길이', style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
+            Text(tl('빠른 길이'), style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,

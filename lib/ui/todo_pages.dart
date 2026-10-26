@@ -6,6 +6,7 @@ import '../theme.dart';
 import '../todos.dart';
 import 'common.dart';
 import 'sheets.dart';
+import '../l10n.dart';
 
 // ---------------------------------------------------------------- 도우미
 
@@ -13,23 +14,23 @@ Color _tint(Color c, Pal p, [int alpha = 40]) => Color.alphaBlend(c.withAlpha(al
 
 String _dueText(Todo t, DateTime today) {
   final d = t.due;
-  if (d == null) return '언젠가';
+  if (d == null) return tl('언젠가');
   final n = daysBetween(today, d);
-  if (n == 0) return '오늘까지';
-  if (n == 1) return '내일까지';
-  if (n < 0) return '${d.month}/${d.day} 마감 지남';
-  if (n < 7) return '${wdFull(d)}까지';
-  return '${d.month}월 ${d.day}일까지';
+  if (n == 0) return tl('오늘까지');
+  if (n == 1) return tl('내일까지');
+  if (n < 0) return tl('{0}/{1} 마감 지남', [d.month, d.day]);
+  if (n < 7) return tl('{0}까지', [wdFull(d)]);
+  return tl('{0}까지', [mdText(d)]);
 }
 
 String _dayWord(DateTime d, DateTime today) {
   final n = daysBetween(today, d);
-  if (n == 0) return '오늘';
-  if (n == 1) return '내일';
+  if (n == 0) return tl('오늘');
+  if (n == 1) return tl('내일');
   return wd(d);
 }
 
-String _repeatText(int perWeek) => perWeek >= 7 ? '매일' : '주 $perWeek번';
+String _repeatText(int perWeek) => perWeek >= 7 ? tl('매일') : tl('주 {0}번', [perWeek]);
 
 class _Header extends StatelessWidget {
   const _Header({required this.small, required this.big});
@@ -48,7 +49,7 @@ class _Header extends StatelessWidget {
         children: [
           Tap(
             onTap: () => Navigator.of(context).pop(),
-            label: '뒤로',
+            label: tl('뒤로'),
             child: SizedBox(
               width: 44,
               height: 56,
@@ -159,12 +160,12 @@ class _TodoListPageState extends State<TodoListPage> {
   }
 
   String _slotLabel(Todo t, DateTime now, DateTime today) {
-    if (t.done) return '끝냈어요';
+    if (t.done) return tl('끝냈어요');
     final f = t.futureSlots(now);
-    if (f.isEmpty) return t.due == null ? '여유 날에' : '자리 찾기 전';
+    if (f.isEmpty) return t.due == null ? tl('여유 날에') : tl('자리 찾기 전');
     final s = f.first.start;
     final txt = '${_dayWord(s, today)} ${hm(s)}';
-    return f.length > 1 ? '$txt 외 ${f.length - 1}' : txt;
+    return f.length > 1 ? tl('{0} 외 {1}', [txt, f.length - 1]) : txt;
   }
 
   Future<void> _more(Todo t) async {
@@ -173,17 +174,17 @@ class _TodoListPageState extends State<TodoListPage> {
       context: context,
       builder: (ctx) => SheetFrame(
         title: t.title,
-        subtitle: '캘린더에 이미 넣은 일정은 그대로 남아요.',
+        subtitle: tl('캘린더에 이미 넣은 일정은 그대로 남아요.'),
         child: Column(
           children: [
             BigButton(
-              label: t.done ? '다시 할 일로' : '끝냈어요',
+              label: t.done ? tl('다시 할 일로') : tl('끝냈어요'),
               quiet: true,
               onTap: () => Navigator.of(ctx).pop('done'),
             ),
             const SizedBox(height: 10),
             BigButton(
-              label: '할 일 지우기',
+              label: tl('할 일 지우기'),
               color: Pal.of(ctx).red,
               quiet: true,
               onTap: () => Navigator.of(ctx).pop('delete'),
@@ -201,7 +202,7 @@ class _TodoListPageState extends State<TodoListPage> {
     final need = store.todos.where((t) => t.needsPlan(store.now)).length;
     if (need == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('자리를 찾을 할 일이 없어요. 새 할 일을 추가해 보세요')),
+        SnackBar(content: Text(tl('자리를 찾을 할 일이 없어요. 새 할 일을 추가해 보세요'))),
       );
       return;
     }
@@ -268,7 +269,7 @@ class _TodoListPageState extends State<TodoListPage> {
       backgroundColor: p.bg,
       body: Column(
         children: [
-          const _Header(small: '비는 시간에 맞춰서', big: '할 일'),
+          _Header(small: tl('비는 시간에 맞춰서'), big: tl('할 일')),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -286,13 +287,13 @@ class _TodoListPageState extends State<TodoListPage> {
                           Expanded(
                             child: Text(
                               open.isEmpty
-                                  ? '할 일이 없어요'
-                                  : '할 일 ${open.length}개 · 모두 ${durText(Duration(minutes: totalMin))}',
+                                  ? tl('할 일이 없어요')
+                                  : tl('할 일 {0}개 · 모두 {1}', [open.length, durText(Duration(minutes: totalMin))]),
                               style: ts(context, 15, weight: FontWeight.w700),
                             ),
                           ),
                           Text(
-                            '이번 주 여유 ${durText(Duration(minutes: free < 0 ? 0 : free))}',
+                            tl('이번 주 여유 {0}', [durText(Duration(minutes: free < 0 ? 0 : free))]),
                             style: ts(context, 13, color: p.muted),
                           ),
                         ],
@@ -318,16 +319,16 @@ class _TodoListPageState extends State<TodoListPage> {
                       const SizedBox(height: 8),
                       Text(
                         open.isEmpty
-                            ? '아래에서 할 일을 추가하면 비는 시간에 자리를 찾아줘요.'
+                            ? tl('아래에서 할 일을 추가하면 비는 시간에 자리를 찾아줘요.')
                             : (over
-                                ? '이번 주 여유보다 많아요. 마감 없는 건 다음 주로 미뤄도 좋아요.'
-                                : '전부 이번 주 여유 안에 들어가요. $placed개는 이미 자리를 찾았어요.'),
+                                ? tl('이번 주 여유보다 많아요. 마감 없는 건 다음 주로 미뤄도 좋아요.')
+                                : tl('전부 이번 주 여유 안에 들어가요. {0}개는 이미 자리를 찾았어요.', [placed])),
                         style: ts(context, 13, color: p.muted, height: 18 / 13),
                       ),
                       if (doneToday > 0) ...[
                         const SizedBox(height: 4),
                         Text(
-                          '오늘 $doneToday개 끝냈어요',
+                          tl('오늘 {0}개 끝냈어요', [doneToday]),
                           style: ts(context, 13, weight: FontWeight.w600, color: p.good),
                         ),
                       ],
@@ -340,10 +341,10 @@ class _TodoListPageState extends State<TodoListPage> {
                   decoration: BoxDecoration(color: p.soft, borderRadius: BorderRadius.circular(22)),
                   child: Row(
                     children: [
-                      tab('전체', _TodoTab.all),
-                      tab('오늘', _TodoTab.today),
-                      tab('이번 주', _TodoTab.week),
-                      tab('언젠가', _TodoTab.someday),
+                      tab(tl('전체'), _TodoTab.all),
+                      tab(tl('오늘'), _TodoTab.today),
+                      tab(tl('이번 주'), _TodoTab.week),
+                      tab(tl('언젠가'), _TodoTab.someday),
                     ],
                   ),
                 ),
@@ -353,7 +354,7 @@ class _TodoListPageState extends State<TodoListPage> {
                     padding: const EdgeInsets.symmetric(vertical: 28),
                     child: Center(
                       child: Text(
-                        open.isEmpty ? '아직 할 일이 없어요' : '이 칸에는 할 일이 없어요',
+                        open.isEmpty ? tl('아직 할 일이 없어요') : tl('이 칸에는 할 일이 없어요'),
                         style: ts(context, 14, color: p.muted),
                       ),
                     ),
@@ -378,7 +379,7 @@ class _TodoListPageState extends State<TodoListPage> {
                   const SizedBox(height: 16),
                   Padding(
                     padding: const EdgeInsets.only(left: 8, bottom: 8),
-                    child: Text('끝낸 할 일', style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
+                    child: Text(tl('끝낸 할 일'), style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
                   ),
                   _Card(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
@@ -388,7 +389,7 @@ class _TodoListPageState extends State<TodoListPage> {
                           _TodoRow(
                             todo: done[i],
                             last: i == done.length - 1 || i == 7,
-                            label: '끝냈어요',
+                            label: tl('끝냈어요'),
                             due: _dueText(done[i], today),
                             onMore: () => _more(done[i]),
                           ),
@@ -423,7 +424,7 @@ class _TodoListPageState extends State<TodoListPage> {
                         border: Border.all(color: p.line),
                       ),
                       child: Text(
-                        '+ 할 일 추가 · 예) 운동 1시간',
+                        tl('+ 할 일 추가 · 예) 운동 1시간'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: ts(context, 15, color: p.muted),
@@ -440,7 +441,7 @@ class _TodoListPageState extends State<TodoListPage> {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(color: p.ink, borderRadius: BorderRadius.circular(26)),
                     child: Text(
-                      '자리 찾기',
+                      tl('자리 찾기'),
                       style: ts(context, 15, weight: FontWeight.w700, color: p.bg),
                     ),
                   ),
@@ -476,7 +477,7 @@ class _TodoRow extends StatelessWidget {
     final t = todo;
     final parts = <String>[
       durText(Duration(minutes: t.minutes)),
-      if (t.perWeek > 0) _repeatText(t.perWeek) else if (t.split && t.minutes > 60) '나눠도 돼요',
+      if (t.perWeek > 0) _repeatText(t.perWeek) else if (t.split && t.minutes > 60) tl('나눠도 돼요'),
       due,
     ];
     return Container(
@@ -488,7 +489,7 @@ class _TodoRow extends StatelessWidget {
         children: [
           Tap(
             onTap: () => store.setTodoDone(t.id, !t.done),
-            label: t.done ? '다시 할 일로' : '끝냈어요',
+            label: t.done ? tl('다시 할 일로') : tl('끝냈어요'),
             child: SizedBox(
               width: 40,
               height: 52,
@@ -601,11 +602,11 @@ class _QuestionCard extends StatelessWidget {
             children: [
               Dot(p.good),
               const SizedBox(width: 8),
-              Text('방금 끝난 시간', style: ts(context, 13, weight: FontWeight.w700, color: p.good)),
+              Text(tl('방금 끝난 시간'), style: ts(context, 13, weight: FontWeight.w700, color: p.good)),
             ],
           ),
           const SizedBox(height: 8),
-          Text('${todo.title} 다 했어요?', style: ts(context, 18, weight: FontWeight.w700)),
+          Text(tl('{0} 다 했어요?', [todo.title]), style: ts(context, 18, weight: FontWeight.w700)),
           const SizedBox(height: 2),
           Text(
             '${hm(slot.start)} – ${hm(slot.end)}${todo.tags.isEmpty ? '' : ' · ${todo.tags.map((x) => '#$x').join(' ')}'}',
@@ -614,16 +615,16 @@ class _QuestionCard extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              btn('다 했어요', () => store.answerTodo(todo.id, slot.eventId, done: true), dark: true),
+              btn(tl('다 했어요'), () => store.answerTodo(todo.id, slot.eventId, done: true), dark: true),
               const SizedBox(width: 8),
-              btn('30분 더', () => store.answerTodo(todo.id, slot.eventId, more: 30)),
+              btn(tl('30분 더'), () => store.answerTodo(todo.id, slot.eventId, more: 30)),
               const SizedBox(width: 8),
-              btn('내일로', () => store.answerTodo(todo.id, slot.eventId, postpone: true)),
+              btn(tl('내일로'), () => store.answerTodo(todo.id, slot.eventId, postpone: true)),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            '"30분 더"와 "내일로"는 자리 찾기를 누르면 새 자리를 찾아줘요.',
+            tl('"30분 더"와 "내일로"는 자리 찾기를 누르면 새 자리를 찾아줘요.'),
             style: ts(context, 12, color: p.muted),
           ),
         ],
@@ -661,7 +662,7 @@ class _TodoAddPageState extends State<TodoAddPage> {
     final week = _week ?? r.perWeek;
     return Todo(
       id: 'draft',
-      title: r.title.isEmpty ? '새 할 일' : r.title,
+      title: r.title.isEmpty ? tl('새 할 일') : r.title,
       minutes: _minutes ?? r.minutes ?? 30,
       due: _dueSet ? _due : r.due,
       split: _split && _chunk > 0,
@@ -677,7 +678,7 @@ class _TodoAddPageState extends State<TodoAddPage> {
     final r = await showAppSheet<int>(
       context: context,
       builder: (ctx) => SheetFrame(
-        title: '걸리는 시간',
+        title: tl('걸리는 시간'),
         child: Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -695,14 +696,14 @@ class _TodoAddPageState extends State<TodoAddPage> {
     final r = await showAppSheet<String>(
       context: context,
       builder: (ctx) => SheetFrame(
-        title: '마감',
+        title: tl('마감'),
         child: Column(
           children: [
-            BigButton(label: '날짜 고르기', quiet: true, onTap: () => Navigator.of(ctx).pop('pick')),
+            BigButton(label: tl('날짜 고르기'), quiet: true, onTap: () => Navigator.of(ctx).pop('pick')),
             const SizedBox(height: 10),
-            BigButton(label: '이번 주 안에', quiet: true, onTap: () => Navigator.of(ctx).pop('week')),
+            BigButton(label: tl('이번 주 안에'), quiet: true, onTap: () => Navigator.of(ctx).pop('week')),
             const SizedBox(height: 10),
-            BigButton(label: '언젠가 (마감 없음)', quiet: true, onTap: () => Navigator.of(ctx).pop('none')),
+            BigButton(label: tl('언젠가 (마감 없음)'), quiet: true, onTap: () => Navigator.of(ctx).pop('none')),
           ],
         ),
       ),
@@ -719,7 +720,7 @@ class _TodoAddPageState extends State<TodoAddPage> {
         _dueSet = true;
       });
     } else {
-      final d = await showDateSheet(context, initial: store.today, first: store.today, title: '마감');
+      final d = await showDateSheet(context, initial: store.today, first: store.today, title: tl('마감'));
       if (d == null || !mounted) return;
       setState(() {
         _due = d;
@@ -760,10 +761,10 @@ class _TodoAddPageState extends State<TodoAddPage> {
     final preview = has ? store.planTodoSlots(only: [d]) : const PlanResult(<Proposal>[], <String, int>{});
 
     final read = <String>[
-      if ((r.minutes != null) && _minutes == null) '길이',
-      if (r.due != null && !_dueSet) '마감',
-      if (r.perWeek > 0 && _week == null) '반복',
-      if (r.tags.isNotEmpty) '태그',
+      if ((r.minutes != null) && _minutes == null) tl('길이'),
+      if (r.due != null && !_dueSet) tl('마감'),
+      if (r.perWeek > 0 && _week == null) tl('반복'),
+      if (r.tags.isNotEmpty) tl('태그'),
     ];
 
     return Scaffold(
@@ -779,9 +780,9 @@ class _TodoAddPageState extends State<TodoAddPage> {
                 children: [
                   Tap(
                     onTap: () => Navigator.of(context).pop(),
-                    child: Text('취소', style: ts(context, 16)),
+                    child: Text(tl('취소'), style: ts(context, 16)),
                   ),
-                  Text('새 할 일', style: ts(context, 16, weight: FontWeight.w600)),
+                  Text(tl('새 할 일'), style: ts(context, 16, weight: FontWeight.w600)),
                   Opacity(
                     opacity: has ? 1 : 0.35,
                     child: Tap(
@@ -795,7 +796,7 @@ class _TodoAddPageState extends State<TodoAddPage> {
                           borderRadius: BorderRadius.circular(18),
                         ),
                         child: Text(
-                          '추가',
+                          tl('추가'),
                           style: ts(context, 15, weight: FontWeight.w600, color: p.bg),
                         ),
                       ),
@@ -828,7 +829,7 @@ class _TodoAddPageState extends State<TodoAddPage> {
                     onSubmitted: (_) => _save(store, r),
                     style: ts(context, 26, weight: FontWeight.w600, height: 36 / 26, letterSpacing: -0.78),
                     decoration: InputDecoration.collapsed(
-                      hintText: '소설 쓰기 2시간 이번 주 안에',
+                      hintText: tl('소설 쓰기 2시간 이번 주 안에'),
                       hintStyle: ts(
                         context,
                         26,
@@ -841,7 +842,7 @@ class _TodoAddPageState extends State<TodoAddPage> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    read.isEmpty ? '길이 · 마감 · 태그를 같이 쓰면 자동으로 읽어요' : '${read.join(' · ')} 자동으로 읽었어요',
+                    read.isEmpty ? tl('길이 · 마감 · 태그를 같이 쓰면 자동으로 읽어요') : tl('{0} 자동으로 읽었어요', [read.join(' · ')]),
                     style: ts(context, 13, color: p.muted, height: 17 / 13),
                   ),
                   const SizedBox(height: 14),
@@ -856,7 +857,7 @@ class _TodoAddPageState extends State<TodoAddPage> {
                       ),
                       _InfoChip(
                         icon: Icons.flag_outlined,
-                        text: d.due == null ? '언젠가' : '${d.due!.month}월 ${d.due!.day}일 ${wd(d.due!)}까지',
+                        text: d.due == null ? tl('언젠가') : tl('{0}까지', [dateChip(d.due!)]),
                         dashed: d.due == null,
                         onTap: () => _pickDue(store),
                       ),
@@ -874,9 +875,9 @@ class _TodoAddPageState extends State<TodoAddPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('나눠서 넣어도 돼요', style: ts(context, 15, weight: FontWeight.w700)),
+                                  Text(tl('나눠서 넣어도 돼요'), style: ts(context, 15, weight: FontWeight.w700)),
                                   Text(
-                                    '긴 할 일은 짧게 쪼개서 비는 틈에 넣어요',
+                                    tl('긴 할 일은 짧게 쪼개서 비는 틈에 넣어요'),
                                     style: ts(context, 13, color: p.muted, height: 18 / 13),
                                   ),
                                 ],
@@ -884,27 +885,27 @@ class _TodoAddPageState extends State<TodoAddPage> {
                             ),
                             AppSwitch(
                               value: _split,
-                              label: '나눠서 넣기',
+                              label: tl('나눠서 넣기'),
                               onChanged: (v) => setState(() => _split = v),
                             ),
                           ],
                         ),
                         if (_split) ...[
                           const SizedBox(height: 12),
-                          Text('한 번에 최소', style: ts(context, 13, color: p.muted)),
+                          Text(tl('한 번에 최소'), style: ts(context, 13, color: p.muted)),
                           const SizedBox(height: 8),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
                             children: [
-                              _OptChip('30분', _chunk == 30, () => setState(() => _chunk = 30)),
-                              _OptChip('1시간', _chunk == 60, () => setState(() => _chunk = 60)),
-                              _OptChip('통째로', _chunk == 0, () => setState(() => _chunk = 0)),
+                              _OptChip(tl('30분'), _chunk == 30, () => setState(() => _chunk = 30)),
+                              _OptChip(tl('1시간'), _chunk == 60, () => setState(() => _chunk = 60)),
+                              _OptChip(tl('통째로'), _chunk == 0, () => setState(() => _chunk = 0)),
                             ],
                           ),
                         ],
                         const SizedBox(height: 16),
-                        Text('좋아하는 시간대', style: ts(context, 15, weight: FontWeight.w700)),
+                        Text(tl('좋아하는 시간대'), style: ts(context, 15, weight: FontWeight.w700)),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
@@ -915,7 +916,7 @@ class _TodoAddPageState extends State<TodoAddPage> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        Text('반복', style: ts(context, 15, weight: FontWeight.w700)),
+                        Text(tl('반복'), style: ts(context, 15, weight: FontWeight.w700)),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
@@ -923,7 +924,7 @@ class _TodoAddPageState extends State<TodoAddPage> {
                           children: [
                             for (final w in const [0, 7, 2, 3])
                               _OptChip(
-                                w == 0 ? '안 해요' : _repeatText(w),
+                                w == 0 ? tl('안 해요') : _repeatText(w),
                                 d.perWeek == w,
                                 () => setState(() => _week = w),
                               ),
@@ -938,11 +939,11 @@ class _TodoAddPageState extends State<TodoAddPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('이렇게 넣을 수 있어요', style: ts(context, 15, weight: FontWeight.w700)),
+                          Text(tl('이렇게 넣을 수 있어요'), style: ts(context, 15, weight: FontWeight.w700)),
                           const SizedBox(height: 8),
                           if (preview.items.isEmpty)
                             Text(
-                              '마감 전에 비는 시간을 못 찾았어요. 마감을 늘리거나 시간을 줄여 보세요.',
+                              tl('마감 전에 비는 시간을 못 찾았어요. 마감을 늘리거나 시간을 줄여 보세요.'),
                               style: ts(context, 13, color: p.red, height: 18 / 13),
                             ),
                           for (final it in preview.items.take(5))
@@ -969,7 +970,7 @@ class _TodoAddPageState extends State<TodoAddPage> {
                             Padding(
                               padding: const EdgeInsets.only(top: 4),
                               child: Text(
-                                '${durText(Duration(minutes: preview.unplaced.values.first))}는 아직 자리가 없어요.',
+                                tl('{0}는 아직 자리가 없어요.', [durText(Duration(minutes: preview.unplaced.values.first))]),
                                 style: ts(context, 13, color: p.red),
                               ),
                             ),
@@ -978,7 +979,7 @@ class _TodoAddPageState extends State<TodoAddPage> {
                     ),
                   const SizedBox(height: 12),
                   Text(
-                    '추가한 뒤 "자리 찾기"를 누르면 캘린더에 일정으로 넣어요. 일정을 옮기면 자리를 다시 찾아요.',
+                    tl('추가한 뒤 "자리 찾기"를 누르면 캘린더에 일정으로 넣어요. 일정을 옮기면 자리를 다시 찾아요.'),
                     style: ts(context, 13, color: p.muted, height: 19 / 13),
                   ),
                 ],
@@ -1051,7 +1052,7 @@ class _TodoPlanPageState extends State<TodoPlanPage> {
     if (!mounted) return;
     final m = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
-    m.showSnackBar(SnackBar(content: Text('일정 $n개를 캘린더에 넣었어요')));
+    m.showSnackBar(SnackBar(content: Text(tl('일정 {0}개를 캘린더에 넣었어요', [n]))));
   }
 
   @override
@@ -1086,22 +1087,22 @@ class _TodoPlanPageState extends State<TodoPlanPage> {
       backgroundColor: p.bg,
       body: Column(
         children: [
-          const _Header(small: '마감이 급한 순서 → 짧은 순서로 맞췄어요', big: '이렇게 넣어봤어요'),
+          _Header(small: tl('마감이 급한 순서 → 짧은 순서로 맞췄어요'), big: tl('이렇게 넣어봤어요')),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 10, 24, 0),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  Text('시간대', style: ts(context, 13, color: p.muted)),
+                  Text(tl('시간대'), style: ts(context, 13, color: p.muted)),
                   const SizedBox(width: 10),
-                  basis('각자 정한 대로', null),
+                  basis(tl('각자 정한 대로'), null),
                   const SizedBox(width: 8),
-                  basis('오전', DayPart.morning),
+                  basis(tl('오전'), DayPart.morning),
                   const SizedBox(width: 8),
-                  basis('오후', DayPart.afternoon),
+                  basis(tl('오후'), DayPart.afternoon),
                   const SizedBox(width: 8),
-                  basis('저녁', DayPart.evening),
+                  basis(tl('저녁'), DayPart.evening),
                 ],
               ),
             ),
@@ -1115,7 +1116,7 @@ class _TodoPlanPageState extends State<TodoPlanPage> {
                     padding: const EdgeInsets.symmetric(vertical: 40),
                     child: Center(
                       child: Text(
-                        '넣을 수 있는 자리를 못 찾았어요.',
+                        tl('넣을 수 있는 자리를 못 찾았어요.'),
                         style: ts(context, 14, color: p.muted),
                       ),
                     ),
@@ -1124,7 +1125,7 @@ class _TodoPlanPageState extends State<TodoPlanPage> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
                     child: Text(
-                      '${_dayWord(days[k]!.first.start, today)} · ${days[k]!.first.start.month}월 ${days[k]!.first.start.day}일 ${wdFull(days[k]!.first.start)}',
+                      '${_dayWord(days[k]!.first.start, today)} · ${dateFull(days[k]!.first.start)}',
                       style: ts(context, 14, weight: FontWeight.w700, color: p.muted),
                     ),
                   ),
@@ -1173,7 +1174,7 @@ class _TodoPlanPageState extends State<TodoPlanPage> {
                                 ),
                                 Tap(
                                   onTap: () => setState(() => _removed.add(_key(days[k]![i]))),
-                                  label: '이 자리 빼기',
+                                  label: tl('이 자리 빼기'),
                                   child: SizedBox(
                                     width: 44,
                                     height: 44,
@@ -1192,7 +1193,7 @@ class _TodoPlanPageState extends State<TodoPlanPage> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
                     child: Text(
-                      '${names.join(', ')}은(는) 마감 전에 비는 시간이 없어서 못 넣었어요.',
+                      tl('{0}은(는) 마감 전에 비는 시간이 없어서 못 넣었어요.', [names.join(', ')]),
                       style: ts(context, 13, color: p.red, height: 19 / 13),
                     ),
                   ),
@@ -1206,7 +1207,7 @@ class _TodoPlanPageState extends State<TodoPlanPage> {
               children: [
                 if (items.isNotEmpty) ...[
                   BigButton(
-                    label: '캘린더에서 보기',
+                    label: tl('캘린더에서 보기'),
                     quiet: true,
                     onTap: _busy
                         ? null
@@ -1218,7 +1219,7 @@ class _TodoPlanPageState extends State<TodoPlanPage> {
                   const SizedBox(height: 8),
                 ],
                 BigButton(
-                  label: items.isEmpty ? '넣을 자리가 없어요' : '모두 넣기 · 일정 ${items.length}개',
+                  label: items.isEmpty ? tl('넣을 자리가 없어요') : tl('모두 넣기 · 일정 {0}개', [items.length]),
                   onTap: items.isEmpty || _busy ? null : () => _apply(store, items),
                 ),
               ],

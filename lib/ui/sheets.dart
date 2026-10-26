@@ -8,6 +8,7 @@ import '../models.dart';
 import '../tags.dart';
 import '../theme.dart';
 import 'common.dart';
+import '../l10n.dart';
 
 /// 앱 전체에서 같이 쓰는 "아래에서 올라오는 창" 모음.
 /// 모양을 한 곳(SheetFrame)에서 정해서, 태그·장소·날짜·시간·확인 창이 모두 같은 느낌이에요.
@@ -275,20 +276,20 @@ class _TagSheetState extends State<_TagSheet> {
         if (!_sel.contains(t)) t,
     ];
     return SheetFrame(
-      title: '태그',
-      subtitle: '일정을 묶어서 한눈에 볼 수 있어요',
+      title: tl('태그'),
+      subtitle: tl('일정을 묶어서 한눈에 볼 수 있어요'),
       footer: Row(
         children: [
           Expanded(
             flex: 2,
             child: BigButton(
-              label: '취소',
+              label: tl('취소'),
               quiet: true,
               onTap: () => Navigator.of(context).pop(),
             ),
           ),
           const SizedBox(width: 10),
-          Expanded(flex: 3, child: BigButton(label: '완료', onTap: _done)),
+          Expanded(flex: 3, child: BigButton(label: tl('완료'), onTap: _done)),
         ],
       ),
       child: Column(
@@ -314,14 +315,14 @@ class _TagSheetState extends State<_TagSheet> {
                     onSubmitted: (_) => _addTyped(),
                     style: ts(context, 16, weight: FontWeight.w600),
                     decoration: InputDecoration.collapsed(
-                      hintText: '새 태그를 써서 추가해요',
+                      hintText: tl('새 태그를 써서 추가해요'),
                       hintStyle: ts(context, 16, weight: FontWeight.w500, color: p.dash),
                     ),
                   ),
                 ),
                 Tap(
                   onTap: typed ? _addTyped : null,
-                  label: '태그 추가',
+                  label: tl('태그 추가'),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 120),
                     width: 40,
@@ -337,10 +338,10 @@ class _TagSheetState extends State<_TagSheet> {
             ),
           ),
           const SizedBox(height: 20),
-          Text('붙인 태그', style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
+          Text(tl('붙인 태그'), style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
           const SizedBox(height: 10),
           if (_sel.isEmpty)
-            Text('아직 없어요', style: ts(context, 14, color: p.dash))
+            Text(tl('아직 없어요'), style: ts(context, 14, color: p.dash))
           else
             Wrap(
               spacing: 8,
@@ -352,7 +353,7 @@ class _TagSheetState extends State<_TagSheet> {
             ),
           if (others.isNotEmpty) ...[
             const SizedBox(height: 20),
-            Text('자주 쓰는 태그', style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
+            Text(tl('자주 쓰는 태그'), style: ts(context, 13, weight: FontWeight.w600, color: p.muted)),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
@@ -429,7 +430,7 @@ class _TextSheetState extends State<_TextSheet> {
           Expanded(
             flex: 2,
             child: BigButton(
-              label: '취소',
+              label: tl('취소'),
               quiet: true,
               onTap: () => Navigator.of(context).pop(),
             ),
@@ -438,7 +439,7 @@ class _TextSheetState extends State<_TextSheet> {
           Expanded(
             flex: 3,
             child: BigButton(
-              label: '완료',
+              label: tl('완료'),
               onTap: () => Navigator.of(context).pop(_c.text.trim()),
             ),
           ),
@@ -484,7 +485,7 @@ Future<bool> showConfirmSheet(
   required String title,
   String? body,
   required String yes,
-  String no = '취소',
+  String no = tl('취소'),
   bool danger = false,
 }) async {
   final r = await showAppSheet<bool>(
@@ -541,8 +542,8 @@ Future<String?> showCalendarSheet(
     builder: (ctx) {
       final p = Pal.of(ctx);
       return SheetFrame(
-        title: '캘린더',
-        subtitle: '어느 캘린더에 담을까요?',
+        title: tl('캘린더'),
+        subtitle: tl('어느 캘린더에 담을까요?'),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 360),
           child: ListView(
@@ -587,7 +588,7 @@ Future<DateTime?> showDateSheet(
   required DateTime initial,
   DateTime? first,
   DateTime? last,
-  String title = '날짜',
+  String title = tl('날짜'),
 }) {
   return showAppSheet<DateTime>(
     context: context,
@@ -663,7 +664,7 @@ class _DateSheetState extends State<_DateSheet> {
                 height: 34,
                 ring: true,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: Text('오늘', style: ts(context, 14, weight: FontWeight.w600)),
+                child: Text(tl('오늘'), style: ts(context, 14, weight: FontWeight.w600)),
               ),
             )
           : null,
@@ -673,13 +674,13 @@ class _DateSheetState extends State<_DateSheet> {
             children: [
               Expanded(
                 child: Text(
-                  '${_month.year}년 ${_month.month}월',
+                  '${ymText(_month)}',
                   style: ts(context, 17, weight: FontWeight.w700),
                 ),
               ),
-              nav(Icons.chevron_left_rounded, '이전 달', _canPrev, () => _shift(-1)),
+              nav(Icons.chevron_left_rounded, tl('이전 달'), _canPrev, () => _shift(-1)),
               const SizedBox(width: 8),
-              nav(Icons.chevron_right_rounded, '다음 달', _canNext, () => _shift(1)),
+              nav(Icons.chevron_right_rounded, tl('다음 달'), _canNext, () => _shift(1)),
             ],
           ),
           const SizedBox(height: 10),
@@ -689,7 +690,7 @@ class _DateSheetState extends State<_DateSheet> {
                 Expanded(
                   child: Center(
                     child: Text(
-                      kWeekdayKo[(i + 6) % 7],
+                      wdHead((i + 6) % 7 + 1),
                       style: ts(
                         context,
                         12,
@@ -760,7 +761,7 @@ class _DateSheetState extends State<_DateSheet> {
 Future<DateTime?> showTimeSheet(
   BuildContext context, {
   required DateTime initial,
-  String title = '시간',
+  String title = tl('시간'),
 }) {
   return showAppSheet<DateTime>(
     context: context,
@@ -795,7 +796,7 @@ class _TimeWheelSheetState extends State<_TimeWheelSheet> {
           Expanded(
             flex: 2,
             child: BigButton(
-              label: '취소',
+              label: tl('취소'),
               quiet: true,
               onTap: () => Navigator.of(context).pop(),
             ),
@@ -804,7 +805,7 @@ class _TimeWheelSheetState extends State<_TimeWheelSheet> {
           Expanded(
             flex: 3,
             child: BigButton(
-              label: '완료',
+              label: tl('완료'),
               onTap: () => Navigator.of(context).pop(_touched ? _picked : widget.initial),
             ),
           ),

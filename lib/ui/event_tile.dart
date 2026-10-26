@@ -5,6 +5,7 @@ import '../models.dart';
 import '../tags.dart';
 import '../theme.dart';
 import 'common.dart';
+import '../l10n.dart';
 
 /// 일정 한 줄 (월간 화면 아래 목록, 검색 결과)
 class EventTile extends StatelessWidget {
@@ -23,16 +24,16 @@ class EventTile extends StatelessWidget {
 
   String get _top {
     if (showDate) return '${event.start.month}/${event.start.day}';
-    return event.allDay ? '종일' : hm(event.start);
+    return event.allDay ? tl('종일') : hm(event.start);
   }
 
   String get _bottom {
     if (showDate) {
-      return event.allDay ? '${wd(event.start)} · 종일' : '${wd(event.start)} · ${hm(event.start)}';
+      return event.allDay ? tl('{0} · 종일', [wd(event.start)]) : '${wd(event.start)} · ${hm(event.start)}';
     }
     if (event.allDay) {
       final n = daysBetween(event.start, event.end);
-      return n > 1 ? '$n일' : '';
+      return n > 1 ? tl('{0}일', [n]) : '';
     }
     return durText(event.duration);
   }
@@ -41,7 +42,7 @@ class EventTile extends StatelessWidget {
     final parts = <String>[];
     final loc = event.location;
     if (loc != null && loc.trim().isNotEmpty) parts.add(loc.trim());
-    if (event.attendees > 0) parts.add('${event.attendees}명');
+    if (event.attendees > 0) parts.add(tl('{0}명', [event.attendees]));
     if (event.calendarName.isNotEmpty) parts.add(event.calendarName);
     return parts.join(' · ');
   }

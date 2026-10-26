@@ -3,14 +3,15 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'l10n.dart';
 
 /// 앱스토어에 등록하는 Pro 상품 ID (한 번만 결제하는 "비소모품")
 const String kProProductId = 'com.isla0x.yeobaek.pro';
 
 /// Pro 로 열리는 것들 (안내 화면에 그대로 써요)
 const List<(String, String)> kProPerks = <(String, String)>[
-  ('백업 · 복원', '색 · 프로젝트 · 할 일 · 이동시간을 파일로 보관하고 되돌려요'),
-  ('폰을 바꿔도 그대로', '새 폰에서 "가져오기" 한 번이면 돌아와요'),
+  (tl('백업 · 복원'), tl('색 · 프로젝트 · 할 일 · 이동시간을 파일로 보관하고 되돌려요')),
+  (tl('폰을 바꿔도 그대로'), tl('새 폰에서 "가져오기" 한 번이면 돌아와요')),
 ];
 
 /// 결제 쪽 일을 맡는 곳. 진짜(앱스토어)와 가짜(테스트)를 바꿔 끼울 수 있어요.
@@ -107,14 +108,14 @@ class StoreProBackend implements ProBackend {
             } catch (_) {}
             _ownedCb?.call();
           } else if (p.status == PurchaseStatus.error) {
-            _msgCb?.call('결제하지 못했어요. 잠시 뒤에 다시 해 주세요.');
+            _msgCb?.call(tl('결제하지 못했어요. 잠시 뒤에 다시 해 주세요.'));
           }
           if (p.pendingCompletePurchase) {
             await _iap.completePurchase(p);
           }
         }
       },
-      onError: (_) => _msgCb?.call('결제 상태를 확인하지 못했어요.'),
+      onError: (_) => _msgCb?.call(tl('결제 상태를 확인하지 못했어요.')),
     );
   }
 
@@ -142,13 +143,13 @@ class StoreProBackend implements ProBackend {
     _listen();
     final d = await _load();
     if (d == null) {
-      _msgCb?.call('앱스토어에서 상품을 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.');
+      _msgCb?.call(tl('앱스토어에서 상품을 불러오지 못했어요. 잠시 뒤에 다시 해 주세요.'));
       return false;
     }
     try {
       return await _iap.buyNonConsumable(purchaseParam: PurchaseParam(productDetails: d));
     } catch (_) {
-      _msgCb?.call('결제를 시작하지 못했어요.');
+      _msgCb?.call(tl('결제를 시작하지 못했어요.'));
       return false;
     }
   }
@@ -159,7 +160,7 @@ class StoreProBackend implements ProBackend {
     try {
       await _iap.restorePurchases();
     } catch (_) {
-      _msgCb?.call('구매를 복원하지 못했어요.');
+      _msgCb?.call(tl('구매를 복원하지 못했어요.'));
     }
   }
 
@@ -233,7 +234,7 @@ class ProState extends ChangeNotifier {
     Future<void>.delayed(const Duration(seconds: 4), () {
       if (busy) {
         busy = false;
-        message = isPro ? null : '복원할 구매 내역이 없어요.';
+        message = isPro ? null : tl('복원할 구매 내역이 없어요.');
         notifyListeners();
       }
     });

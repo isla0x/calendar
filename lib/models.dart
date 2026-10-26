@@ -1,6 +1,7 @@
 import 'package:flutter/painting.dart';
 
 import 'dates.dart';
+import 'l10n.dart';
 
 /// 기기에 있는 캘린더 하나 (예: 내 캘린더, 업무, 대한민국 공휴일)
 class CalInfo {
@@ -111,11 +112,11 @@ class Ev {
     if (allDay) {
       final last = addDays(end, -1);
       if (!last.isAfter(start)) {
-        return '${start.month}월 ${start.day}일 ${wdFull(start)} · 종일';
+        return tl('{0} · 종일', [dateFull(start)]);
       }
-      return '${start.month}월 ${start.day}일 – ${last.month}월 ${last.day}일 · 종일';
+      return tl('{0} – {1} · 종일', [mdText(start), mdText(last)]);
     }
-    final base = '${start.month}월 ${start.day}일 ${wdFull(start)}';
+    final base = '${dateFull(start)}';
     return '$base ${hm(start)} – ${hm(end)}';
   }
 }
@@ -139,13 +140,13 @@ class Repeat {
   String get label {
     switch (kind) {
       case RepeatKind.daily:
-        return '매일';
+        return tl('매일');
       case RepeatKind.weekdays:
-        return '평일마다';
+        return tl('평일마다');
       case RepeatKind.weekly:
-        return '매주';
+        return tl('매주');
       case RepeatKind.days:
-        return '요일마다';
+        return tl('요일마다');
     }
   }
 }
