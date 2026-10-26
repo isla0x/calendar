@@ -1093,14 +1093,18 @@ class _PreviewState extends State<_Preview> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                last == null
-                    ? '${wdFull(day)} ${day.day}일'
-                    : '${q.start.month}월 ${q.start.day}일 – ${last.month}월 ${last.day}일',
-                style: ts(context, 15, weight: FontWeight.w700),
+              Expanded(
+                child: Text(
+                  last == null
+                      ? '${wdFull(day)} ${day.day}일'
+                      : '${q.start.month}월 ${q.start.day}일 – ${last.month}월 ${last.day}일',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: ts(context, 15, weight: FontWeight.w700),
+                ),
               ),
+              const SizedBox(width: 8),
               status,
             ],
           ),
