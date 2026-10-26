@@ -296,6 +296,7 @@ const Map<String, String> kEn = <String, String>{
   '이 칸에는 할 일이 없어요': 'No to-dos in this tab',
   '이 태그의 일정만 보는 중': 'Showing only events with this tag',
   '이 프로젝트의 오늘 일정': 'This project\'s events today',
+  '이 프로젝트의 {0} 일정': 'This project\'s events on {0}',
   '이 프로젝트의 첫날 일정': 'This project\'s first-day events',
   '이동': 'Travel',
   '이동 {0}': 'Travel {0}',

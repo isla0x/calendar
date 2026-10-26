@@ -296,6 +296,7 @@ const Map<String, String> kFr = <String, String>{
   '이 칸에는 할 일이 없어요': 'Aucune tâche dans cet onglet',
   '이 태그의 일정만 보는 중': 'Seuls les événements avec ce tag sont affichés',
   '이 프로젝트의 오늘 일정': 'Événements du jour de ce projet',
+  '이 프로젝트의 {0} 일정': 'Événements de ce projet le {0}',
   '이 프로젝트의 첫날 일정': 'Événements du premier jour de ce projet',
   '이동': 'Trajet',
   '이동 {0}': 'Trajet {0}',

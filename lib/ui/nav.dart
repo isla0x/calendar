@@ -20,7 +20,7 @@ Future<void> openDetail(BuildContext context, Ev e) {
 /// 프로젝트 자체를 누르면 바로 그 프로젝트 화면(이 프로젝트의 오늘 일정)으로 가요.
 Future<void> openEvent(BuildContext context, Ev e) {
   final pj = StoreScope.read(context).projectSelfOf(e);
-  if (pj != null) return openProject(context, pj.id);
+  if (pj != null) return openProject(context, pj.id, day: e.start);
   return openDetail(context, e);
 }
 
@@ -47,9 +47,9 @@ Future<void> openProjects(BuildContext context) {
   );
 }
 
-Future<void> openProject(BuildContext context, String id) {
+Future<void> openProject(BuildContext context, String id, {DateTime? day}) {
   return Navigator.of(context).push<void>(
-    MaterialPageRoute<void>(builder: (_) => ProjectDetailPage(projectId: id)),
+    MaterialPageRoute<void>(builder: (_) => ProjectDetailPage(projectId: id, day: day)),
   );
 }
 

@@ -383,9 +383,12 @@ class _ProjectCard extends StatelessWidget {
 // ---------------------------------------------------------------- 상세
 
 class ProjectDetailPage extends StatefulWidget {
-  const ProjectDetailPage({super.key, required this.projectId});
+  const ProjectDetailPage({super.key, required this.projectId, this.day});
 
   final String projectId;
+
+  /// 달력에서 어느 날을 눌러 들어왔는지 (없으면 오늘). 그날 일정을 보여줘요.
+  final DateTime? day;
 
   @override
   State<ProjectDetailPage> createState() => _ProjectDetailPageState();
@@ -480,7 +483,10 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
     final status = pr.statusOn(today);
     final avg = store.avgFreeMinutes(pr);
     final cps = [...pr.checkpoints]..sort((a, b) => a.date.compareTo(b.date));
-    final focusDay = status == ProjectStatus.active ? today : pr.start;
+    final focusDay = widget.day != null
+        ? dayOnly(widget.day!)
+        : (status == ProjectStatus.active ? today : pr.start);
+    final isToday = widget.day == null ? status == ProjectStatus.active : sameDay(focusDay, today);
 
     return Scaffold(
       backgroundColor: p.bg,
@@ -639,7 +645,9 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                           project: pr,
                           events: evs,
                           day: focusDay,
-                          label: status == ProjectStatus.active ? tl('이 프로젝트의 오늘 일정') : tl('이 프로젝트의 첫날 일정'),
+                          label: widget.day != null
+                              ? (isToday ? tl('이 프로젝트의 오늘 일정') : tl('이 프로젝트의 {0} 일정', [_md(focusDay)]))
+                              : (status == ProjectStatus.active ? tl('이 프로젝트의 오늘 일정') : tl('이 프로젝트의 첫날 일정')),
                           onAdd: () => _addEvent(pr),
                         ),
                       ],
