@@ -839,13 +839,16 @@ class _QuickAddPageState extends State<QuickAddPage> {
                           dashed: _location.isEmpty,
                           onTap: _askLocation,
                         ),
-                        if (!q.allDay)
-                          _Chip(
-                            icon: Icons.directions_car_outlined,
-                            text: _travel.shortLabel,
-                            dashed: _travel.isNone,
-                            onTap: _askTravel,
-                          ),
+                        _Chip(
+                          icon: Icons.directions_car_outlined,
+                          text: _travel.shortLabel,
+                          dashed: _travel.isNone,
+                          onTap: q.allDay
+                              ? () => ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('이동시간은 시간이 있는 일정에만 넣을 수 있어요. 예) 내일 3시 치과')),
+                                  )
+                              : _askTravel,
+                        ),
                         if (_into == null)
                           _Chip(
                             icon: _projectOn ? Icons.close_rounded : Icons.flag_outlined,
