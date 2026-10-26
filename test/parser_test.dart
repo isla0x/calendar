@@ -271,6 +271,25 @@ void main() {
       expect(q.repeatRule?.until, DateTime(2026, 11, 13));
     });
 
+    test('24시간제 08:00-17:00 은 오전 8시~오후 5시', () {
+      final q = parse('261030 08:00-17:00 교보증권');
+      expect(q.title, '교보증권');
+      expect(q.start, DateTime(2026, 10, 30, 8, 0));
+      expect(q.end, DateTime(2026, 10, 30, 17, 0));
+    });
+
+    test('09:00-17:00, 8:00-17:00, 단독 08:00 도 24시간제', () {
+      final a = parse('내일 09:00-17:00 근무');
+      expect(a.start.hour, 9);
+      expect(a.end.hour, 17);
+      final b = parse('내일 8:00-17:00 근무');
+      expect(b.start.hour, 8);
+      expect(b.end.hour, 17);
+      final c = parse('내일 08:00 회의');
+      expect(c.start.hour, 8);
+      expect(parse('내일 8:00 회의').start.hour, 20);
+    });
+
     test('매일 9시~6시 운동', () {
       final q = parse('매일 오전 9시 운동');
       expect(q.title, '운동');

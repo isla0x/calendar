@@ -169,7 +169,7 @@ final RegExp _reNoon = RegExp(r'(?<![가-힣])(정오|자정)(?![가-힣])');
 final RegExp _reRangeGap = RegExp(r'^\s*(?:부터|에서|~|-|–|—)\s*$');
 
 class _Tk {
-  _Tk(this.start, this.end, this.h, this.m, this.p, {this.abs});
+  _Tk(this.start, this.end, this.h, this.m, this.p, {this.abs, this.colon = false, this.clock24 = false});
   final int start;
   final int end;
   final int h;
@@ -178,6 +178,15 @@ class _Tk {
 
   /// 이미 24시간제 분으로 정해진 값(정오, 자정)
   final int? abs;
+
+  /// "08:00" 처럼 콜론으로 쓴 시각 (오전/오후 말이 없는 것)
+  final bool colon;
+
+  /// 24시간제로 쓴 게 분명한 시각: 08:00 (앞에 0), 17:00 (13시 이상)
+  final bool clock24;
+
+  /// 24시간제로 확정한 복사본
+  _Tk as24() => _Tk(start, end, h, m, p, abs: h * 60 + m, colon: colon, clock24: true);
 }
 
 class _TimeGroup {
@@ -249,7 +258,11 @@ _TimeGroup? _findTime(String s) {
     add(_Tk(m.start, m.end, int.parse(m.group(2)!), mins, m.group(1)));
   }
   for (final m in _reColon.allMatches(s)) {
-    add(_Tk(m.start, m.end, int.parse(m.group(2)!), int.parse(m.group(3)!), m.group(1)));
+    final hs = m.group(2)!;
+    final hv = int.parse(hs);
+    final bare = m.group(1) == null;
+    add(_Tk(m.start, m.end, hv, int.parse(m.group(3)!), m.group(1),
+        colon: bare, clock24: bare && (hv >= 13 || (hs.length == 2 && hs.startsWith('0')))));
   }
   for (final m in _reAmPm.allMatches(s)) {
     final h = int.parse(m.group(1)!);
@@ -280,16 +293,23 @@ _TimeGroup? _findTime(String s) {
   }
   if (kept.isEmpty) return null;
 
-  final a = kept.first;
-  final sMin = _minOf(a, a.p);
+  var a = kept.first;
   if (kept.length > 1) {
-    final b = kept[1];
+    var b = kept[1];
     final gap = s.substring(a.end, b.start);
     if (_reRangeGap.hasMatch(gap)) {
+      // "08:00-17:00" 처럼 둘 다 콜론이고 한쪽이 24시간제가 분명하면 둘 다 24시간제로 읽어요.
+      if (a.colon && b.colon && (a.clock24 || b.clock24)) {
+        a = a.as24();
+        b = b.as24();
+      }
+      final sMin = _minOf(a, a.p);
       final eMin = _resolveEnd(sMin, b, a.p);
       return _TimeGroup(a.start, _tail(s, b.end, time: true), sMin, eMin);
     }
   }
+  if (a.clock24) a = a.as24();
+  final sMin = _minOf(a, a.p);
   return _TimeGroup(a.start, _tail(s, a.end, time: true), sMin, null);
 }
 
