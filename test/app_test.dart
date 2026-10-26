@@ -187,6 +187,24 @@ void main() {
     expect(find.textContaining('겹치지 않는 시간으로 옮기기'), findsOneWidget);
   });
 
+  testWidgets('편집 화면에서 이동시간을 정하면 일간 화면에 띠로 보여요', (tester) async {
+    final store = await open(tester);
+    store.setView(ViewMode.day);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('스프린트 플래닝'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('편집').first);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('이동시간'));
+    await tester.tap(find.text('이동시간'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('30분').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('저장').last);
+    await tester.pumpAndSettle();
+    expect(find.text('갈 때·올 때 30분씩'), findsOneWidget);
+  });
+
   testWidgets('일정 편집 화면에서 제목·태그·색을 고쳐요', (tester) async {
     final store = await open(tester);
     store.setView(ViewMode.day);

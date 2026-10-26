@@ -9,6 +9,7 @@ import 'models.dart';
 import 'projects.dart';
 import 'repo.dart';
 import 'todos.dart';
+import 'travel.dart';
 
 enum ViewMode { month, week, day }
 
@@ -20,10 +21,12 @@ class CalendarStore extends ChangeNotifier {
     ColorBook? colors,
     ProjectBook? projects,
     TodoBook? todos,
+    TravelBook? travel,
   })  : _clock = clock ?? DateTime.now,
         _colors = colors ?? MemoryColorBook(),
         _projectBook = projects ?? MemoryProjectBook(),
-        _todoBook = todos ?? MemoryTodoBook() {
+        _todoBook = todos ?? MemoryTodoBook(),
+        _travel = travel ?? MemoryTravelBook() {
     _projects = _projectBook.load();
     _todos = _todoBook.load();
     final t = dayOnly(_clock());
@@ -40,6 +43,9 @@ class CalendarStore extends ChangeNotifier {
 
   /// 일정마다 따로 고른 색
   final ColorBook _colors;
+
+  /// 일정마다 정한 이동시간
+  final TravelBook _travel;
 
   /// 프로젝트 저장소와 목록
   final ProjectBook _projectBook;
@@ -251,8 +257,9 @@ class CalendarStore extends ChangeNotifier {
     for (final e in eventsOn(d)) {
       if (e.allDay) continue;
       if (skip != null && e.instanceId == skip.instanceId) continue;
-      final s = maxDate(e.start, w.a);
-      final t = minDate(e.end, w.b);
+      final tr = _travel.of(e.id);
+      final s = maxDate(e.start.subtract(Duration(minutes: tr.before)), w.a);
+      final t = minDate(e.end.add(Duration(minutes: tr.after)), w.b);
       if (t.isAfter(s)) raw.add(Span(s, t));
     }
     raw.sort((x, y) => x.a.compareTo(y.a));
@@ -323,12 +330,14 @@ class CalendarStore extends ChangeNotifier {
     int count = 3,
     Ev? skip,
     DateTime? from,
+    Travel travel = Travel.none,
   }) {
     final out = <Slot>[];
-    for (final g in gaps(day, from: from, min: need, skip: skip)) {
-      final s = ceilTo(g.a, 15);
+    final pad = Duration(minutes: travel.before + travel.after);
+    for (final g in gaps(day, from: from, min: need + pad, skip: skip)) {
+      final s = ceilTo(g.a, 15).add(Duration(minutes: travel.before));
       final e = s.add(need);
-      if (!e.isAfter(g.b)) {
+      if (!e.add(Duration(minutes: travel.after)).isAfter(g.b)) {
         if (skip != null && s == skip.start) continue;
         out.add(Slot(s, e));
         if (out.length >= count) break;
@@ -343,6 +352,7 @@ class CalendarStore extends ChangeNotifier {
     DateTime fromDay, {
     int count = 3,
     int days = 10,
+    Travel travel = Travel.none,
   }) {
     final out = <Slot>[];
     final n = now;
@@ -350,7 +360,7 @@ class CalendarStore extends ChangeNotifier {
       final d = addDays(dayOnly(fromDay), i);
       if (d.isBefore(today)) continue;
       final from = sameDay(d, n) ? ceilTo(n, 15) : null;
-      final s = slotsOnDay(need, d, count: 1, from: from);
+      final s = slotsOnDay(need, d, count: 1, from: from, travel: travel);
       if (s.isNotEmpty) out.add(s.first);
     }
     return out;
@@ -482,6 +492,21 @@ class CalendarStore extends ChangeNotifier {
 
   /// 이 일정에 따로 고른 색 (없으면 null)
   Color? customColorOf(Ev e) => _colors.of(e.id);
+
+  /// 이 일정의 이동시간 (없으면 Travel.none)
+  Travel travelOf(Ev e) => _travel.of(e.id);
+
+  /// 이동시간을 정해요 (반복 일정이면 같은 반복 전체에 적용돼요)
+  Future<void> setEventTravel(Ev e, Travel t) async {
+    await _travel.set(e.id, t);
+    notifyListeners();
+  }
+
+  /// 새로 만든 일정에 이동시간을 붙여요 (아직 목록에 없을 수 있어서 id 로)
+  Future<void> setTravelById(String id, Travel t) async {
+    await _travel.set(id, t);
+    notifyListeners();
+  }
 
   Future<bool> setEventTags(Ev e, List<String> tags) async {
     try {
@@ -753,7 +778,11 @@ class CalendarStore extends ChangeNotifier {
       dayEndHour: dayEndHour,
       busyOn: (d) => [
         for (final e in eventsOn(d))
-          if (!e.allDay && e.end.isAfter(e.start)) Span(e.start, e.end),
+          if (!e.allDay && e.end.isAfter(e.start))
+            Span(
+              e.start.subtract(Duration(minutes: _travel.of(e.id).before)),
+              e.end.add(Duration(minutes: _travel.of(e.id).after)),
+            ),
       ],
     );
   }

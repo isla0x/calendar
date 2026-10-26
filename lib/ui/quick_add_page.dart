@@ -6,12 +6,14 @@ import '../dates.dart';
 import '../models.dart';
 import '../parser.dart';
 import '../projects.dart';
+import '../travel.dart';
 import '../skins.dart';
 import '../store.dart';
 import '../tags.dart';
 import '../theme.dart';
 import 'common.dart';
 import 'project_pages.dart';
+import 'travel_sheet.dart';
 import 'sheets.dart';
 import 'tag_dialog.dart';
 
@@ -121,6 +123,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
   final FocusNode _focus = FocusNode();
   String? _calId;
   String _location = '';
+  Travel _travel = Travel.none;
   bool _saving = false;
 
   @override
@@ -411,6 +414,11 @@ class _QuickAddPageState extends State<QuickAddPage> {
     if (r != null && mounted) setState(() => _location = r);
   }
 
+  Future<void> _askTravel() async {
+    final r = await showTravelSheet(context, initial: _travel);
+    if (r != null && mounted) setState(() => _travel = r);
+  }
+
   void _applySlot(Slot s) {
     _setDate(s.start);
     _setTime(s.start.hour * 60 + s.start.minute, s.end.difference(s.start).inMinutes);
@@ -521,6 +529,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
     if (!mounted) return;
     if (ok) {
       final id = store.lastCreatedId;
+      if (id != null && !_travel.isNone && !q.allDay) await store.setTravelById(id, _travel);
       if (id != null && into != null) {
         await store.addEventIdsToProject(into.id, {id});
         if (_asCheckpoint) {
@@ -615,7 +624,7 @@ class _QuickAddPageState extends State<QuickAddPage> {
 
     final suggestions = (hasText && !q.allDay)
         ? store
-            .suggestAcrossDays(q.end.difference(q.start), dayOnly(q.start))
+            .suggestAcrossDays(q.end.difference(q.start), dayOnly(q.start), travel: _travel)
             .where((s) => s.start != q.start)
             .toList()
         : const <Slot>[];
@@ -817,6 +826,13 @@ class _QuickAddPageState extends State<QuickAddPage> {
                           dashed: _location.isEmpty,
                           onTap: _askLocation,
                         ),
+                        if (!q.allDay)
+                          _Chip(
+                            icon: Icons.directions_car_outlined,
+                            text: _travel.shortLabel,
+                            dashed: _travel.isNone,
+                            onTap: _askTravel,
+                          ),
                         if (_into == null)
                           _Chip(
                             icon: _projectOn ? Icons.close_rounded : Icons.flag_outlined,

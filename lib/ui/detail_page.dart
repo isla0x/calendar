@@ -242,6 +242,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
     final loc = e.location;
     if (loc != null && loc.trim().isNotEmpty) addRow(Icons.place_outlined, loc.trim());
+    final travel = store.travelOf(e);
+    if (!travel.isNone && !e.allDay) addRow(Icons.directions_car_outlined, '이동시간 ${travel.label}');
     if (e.attendees > 0) addRow(Icons.people_outline_rounded, '참석 ${e.attendees}명');
     for (final r in e.reminders.take(3)) {
       addRow(Icons.notifications_none_rounded, _reminderText(r));
@@ -263,6 +265,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
             dayOnly(e.start),
             skip: e,
             from: sameDay(e.start, today) ? now : null,
+            travel: store.travelOf(e),
           )
         : const <Slot>[];
 

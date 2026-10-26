@@ -6,8 +6,10 @@ import '../skins.dart';
 import '../store.dart';
 import '../tags.dart';
 import '../theme.dart';
+import '../travel.dart';
 import 'common.dart';
 import 'sheets.dart';
+import 'travel_sheet.dart';
 import 'tag_dialog.dart';
 
 /// 일정 편집 화면. 저장하면 고친 일정을 돌려줘요. (취소하면 null)
@@ -46,6 +48,9 @@ class _EventEditPageState extends State<EventEditPage> {
   /// 이 일정이 들어 있는 프로젝트 (없으면 null)
   String? _projectId;
 
+  /// 이동시간 (갈 때 / 올 때)
+  Travel _travel = Travel.none;
+
   late final String _sig0;
 
   @override
@@ -53,6 +58,7 @@ class _EventEditPageState extends State<EventEditPage> {
     super.initState();
     _color = StoreScope.read(context).customColorOf(_o);
     _projectId = StoreScope.read(context).projectOf(_o)?.id;
+    _travel = StoreScope.read(context).travelOf(_o);
     _sig0 = _sig();
   }
 
@@ -74,6 +80,8 @@ class _EventEditPageState extends State<EventEditPage> {
         _tags.join(','),
         _color?.toARGB32(),
         _projectId,
+        _travel.before,
+        _travel.after,
       ].join('|');
 
   bool get _dirty => _sig() != _sig0;
@@ -199,6 +207,7 @@ class _EventEditPageState extends State<EventEditPage> {
     }
     if (_colorTouched) await store.setEventColor(_o, _color);
     if (_projectId != store.projectOf(_o)?.id) await store.setEventProject(_o, _projectId);
+    if (_travel != store.travelOf(_o)) await store.setEventTravel(_o, _allDay ? Travel.none : _travel);
     if (!mounted) return;
     final fresh = store.findEvent(_o.id, start: start) ?? _o.copyWith(start: start, end: end, tags: tags);
     Navigator.of(context).pop(fresh);
@@ -239,6 +248,12 @@ class _EventEditPageState extends State<EventEditPage> {
     );
     if (r == null || !mounted) return;
     setState(() => _projectId = r.id);
+  }
+
+  Future<void> _pickTravel() async {
+    final r = await showTravelSheet(context, initial: _travel);
+    if (r == null || !mounted) return;
+    setState(() => _travel = r);
   }
 
   Future<void> _askDiscard() async {
@@ -644,6 +659,32 @@ class _EventEditPageState extends State<EventEditPage> {
                         ),
                         top: true,
                       ),
+                      if (!_allDay) ...[
+                        divider(),
+                        Tap(
+                          onTap: _pickTravel,
+                          label: '이동시간 정하기',
+                          child: iconRow(
+                            Icons.directions_car_outlined,
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text('이동시간', style: ts(context, 15, weight: FontWeight.w600)),
+                                ),
+                                Flexible(
+                                  child: Text(
+                                    _travel.label,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: ts(context, 14, color: p.muted),
+                                  ),
+                                ),
+                                Icon(Icons.chevron_right_rounded, size: 20, color: p.muted),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ]),
                     card([
                       iconRow(

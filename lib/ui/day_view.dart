@@ -6,6 +6,7 @@ import '../dates.dart';
 import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
+import '../travel.dart';
 import 'common.dart';
 import 'nav.dart';
 import 'pager.dart';
@@ -511,8 +512,9 @@ class _Timeline extends StatelessWidget {
     var sh = 9;
     var eh = 22;
     for (final x in placed) {
-      sh = math.min(sh, x.s ~/ 60);
-      eh = math.max(eh, (x.t + 59) ~/ 60);
+      final tr = store.travelOf(x.e);
+      sh = math.min(sh, math.max(0, x.s - tr.before) ~/ 60);
+      eh = math.max(eh, (math.min(1440, x.t + tr.after) + 59) ~/ 60);
     }
     if (isToday) {
       if (folded && foldedCount > 0) {
@@ -630,6 +632,35 @@ class _Timeline extends StatelessWidget {
           ));
         }
 
+        // 이동시간 (일정 앞뒤로 줄무늬 띠)
+        for (final x in placed) {
+          final tr = store.travelOf(x.e);
+          if (tr.isNone) continue;
+          final colW = bodyW / x.cols;
+          final left = labelW + x.col * colW;
+          final width = colW - (x.cols > 1 ? 2 : 0);
+          if (tr.before > 0) {
+            final b = math.max(0, x.s - tr.before);
+            children.add(Positioned(
+              left: left,
+              top: yOf(b) + 1,
+              width: width,
+              height: math.max(10.0, (x.s - b) / 60 * hourH - 2),
+              child: _TravelBand(event: x.e, text: '이동 ${Travel.minText(tr.before)}'),
+            ));
+          }
+          if (tr.after > 0) {
+            final a = math.min(1440, x.t + tr.after);
+            children.add(Positioned(
+              left: left,
+              top: yOf(x.t) + 1,
+              width: width,
+              height: math.max(10.0, (a - x.t) / 60 * hourH - 2),
+              child: _TravelBand(event: x.e, text: '이동 ${Travel.minText(tr.after)}'),
+            ));
+          }
+        }
+
         // 일정 블록
         for (final x in placed) {
           final colW = bodyW / x.cols;
@@ -691,6 +722,51 @@ class _Timeline extends StatelessWidget {
             height: totalH,
             child: Stack(clipBehavior: Clip.none, children: children),
           ),
+        );
+      },
+    );
+  }
+}
+
+/// 이동시간 띠: 일정 색의 연한 줄무늬
+class _TravelBand extends StatelessWidget {
+  const _TravelBand({required this.event, required this.text});
+
+  final Ev event;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    final c = evColors(event.color, p);
+    return LayoutBuilder(
+      builder: (context, box) {
+        final show = box.maxHeight >= 20 && box.maxWidth >= 70;
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          alignment: Alignment.centerLeft,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            color: c.tint.withAlpha(p.dark ? 90 : 120),
+            border: Border.all(color: c.tint),
+          ),
+          child: show
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.directions_car_outlined, size: 12, color: c.text),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        text,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: ts(context, 11, weight: FontWeight.w600, color: c.text, height: 14 / 11),
+                      ),
+                    ),
+                  ],
+                )
+              : null,
         );
       },
     );
