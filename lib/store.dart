@@ -554,9 +554,24 @@ class CalendarStore extends ChangeNotifier {
   /// 걸러보기 중일 때, 이 일정이 고른 태그에 해당하는지
   bool tagMatch(Ev e) => _tagFilter == null || e.tags.contains(_tagFilter);
 
+  /// 프로젝트에 들어간 일정인지 (바깥 화면에서는 숨기고, 프로젝트 화면에서만 보여줘요)
+  bool inProject(Ev e) {
+    for (final p in _projects) {
+      if (p.eventIds.contains(e.id)) return true;
+    }
+    return false;
+  }
+
+  /// 그날의 일정 중 바깥 화면에 늘어놓을 것 (프로젝트 안 일정은 뺀 것)
+  List<Ev> listedOn(DateTime d) {
+    final all = eventsOn(d);
+    if (_projects.isEmpty) return all;
+    return all.where((e) => !inProject(e)).toList();
+  }
+
   /// 그날의 일정 중 화면에 보여줄 것 (태그로 걸러보는 중이면 그 태그만)
   List<Ev> shownOn(DateTime d) {
-    final all = eventsOn(d);
+    final all = listedOn(d);
     if (_tagFilter == null) return all;
     return all.where(tagMatch).toList();
   }

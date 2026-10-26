@@ -48,7 +48,7 @@ class _DayPage extends StatelessWidget {
     final isToday = sameDay(day, store.today);
     final now = store.now;
 
-    final all = store.eventsOn(day);
+    final all = store.listedOn(day);
     final timed = all.where((e) => !e.allDay).toList();
     final allDay = all.where((e) => e.allDay).toList();
     final pastCount = isToday ? timed.where((e) => !e.end.isAfter(now)).length : 0;
@@ -171,8 +171,8 @@ class _FlowCard extends StatelessWidget {
     final isToday = sameDay(day, today);
     final isPast = day.isBefore(today);
     final now = store.now;
-    final evs = store.eventsOn(day);
-    final timed = evs.where((e) => !e.allDay).toList();
+    final evs = store.listedOn(day);
+    final timed = store.eventsOn(day).where((e) => !e.allDay).toList();
 
     String label;
     String value;
@@ -482,7 +482,7 @@ class _Timeline extends StatelessWidget {
     final isPast = day.isBefore(today);
     final now = store.now;
 
-    final timed = store.eventsOn(day).where((e) => !e.allDay).toList();
+    final timed = store.listedOn(day).where((e) => !e.allDay).toList();
     final folded = isToday && !store.pastOpen;
     final shown = folded ? timed.where((e) => e.end.isAfter(now)).toList() : timed;
     final foldedCount = timed.length - shown.length;

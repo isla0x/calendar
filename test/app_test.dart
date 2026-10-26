@@ -467,6 +467,33 @@ void main() {
     expect(store.eventsOn(DateTime(2026, 10, 26)).any((x) => x.id == e.id), true);
   });
 
+  testWidgets('프로젝트: 프로젝트에 든 일정은 바깥 화면에서 숨고, 비는 시간 계산에는 남아요', (tester) async {
+    final store = await open(tester);
+    final d = DateTime(2026, 10, 26);
+    final e = store.eventsOn(d).first;
+    final free0 = store.freeMinutes(d);
+    await store.saveProject(
+      Project(
+        id: 'p1',
+        name: '묶음',
+        start: DateTime(2026, 10, 26),
+        end: DateTime(2026, 10, 30),
+        colorValue: 0xFF909FEA,
+      ),
+    );
+    expect(store.shownOn(d).any((x) => x.id == e.id), true);
+    await store.setEventProject(e, 'p1');
+    expect(store.shownOn(d).any((x) => x.id == e.id), false);
+    expect(store.listedOn(d).any((x) => x.id == e.id), false);
+    expect(store.eventsOn(d).any((x) => x.id == e.id), true);
+    expect(store.freeMinutes(d), free0);
+    // 프로젝트 화면은 따로 읽어 와요.
+    final inside = await store.projectEvents(store.projectById('p1')!);
+    expect(inside.any((x) => x.id == e.id), true);
+    await store.setEventProject(e, null);
+    expect(store.shownOn(d).any((x) => x.id == e.id), true);
+  });
+
   testWidgets('할 일: 자리를 찾아 일정으로 넣고, 일정을 지우면 자리도 비어요', (tester) async {
     final store = await open(tester);
     await store.saveTodo(
