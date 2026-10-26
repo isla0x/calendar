@@ -32,11 +32,10 @@ String _dayWord(DateTime d, DateTime today) {
 String _repeatText(int perWeek) => perWeek >= 7 ? '매일' : '주 $perWeek번';
 
 class _Header extends StatelessWidget {
-  const _Header({required this.small, required this.big, this.trailing});
+  const _Header({required this.small, required this.big});
 
   final String small;
   final String big;
-  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +64,6 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
-          if (trailing != null) trailing!,
         ],
       ),
     );
