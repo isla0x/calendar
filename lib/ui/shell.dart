@@ -370,7 +370,7 @@ class _PillRow extends StatelessWidget {
           const SizedBox(width: 8),
           pill(
             Icons.tag_rounded,
-            tag == null ? '태그' : '#$tag',
+            '태그',
             () => showTagFilterSheet(context),
             '태그로 보기',
             color: tagCol,
