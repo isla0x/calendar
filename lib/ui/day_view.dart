@@ -796,11 +796,17 @@ class _InnerCard extends StatelessWidget {
     final c = evColors(event.color, p);
     final tall = height >= 40;
     final sub = '${hm(event.start)}–${hm(event.end)}';
+    final store = StoreScope.of(context);
+    final done = store.isDone(event);
+    final strike = done ? TextDecoration.lineThrough : null;
     return Opacity(
-      opacity: StoreScope.of(context).tagMatch(event) ? 1 : 0.28,
+      opacity: store.tagMatch(event) ? (done ? 0.55 : 1) : 0.28,
       child: Tap(
         onTap: () => openDetail(context, event),
-        child: Container(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onLongPress: () => store.toggleDone(event),
+          child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10),
           alignment: Alignment.centerLeft,
           decoration: BoxDecoration(
@@ -817,13 +823,15 @@ class _InnerCard extends StatelessWidget {
                       event.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: ts(context, 14, weight: FontWeight.w600, height: 18 / 14),
+                      style: ts(context, 14, weight: FontWeight.w600, height: 18 / 14)
+                          .copyWith(decoration: strike, decorationThickness: 1.6),
                     ),
                     Text(
                       sub,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: ts(context, 12, color: p.muted, height: 15 / 12),
+                      style: ts(context, 12, color: p.muted, height: 15 / 12)
+                          .copyWith(decoration: strike, decorationThickness: 1.6),
                     ),
                   ],
                 )
@@ -831,8 +839,10 @@ class _InnerCard extends StatelessWidget {
                   event.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: ts(context, 13, weight: FontWeight.w600, height: 16 / 13),
+                  style: ts(context, 13, weight: FontWeight.w600, height: 16 / 13)
+                      .copyWith(decoration: strike, decorationThickness: 1.6),
                 ),
+          ),
         ),
       ),
     );
@@ -1006,7 +1016,7 @@ class _Block extends StatelessWidget {
     final tall = height >= 44;
     final store = StoreScope.of(context);
     final link = store.todoForEvent(event);
-    final isDone = link?.slot.done ?? false;
+    final isDone = link?.slot.done ?? store.isDone(event);
 
     final loc = event.location;
     final sub = (loc != null && loc.trim().isNotEmpty)
@@ -1047,6 +1057,9 @@ class _Block extends StatelessWidget {
       opacity: match ? (isDone ? 0.55 : 1) : 0.28,
       child: Tap(
       onTap: () => openEvent(context, event),
+      child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onLongPress: link == null ? () => store.toggleDone(event) : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12),
         alignment: Alignment.centerLeft,
@@ -1088,6 +1101,7 @@ class _Block extends StatelessWidget {
               ),
           ],
         ),
+      ),
       ),
       ),
     );
