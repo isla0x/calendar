@@ -439,6 +439,7 @@ class CalendarStore extends ChangeNotifier {
     List<String> tags = const <String>[],
     Repeat? repeat,
     Color? color,
+    List<Duration> reminders = const <Duration>[],
   }) async {
     try {
       final id = await repo.create(
@@ -450,6 +451,7 @@ class CalendarStore extends ChangeNotifier {
         location: location,
         tags: tags,
         repeat: repeat,
+        reminders: reminders,
       );
       lastCreatedId = id;
       if (color != null && id != null) await _colors.set(id, color);
@@ -474,6 +476,20 @@ class CalendarStore extends ChangeNotifier {
     }
   }
 
+  // ---------------------------------------------------------------- 완료 표시
+
+  /// 반복 일정은 날마다 따로 표시해야 해서 "일정id@날짜"로 기억해요.
+  String _doneKey(Ev e) => '${e.id}@${dayKey(e.start)}';
+
+  /// 이 일정을 (그날) 끝냈다고 눌러 둔 적이 있는지
+  bool isDone(Ev e) => flags.doneKeys.contains(_doneKey(e));
+
+  /// 완료 표시를 켜고 꺼요 (프로젝트 화면의 "오늘 일정"에서 취소선으로 보여요)
+  Future<void> toggleDone(Ev e) async {
+    await flags.setDone(_doneKey(e), !isDone(e));
+    notifyListeners();
+  }
+
   /// 일정을 고쳐서 저장해요. 성공하면 true.
   Future<bool> updateEvent(
     Ev e, {
@@ -484,6 +500,7 @@ class CalendarStore extends ChangeNotifier {
     String? location,
     String? note,
     List<String> tags = const <String>[],
+    List<Duration>? reminders,
   }) async {
     try {
       await repo.update(
@@ -495,6 +512,7 @@ class CalendarStore extends ChangeNotifier {
         location: location,
         note: note,
         tags: tags,
+        reminders: reminders,
       );
       await _refresh(force: true);
       return true;

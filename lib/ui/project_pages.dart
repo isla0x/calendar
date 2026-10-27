@@ -885,32 +885,68 @@ class _TodayBox extends StatelessWidget {
               child: Text(tl('이 날은 아직 일정이 없어요.'), style: ts(context, 13, color: p.muted)),
             ),
           for (final e in list)
-            Tap(
-              onTap: () => openDetail(context, e),
-              child: SizedBox(
-                height: 38,
-                child: Row(
-                  children: [
-                    Dot(e.color),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        e.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: ts(context, 14, weight: FontWeight.w600),
-                      ),
-                    ),
-                    Text(
-                      e.allDay ? tl('종일') : '${hm(e.start)} – ${hm(e.end)}',
-                      style: ts(context, 13, color: p.muted),
-                    ),
-                  ],
-                ),
-              ),
+            _TodayRow(event: e),
+          if (list.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(tl('눌러서 완료 표시 · 길게 누르면 자세히 보기'), style: ts(context, 12, color: p.muted)),
             ),
         ],
       ),
+    );
+  }
+}
+
+/// "오늘 일정" 한 줄. 누르면 완료 표시(취소선), 길게 누르면 자세히 보기.
+class _TodayRow extends StatelessWidget {
+  const _TodayRow({required this.event});
+
+  final Ev event;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    final store = StoreScope.of(context);
+    final e = event;
+    final done = store.isDone(e);
+    final fg = done ? p.muted : null;
+    return Semantics(
+      button: true,
+      label: done ? tl('완료 표시 지우기') : tl('완료로 표시'),
+      excludeSemantics: true,
+      child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => store.toggleDone(e),
+      onLongPress: () => openDetail(context, e),
+      child: SizedBox(
+        height: 38,
+        child: Row(
+          children: [
+            Opacity(opacity: done ? 0.4 : 1, child: Dot(e.color)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                e.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: ts(context, 14, weight: FontWeight.w600, color: fg).copyWith(
+                  decoration: done ? TextDecoration.lineThrough : null,
+                  decorationColor: p.muted,
+                  decorationThickness: 1.6,
+                ),
+              ),
+            ),
+            Text(
+              e.allDay ? tl('종일') : '${hm(e.start)} – ${hm(e.end)}',
+              style: ts(context, 13, color: p.muted).copyWith(
+                decoration: done ? TextDecoration.lineThrough : null,
+                decorationColor: p.muted,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
     );
   }
 }

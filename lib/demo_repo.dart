@@ -191,6 +191,7 @@ class DemoRepo implements CalendarRepo {
     String? location,
     List<String> tags = const <String>[],
     Repeat? repeat,
+    List<Duration> reminders = const <Duration>[],
   }) async {
     final c = _calById(calendarId ?? 'personal');
     final n = _seq++;
@@ -209,6 +210,7 @@ class DemoRepo implements CalendarRepo {
           location: location,
           tags: tags,
           recurring: repeat != null,
+          reminders: reminders,
         );
 
     if (repeat == null) {
@@ -254,6 +256,7 @@ class DemoRepo implements CalendarRepo {
     String? location,
     String? note,
     List<String> tags = const <String>[],
+    List<Duration>? reminders,
   }) async {
     final i = _evs.indexWhere((x) => x.instanceId == e.instanceId);
     if (i < 0) return;
@@ -276,7 +279,7 @@ class DemoRepo implements CalendarRepo {
       recurring: o.recurring,
       readOnly: o.readOnly,
       holiday: o.holiday,
-      reminders: o.reminders,
+      reminders: reminders ?? o.reminders,
       tags: tags,
     );
   }

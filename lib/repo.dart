@@ -25,11 +25,13 @@ abstract class CalendarRepo {
     String? location,
     List<String> tags = const <String>[],
     Repeat? repeat,
+    List<Duration> reminders = const <Duration>[],
   });
 
   Future<void> move(Ev e, DateTime start, DateTime end);
 
-  /// 일정을 고쳐서 저장해요 (제목·날짜·시간·종일·장소·메모·태그). 반복 일정은 이 일정 하나만 바뀌어요.
+  /// 일정을 고쳐서 저장해요 (제목·날짜·시간·종일·장소·메모·태그·알림). [reminders] 가 null 이면 알림은 그대로 둬요.
+  /// 반복 일정은 이 일정 하나만 바뀌어요.
   /// 종일 일정의 [end] 는 마지막 날의 다음 날 00:00 (끝 미포함) 이에요.
   Future<void> update(
     Ev e, {
@@ -40,6 +42,7 @@ abstract class CalendarRepo {
     String? location,
     String? note,
     List<String> tags = const <String>[],
+    List<Duration>? reminders,
   });
 
   /// 일정을 지워요. 반복 일정이면 [scope] 로 이 일정만 / 이후 모두 / 전체를 골라요.

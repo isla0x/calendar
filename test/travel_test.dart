@@ -31,6 +31,7 @@ class _Repo implements CalendarRepo {
     String? location,
     List<String> tags = const <String>[],
     Repeat? repeat,
+    List<Duration> reminders = const <Duration>[],
   }) async => null;
   @override
   Future<void> update(
@@ -42,6 +43,7 @@ class _Repo implements CalendarRepo {
     String? location,
     String? note,
     List<String> tags = const <String>[],
+    List<Duration>? reminders,
   }) async {}
   @override
   Future<void> setTags(Ev e, List<String> tags) async {}

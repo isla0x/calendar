@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../dates.dart';
 import '../models.dart';
+import '../reminder.dart';
 import '../skins.dart';
 import '../store.dart';
 import '../tags.dart';
 import '../theme.dart';
 import '../travel.dart';
 import 'common.dart';
+import 'reminder_sheet.dart';
 import 'sheets.dart';
 import 'travel_sheet.dart';
 import 'tag_dialog.dart';
@@ -53,6 +55,10 @@ class _EventEditPageState extends State<EventEditPage> {
   Travel _travel = Travel.none;
   bool _travelTouched = false;
 
+  /// 알림 시점 (없으면 null). 건드리지 않으면 기기에 있던 알림을 그대로 둬요.
+  Reminder? _rem;
+  bool _remTouched = false;
+
   late final String _sig0;
 
   @override
@@ -61,6 +67,7 @@ class _EventEditPageState extends State<EventEditPage> {
     _color = StoreScope.read(context).customColorOf(_o);
     _projectId = StoreScope.read(context).projectOf(_o)?.id;
     _travel = StoreScope.read(context).travelOf(_o);
+    _rem = ReminderX.match(_o.reminders, _o.start, allDay: _o.allDay);
     _sig0 = _sig();
   }
 
@@ -84,6 +91,8 @@ class _EventEditPageState extends State<EventEditPage> {
         _projectId,
         _travel.before,
         _travel.after,
+        _rem?.index,
+        _remTouched,
       ].join('|');
 
   bool get _dirty => _sig() != _sig0;
@@ -110,6 +119,11 @@ class _EventEditPageState extends State<EventEditPage> {
         _end = e;
       }
       _allDay = on;
+      // 종일 일정과 시간 있는 일정은 고를 수 있는 알림이 달라요
+      if (_rem != null && !ReminderX.options(allDay: on).contains(_rem)) {
+        _rem = null;
+        _remTouched = true;
+      }
     });
   }
 
@@ -198,6 +212,9 @@ class _EventEditPageState extends State<EventEditPage> {
       location: _loc.text,
       note: _note.text,
       tags: tags,
+      reminders: (_remTouched || (_rem != null && start != (_o.allDay ? _o.firstDay : _o.start)))
+          ? ReminderX.toList(_rem, start)
+          : null,
     );
     if (!mounted) return;
     if (!ok) {
@@ -250,6 +267,24 @@ class _EventEditPageState extends State<EventEditPage> {
     );
     if (r == null || !mounted) return;
     setState(() => _projectId = r.id);
+  }
+
+  Future<void> _pickReminder() async {
+    final store = StoreScope.read(context);
+    final r = await showReminderSheet(
+      context,
+      start: _allDay ? dayOnly(_start) : _start,
+      allDay: _allDay,
+      current: _rem,
+      now: store.now,
+      title: _title.text,
+      allowPast: _o.recurring,
+    );
+    if (r == null || !mounted) return;
+    setState(() {
+      _rem = r.reminder;
+      _remTouched = true;
+    });
   }
 
   Future<void> _pickTravel() async {
@@ -695,6 +730,30 @@ class _EventEditPageState extends State<EventEditPage> {
                           ),
                         ),
                       ],
+                      divider(),
+                      Tap(
+                        onTap: _pickReminder,
+                        label: tl('알림 시점 정하기'),
+                        child: iconRow(
+                          Icons.notifications_none_rounded,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(tl('알림'), style: ts(context, 15, weight: FontWeight.w600)),
+                              ),
+                              Flexible(
+                                child: Text(
+                                  ReminderX.summary(_rem, _o.reminders, touched: _remTouched),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: ts(context, 14, color: p.muted),
+                                ),
+                              ),
+                              Icon(Icons.chevron_right_rounded, size: 20, color: p.muted),
+                            ],
+                          ),
+                        ),
+                      ),
                     ]),
                     card([
                       iconRow(

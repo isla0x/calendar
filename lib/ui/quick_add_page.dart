@@ -6,6 +6,7 @@ import '../dates.dart';
 import '../models.dart';
 import '../parser.dart';
 import '../projects.dart';
+import '../reminder.dart';
 import '../travel.dart';
 import '../skins.dart';
 import '../store.dart';
@@ -13,6 +14,7 @@ import '../tags.dart';
 import '../theme.dart';
 import 'common.dart';
 import 'project_pages.dart';
+import 'reminder_sheet.dart';
 import 'travel_sheet.dart';
 import 'sheets.dart';
 import 'tag_dialog.dart';
@@ -126,6 +128,9 @@ class _QuickAddPageState extends State<QuickAddPage> {
   String _location = '';
   Travel _travel = Travel.none;
   bool _travelTouched = false;
+
+  /// 알림 시점 (없으면 null)
+  Reminder? _remind;
   bool _saving = false;
 
   @override
@@ -433,6 +438,20 @@ class _QuickAddPageState extends State<QuickAddPage> {
     }
   }
 
+  Future<void> _askReminder(QuickParse q) async {
+    final store = StoreScope.read(context);
+    final r = await showReminderSheet(
+      context,
+      start: q.allDay ? dayOnly(q.start) : q.start,
+      allDay: q.allDay,
+      current: _remind != null && ReminderX.options(allDay: q.allDay).contains(_remind) ? _remind : null,
+      now: store.now,
+      title: q.title,
+      allowPast: q.repeat != null,
+    );
+    if (r != null && mounted) setState(() => _remind = r.reminder);
+  }
+
   void _applySlot(Slot s) {
     _setDate(s.start);
     _setTime(s.start.hour * 60 + s.start.minute, s.end.difference(s.start).inMinutes);
@@ -539,6 +558,9 @@ class _QuickAddPageState extends State<QuickAddPage> {
       tags: q.tags,
       repeat: repeat,
       color: _color,
+      reminders: _remind != null && ReminderX.options(allDay: q.allDay).contains(_remind)
+          ? ReminderX.toList(_remind, q.allDay ? dayOnly(start) : start)
+          : const <Duration>[],
     );
     if (!mounted) return;
     if (ok) {
@@ -849,6 +871,14 @@ class _QuickAddPageState extends State<QuickAddPage> {
                                     SnackBar(content: Text(tl('이동시간은 시간이 있는 일정에만 넣을 수 있어요. 예) 내일 3시 치과'))),
                                   )
                               : _askTravel,
+                        ),
+                        _Chip(
+                          icon: Icons.notifications_none_rounded,
+                          text: _remind != null && ReminderX.options(allDay: q.allDay).contains(_remind)
+                              ? _remind!.label
+                              : tl('알림'),
+                          dashed: _remind == null || !ReminderX.options(allDay: q.allDay).contains(_remind),
+                          onTap: () => _askReminder(q),
                         ),
                         if (_into == null)
                           _Chip(

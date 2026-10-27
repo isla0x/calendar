@@ -124,6 +124,7 @@ class DeviceRepo implements CalendarRepo {
     String? location,
     List<String> tags = const <String>[],
     Repeat? repeat,
+    List<Duration> reminders = const <Duration>[],
   }) async {
     var cid = calendarId;
     if (cid == null) {
@@ -143,6 +144,7 @@ class DeviceRepo implements CalendarRepo {
       isAllDay: allDay,
       location: location,
       recurrenceRule: _rule(repeat),
+      reminders: reminders.isEmpty ? null : reminders,
     );
   }
 
@@ -197,6 +199,7 @@ class DeviceRepo implements CalendarRepo {
     String? location,
     String? note,
     List<String> tags = const <String>[],
+    List<Duration>? reminders,
   }) async {
     await _plugin.updateEvent(
       instanceId: e.instanceId,
@@ -206,6 +209,9 @@ class DeviceRepo implements CalendarRepo {
       isAllDay: allDay,
       location: _text(location),
       description: _text(note),
+      reminders: reminders == null
+          ? null
+          : (reminders.isEmpty ? const Patch<List<Duration>>.clear() : Patch<List<Duration>>.set(reminders)),
     );
   }
 
