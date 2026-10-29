@@ -25,10 +25,11 @@ class _MemoColors {
 
 /// 점 + 글. 누르면 줄이 그어지고(끝냄), 길게 누르면 고쳐요.
 class _MemoLine extends StatelessWidget {
-  const _MemoLine({required this.memo, this.size = 15});
+  const _MemoLine({required this.memo});
 
   final Memo memo;
-  final double size;
+
+  static const double size = 15;
 
   @override
   Widget build(BuildContext context) {
