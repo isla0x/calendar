@@ -10,6 +10,7 @@ import 'dates.dart';
 import 'device_repo.dart';
 import 'flags.dart';
 import 'l10n.dart';
+import 'memos.dart';
 import 'pro.dart';
 import 'projects.dart';
 import 'skins.dart';
@@ -30,6 +31,7 @@ Future<void> main() async {
   final projects = await PrefsProjectBook.open();
   final todos = await PrefsTodoBook.open();
   final travel = await PrefsTravelBook.open();
+  final memos = await PrefsMemoBook.open();
   final flags = await PrefsFlags.open();
   final pro = ProState(await StoreProBackend.open());
   runApp(YeobaekApp(
@@ -37,6 +39,7 @@ Future<void> main() async {
     projects: projects,
     todos: todos,
     travel: travel,
+    memos: memos,
     flags: flags,
     pro: pro,
   ));
@@ -44,7 +47,7 @@ Future<void> main() async {
 
 /// 앱 뿌리. [store] 를 넣으면 그걸 쓰고(테스트용), 아니면 기기 캘린더에 연결해요.
 class YeobaekApp extends StatefulWidget {
-  const YeobaekApp({super.key, this.store, this.ticking = true, this.colors, this.projects, this.todos, this.travel, this.flags, this.pro});
+  const YeobaekApp({super.key, this.store, this.ticking = true, this.colors, this.projects, this.todos, this.travel, this.memos, this.flags, this.pro});
 
   /// 일정별 색을 기억해 두는 곳 (없으면 앱을 끄면 잊어요)
   final ColorBook? colors;
@@ -57,6 +60,9 @@ class YeobaekApp extends StatefulWidget {
 
   /// 이동시간을 기억해 두는 곳
   final TravelBook? travel;
+
+  /// 날짜별 메모를 기억해 두는 곳
+  final MemoBook? memos;
 
   /// 처음 안내를 봤는지 같은 작은 표시
   final AppFlags? flags;
@@ -84,7 +90,7 @@ class _YeobaekAppState extends State<YeobaekApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     _owned = widget.store == null;
-    _store = widget.store ?? CalendarStore(DeviceRepo(), colors: widget.colors, projects: widget.projects, todos: widget.todos, travel: widget.travel, flags: widget.flags, pro: widget.pro);
+    _store = widget.store ?? CalendarStore(DeviceRepo(), colors: widget.colors, projects: widget.projects, todos: widget.todos, travel: widget.travel, memos: widget.memos, flags: widget.flags, pro: widget.pro);
     WidgetsBinding.instance.addObserver(this);
     _store.init();
     if (widget.ticking) _store.startClock();

@@ -42,6 +42,7 @@ void main() {
         'projects_v1': '[{"id":"p1"}]',
         'todos_v1': '[{"id":"t1"},{"id":"t2"}]',
         'event_travel_v1': '{"e1":[10,10]}',
+        'memos_v1': '[{"i":"m1","d":"2026-10-29","t":"a"}]',
         'other_key': 'x',
       });
       final prefs = await SharedPreferences.getInstance();
@@ -55,6 +56,7 @@ void main() {
       expect(sum!.projects, 1);
       expect(sum.todos, 2);
       expect(sum.travel, 1);
+      expect(sum.memos, 1);
       expect(fresh.getString('todos_v1'), '[{"id":"t1"},{"id":"t2"}]');
     });
 

@@ -4,6 +4,7 @@ import '../models.dart';
 import '../projects.dart';
 import '../store.dart';
 import 'detail_page.dart';
+import 'memo_pages.dart';
 import 'project_pages.dart';
 import 'quick_add_page.dart';
 import 'search_page.dart';
@@ -56,5 +57,11 @@ Future<void> openProject(BuildContext context, String id, {DateTime? day}) {
 Future<void> openTodos(BuildContext context) {
   return Navigator.of(context).push<void>(
     MaterialPageRoute<void>(builder: (_) => const TodoListPage()),
+  );
+}
+
+Future<void> openMemos(BuildContext context) {
+  return Navigator.of(context).push<void>(
+    MaterialPageRoute<void>(builder: (_) => const MemoListPage()),
   );
 }

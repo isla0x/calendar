@@ -6,6 +6,7 @@ import 'color_book.dart';
 import 'dates.dart';
 import 'demo_repo.dart';
 import 'flags.dart';
+import 'memos.dart';
 import 'models.dart';
 import 'pro.dart';
 import 'projects.dart';
@@ -25,17 +26,20 @@ class CalendarStore extends ChangeNotifier {
     ProjectBook? projects,
     TodoBook? todos,
     TravelBook? travel,
+    MemoBook? memos,
     AppFlags? flags,
     ProState? pro,
   })  : _clock = clock ?? DateTime.now,
         _colors = colors ?? MemoryColorBook(),
         _projectBook = projects ?? MemoryProjectBook(),
         _todoBook = todos ?? MemoryTodoBook(),
+        _memoBook = memos ?? MemoryMemoBook(),
         flags = flags ?? MemoryFlags(),
         pro = pro ?? ProState(),
         _travel = travel ?? MemoryTravelBook() {
     _projects = _projectBook.load();
     _todos = _todoBook.load();
+    _memos = _memoBook.load();
     final t = dayOnly(_clock());
     selected = t;
     month = DateTime(t.year, t.month);
@@ -67,6 +71,10 @@ class CalendarStore extends ChangeNotifier {
   /// 할 일 저장소와 목록
   TodoBook _todoBook;
   List<Todo> _todos = const <Todo>[];
+
+  /// 날짜별 메모 저장소와 목록 (여백 안에만 저장해요)
+  MemoBook _memoBook;
+  List<Memo> _memos = const <Memo>[];
 
   /// 방금 만든 일정의 id (프로젝트에 이어 줄 때 써요)
   String? lastCreatedId;
@@ -1041,8 +1049,13 @@ class CalendarStore extends ChangeNotifier {
     required ProjectBook projects,
     required TodoBook todos,
     required TravelBook travel,
+    MemoBook? memos,
   }) async {
     _colors = colors;
+    if (memos != null) {
+      _memoBook = memos;
+      _memos = _memoBook.load();
+    }
     _projectBook = projects;
     _todoBook = todos;
     _travel = travel;
@@ -1050,6 +1063,76 @@ class CalendarStore extends ChangeNotifier {
     _todos = _todoBook.load();
     notifyListeners();
     await _refresh(force: true);
+  }
+
+  // ---------------------------------------------------------------- 메모
+
+  /// 이 날의 메모 (적은 순서대로)
+  List<Memo> memosOn(DateTime day) {
+    final k = dayKey(day);
+    return [for (final m in _memos) if (dayKey(m.day) == k) m];
+  }
+
+  bool hasMemo(DateTime day) => _memos.any((m) => sameDay(m.day, day));
+
+  /// 모든 메모 (최근 날짜가 먼저, 같은 날은 적은 순서)
+  List<Memo> get allMemos {
+    final l = List<Memo>.of(_memos);
+    final order = <String, int>{for (var i = 0; i < l.length; i++) l[i].id: i};
+    l.sort((a, b) {
+      final c = b.day.compareTo(a.day);
+      return c != 0 ? c : order[a.id]!.compareTo(order[b.id]!);
+    });
+    return l;
+  }
+
+  int _memoSeq = 0;
+
+  /// 적은 글을 줄마다 메모 하나로 저장해요. 저장한 개수를 돌려줘요.
+  Future<int> addMemos(DateTime day, String text) async {
+    final lines = splitMemoLines(text);
+    if (lines.isEmpty) return 0;
+    final d = dayOnly(day);
+    final stamp = _clock().microsecondsSinceEpoch;
+    _memos = [
+      ..._memos,
+      for (final t in lines) Memo(id: 'm$stamp-${_memoSeq++}', day: d, text: t),
+    ];
+    await _saveMemos();
+    return lines.length;
+  }
+
+  /// 메모 하나를 고쳐요. 글에 줄이 여러 개면 첫 줄이 이 메모가 되고 나머지는 새 메모가 돼요.
+  Future<void> editMemo(Memo m, {required String text, required DateTime day}) async {
+    final lines = splitMemoLines(text);
+    final d = dayOnly(day);
+    final i = _memos.indexWhere((x) => x.id == m.id);
+    if (i < 0) return;
+    if (lines.isEmpty) return;
+    final next = List<Memo>.of(_memos);
+    next[i] = m.copyWith(text: lines.first, day: d);
+    final stamp = _clock().microsecondsSinceEpoch;
+    for (var k = 1; k < lines.length; k++) {
+      next.insert(i + k, Memo(id: 'm$stamp-${_memoSeq++}', day: d, text: lines[k]));
+    }
+    _memos = next;
+    await _saveMemos();
+  }
+
+  /// 끝낸 메모는 줄을 그어요 (다시 누르면 지워요)
+  Future<void> toggleMemo(String id) async {
+    _memos = [for (final m in _memos) m.id == id ? m.copyWith(done: !m.done) : m];
+    await _saveMemos();
+  }
+
+  Future<void> removeMemo(String id) async {
+    _memos = [for (final m in _memos) if (m.id != id) m];
+    await _saveMemos();
+  }
+
+  Future<void> _saveMemos() async {
+    notifyListeners();
+    await _memoBook.save(_memos);
   }
 
   // ---------------------------------------------------------------- 이동시간 장소 기억

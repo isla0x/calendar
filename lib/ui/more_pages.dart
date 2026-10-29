@@ -9,12 +9,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../backup.dart';
 import '../color_book.dart';
 import '../pro.dart';
+import '../memos.dart';
 import '../projects.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../todos.dart';
 import '../travel.dart';
 import 'common.dart';
+import 'nav.dart';
 import 'sheets.dart';
 import '../l10n.dart';
 
@@ -65,6 +67,10 @@ Future<void> showMoreMenu(BuildContext context) {
         title: tl('더보기'),
         child: Column(
           children: [
+            row(Icons.sticky_note_2_outlined, tl('메모'), () {
+              Navigator.of(ctx).pop();
+              openMemos(context);
+            }),
             row(Icons.cloud_outlined, tl('백업 · 복원'), () {
               Navigator.of(ctx).pop();
               openBackup(context);
@@ -320,7 +326,7 @@ class _BackupPageState extends State<BackupPage> {
       final yes = await showConfirmSheet(
         context,
         title: tl('이 백업으로 되돌릴까요?'),
-        body: tl('지금 여백에 있는 색 · 프로젝트 · 할 일 · 이동시간이 백업의 것으로 바뀌어요.'),
+        body: tl('지금 여백에 있는 색 · 프로젝트 · 할 일 · 이동시간 · 메모가 백업의 것으로 바뀌어요.'),
         yes: tl('되돌리기'),
         no: tl('취소'),
         danger: true,
@@ -338,6 +344,7 @@ class _BackupPageState extends State<BackupPage> {
           projects: await PrefsProjectBook.open(),
           todos: await PrefsTodoBook.open(),
           travel: await PrefsTravelBook.open(),
+          memos: await PrefsMemoBook.open(),
         );
         if (mounted) {
           _snack(tl('되돌렸어요 · 프로젝트 {0}개 · 할 일 {1}개', [sum.projects, sum.todos]));
@@ -431,7 +438,8 @@ class _BackupPageState extends State<BackupPage> {
                         line(tl('일정 색'), tl('{0}개', [sum.colors])),
                         line(tl('프로젝트'), tl('{0}개', [sum.projects])),
                         line(tl('할 일'), tl('{0}개', [sum.todos])),
-                        line(tl('이동시간'), tl('{0}곳', [sum.travel]), last: true),
+                        line(tl('이동시간'), tl('{0}곳', [sum.travel])),
+                        line(tl('메모'), tl('{0}개', [sum.memos]), last: true),
                       ],
                     ),
                   ),

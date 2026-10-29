@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// 여백에서 따로 정한 것들(색 · 프로젝트 · 할 일 · 이동시간)을 한 파일로 묶고 되돌려요.
+/// 여백에서 따로 정한 것들(색 · 프로젝트 · 할 일 · 이동시간 · 메모)을 한 파일로 묶고 되돌려요.
 /// 일정 자체는 기기 캘린더(iCloud)에 있어서 여기에 들어가지 않아요.
 class Backup {
   Backup._();
@@ -14,6 +14,7 @@ class Backup {
     'todos_v1': 'todos',
     'event_travel_v1': 'travel',
     'place_travel_v1': 'places',
+    'memos_v1': 'memos',
   };
 
   static const String app = 'yeobaek';
@@ -52,6 +53,7 @@ class Backup {
       projects: count('projects_v1'),
       todos: count('todos_v1'),
       travel: count('event_travel_v1'),
+      memos: count('memos_v1'),
     );
   }
 
@@ -88,12 +90,13 @@ class Backup {
 }
 
 class BackupSummary {
-  const BackupSummary({this.colors = 0, this.projects = 0, this.todos = 0, this.travel = 0});
+  const BackupSummary({this.colors = 0, this.projects = 0, this.todos = 0, this.travel = 0, this.memos = 0});
 
   final int colors;
   final int projects;
   final int todos;
   final int travel;
+  final int memos;
 
-  bool get isEmpty => colors + projects + todos + travel == 0;
+  bool get isEmpty => colors + projects + todos + travel + memos == 0;
 }

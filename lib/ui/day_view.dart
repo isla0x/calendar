@@ -9,6 +9,7 @@ import '../theme.dart';
 import '../todos.dart';
 import '../travel.dart';
 import 'common.dart';
+import 'memo_pages.dart';
 import 'nav.dart';
 import 'pager.dart';
 import '../l10n.dart';
@@ -56,6 +57,7 @@ class _DayPage extends StatelessWidget {
     return Column(
       children: [
         _FlowCard(day: day),
+        MemoCard(day: day),
         if (pastCount > 0) _PastChip(count: pastCount) else const SizedBox(height: 8),
         if (allDay.isNotEmpty) _AllDayRow(events: allDay),
         Expanded(child: _Timeline(day: day)),
