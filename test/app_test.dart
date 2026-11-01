@@ -65,6 +65,10 @@ void main() {
     expect(find.text('태그로 보기'), findsOneWidget);
     await tester.tap(find.text('#회의'));
     await tester.pumpAndSettle();
+    // 창은 열린 채로 있어서 여러 개를 이어서 고를 수 있어요. 완료를 누르면 닫혀요.
+    expect(find.text('완료'), findsOneWidget);
+    await tester.tap(find.text('완료'));
+    await tester.pumpAndSettle();
 
     expect(store.tagFilter, '회의');
     expect(find.text('이 태그의 일정만 보는 중'), findsOneWidget);

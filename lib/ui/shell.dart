@@ -90,7 +90,7 @@ class _HomeState extends State<_Home> {
             const _PillRow(),
             if (store.view == ViewMode.month && store.currentProject != null)
               ProjectStrip(project: store.currentProject!),
-            if (store.tagFilter != null) _TagFilterBar(tag: store.tagFilter!),
+            if (store.tagFiltering) _TagFilterBar(tags: store.tagFilters),
             Expanded(child: content),
           ],
         ),
@@ -324,8 +324,8 @@ class _PillRow extends StatelessWidget {
     final p = Pal.of(context);
     final todos = store.todos.where((t) => !t.done).length;
     final projects = store.projects.length;
-    final tag = store.tagFilter;
-    final tagCol = tag == null ? null : tagColor(tag, dark: p.dark);
+    final tags = store.tagFilters;
+    final tagCol = tags.length == 1 ? tagColor(tags.first, dark: p.dark) : null;
 
     Widget pill(IconData icon, String text, VoidCallback onTap, String label, {Color? color}) {
       final c = color ?? p.ink;
@@ -371,10 +371,10 @@ class _PillRow extends StatelessWidget {
           const SizedBox(width: 8),
           pill(
             Icons.tag_rounded,
-            tl('태그'),
+            tags.length > 1 ? tl('태그 {0}', [tags.length]) : tl('태그'),
             () => showTagFilterSheet(context),
             tl('태그로 보기'),
-            color: tagCol,
+            color: tagCol ?? (tags.length > 1 ? p.ink : null),
           ),
         ],
       ),
@@ -382,54 +382,57 @@ class _PillRow extends StatelessWidget {
   }
 }
 
-/// 태그로 걸러보는 중일 때 나오는 줄 (누르면 전체 보기로 돌아가요)
+/// 태그로 걸러보는 중일 때 나오는 줄 (태그를 누르면 그 태그만 빠지고, 모두 빠지면 전체 보기로 돌아가요)
 class _TagFilterBar extends StatelessWidget {
-  const _TagFilterBar({required this.tag});
+  const _TagFilterBar({required this.tags});
 
-  final String tag;
+  final List<String> tags;
 
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final p = Pal.of(context);
-    final col = tagColor(tag, dark: p.dark);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-      child: Row(
-        children: [
-          Tap(
-            onTap: () => store.setTagFilter(null),
-            label: tl('태그 걸러보기 끄기'),
-            child: Container(
-              height: 32,
-              padding: const EdgeInsets.only(left: 12, right: 8),
-              decoration: BoxDecoration(
-                color: Color.alphaBlend(col.withAlpha(44), p.surface),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '#$tag',
-                    style: ts(context, 14, weight: FontWeight.w600, color: col),
+      padding: const EdgeInsets.fromLTRB(20, 8, 0, 0),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.only(right: 20),
+        child: Row(
+          children: [
+            for (final tag in tags) ...[
+              Builder(builder: (context) {
+                final col = tagColor(tag, dark: p.dark);
+                return Tap(
+                  onTap: () => store.toggleTagFilter(tag),
+                  label: tl('태그 걸러보기 끄기'),
+                  child: Container(
+                    height: 32,
+                    padding: const EdgeInsets.only(left: 12, right: 8),
+                    decoration: BoxDecoration(
+                      color: Color.alphaBlend(col.withAlpha(44), p.surface),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('#$tag', style: ts(context, 14, weight: FontWeight.w600, color: col)),
+                        const SizedBox(width: 6),
+                        Icon(Icons.close_rounded, size: 16, color: col),
+                      ],
+                    ),
                   ),
-                  const SizedBox(width: 6),
-                  Icon(Icons.close_rounded, size: 16, color: col),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              tl('이 태그의 일정만 보는 중'),
+                );
+              }),
+              const SizedBox(width: 8),
+            ],
+            const SizedBox(width: 2),
+            Text(
+              tags.length > 1 ? tl('고른 태그의 일정만 보는 중') : tl('이 태그의 일정만 보는 중'),
               maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               style: ts(context, 13, color: p.muted),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

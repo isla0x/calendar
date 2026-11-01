@@ -567,18 +567,34 @@ class CalendarStore extends ChangeNotifier {
     }
   }
 
-  /// 화면에서 이 태그가 붙은 일정만 또렷하게 보여줘요 (없으면 전체)
-  String? _tagFilter;
-  String? get tagFilter => _tagFilter;
+  /// 화면에서 고른 태그가 붙은 일정만 또렷하게 보여줘요. 여러 개를 고르면 그중 하나라도 붙은 일정이 다 보여요 (없으면 전체).
+  List<String> _tagFilter = const <String>[];
+  List<String> get tagFilters => _tagFilter;
+  bool get tagFiltering => _tagFilter.isNotEmpty;
 
-  void setTagFilter(String? tag) {
-    if (_tagFilter == tag) return;
-    _tagFilter = tag;
+  /// 하나만 고른 것처럼 쓰는 옛 방식 (고른 첫 태그, 없으면 null)
+  String? get tagFilter => _tagFilter.isEmpty ? null : _tagFilter.first;
+
+  /// 태그 하나만 고르거나(null 이면 전체 보기)
+  void setTagFilter(String? tag) => setTagFilters(tag == null ? const <String>[] : <String>[tag]);
+
+  void setTagFilters(List<String> tags) {
+    final next = <String>[
+      for (final t in tags)
+        if (!tags.sublist(0, tags.indexOf(t)).contains(t)) t,
+    ];
+    if (next.length == _tagFilter.length && next.every(_tagFilter.contains)) return;
+    _tagFilter = next;
     notifyListeners();
   }
 
-  /// 걸러보기 중일 때, 이 일정이 고른 태그에 해당하는지
-  bool tagMatch(Ev e) => _tagFilter == null || e.tags.contains(_tagFilter);
+  /// 태그 하나를 켜거나 꺼요 (이미 고른 태그면 빼요)
+  void toggleTagFilter(String tag) {
+    setTagFilters(_tagFilter.contains(tag) ? [for (final t in _tagFilter) if (t != tag) t] : [..._tagFilter, tag]);
+  }
+
+  /// 걸러보는 중일 때, 이 일정이 고른 태그 중 하나라도 붙었는지
+  bool tagMatch(Ev e) => _tagFilter.isEmpty || e.tags.any(_tagFilter.contains);
 
   /// 프로젝트 안에 든 "속 일정"인지. 프로젝트 자체(이름이 같은 일정)는 달력에 그대로 보이고,
   /// 그 안에 넣은 다른 일정들만 바깥 화면에서 숨겨요 (프로젝트 화면에서만 보여줘요).
@@ -614,7 +630,7 @@ class CalendarStore extends ChangeNotifier {
   /// 그날의 일정 중 화면에 보여줄 것 (태그로 걸러보는 중이면 그 태그만)
   List<Ev> shownOn(DateTime d) {
     final all = listedOn(d);
-    if (_tagFilter == null) return all;
+    if (_tagFilter.isEmpty) return all;
     return all.where(tagMatch).toList();
   }
 

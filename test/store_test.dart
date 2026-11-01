@@ -153,6 +153,29 @@ void main() {
     expect(s.shownOn(day).length, 2);
   });
 
+  test('태그 여러 개 고르기: 하나라도 붙은 일정이 다 보이고, 다시 누르면 빠져요', () async {
+    final s = await make([
+      _ev('a', DateTime(2026, 10, 27, 10), DateTime(2026, 10, 27, 11)).copyWith(tags: ['회의']),
+      _ev('b', DateTime(2026, 10, 27, 12), DateTime(2026, 10, 27, 13)).copyWith(tags: ['운동']),
+      _ev('c', DateTime(2026, 10, 27, 14), DateTime(2026, 10, 27, 15)).copyWith(tags: ['약속']),
+      _ev('d', DateTime(2026, 10, 27, 16), DateTime(2026, 10, 27, 17)),
+    ]);
+    s.toggleTagFilter('회의');
+    s.toggleTagFilter('운동');
+    expect(s.tagFilters, ['회의', '운동']);
+    expect(s.tagFiltering, true);
+    expect(s.shownOn(day).map((e) => e.id).toList(), ['a', 'b']);
+    s.toggleTagFilter('회의');
+    expect(s.shownOn(day).map((e) => e.id).toList(), ['b']);
+    s.toggleTagFilter('운동');
+    expect(s.tagFiltering, false);
+    expect(s.shownOn(day).length, 4);
+    s.setTagFilters(['약속', '약속', '회의']);
+    expect(s.tagFilters, ['약속', '회의']);
+    s.setTagFilter(null);
+    expect(s.tagFilters, isEmpty);
+  });
+
   test('Ev.firstDay / lastDay: 종일은 끝 날짜를 하루 앞으로, 자정에 끝나면 그 전날', () {
     final allDay = _ev('p', DateTime(2026, 9, 18), DateTime(2026, 10, 29), allDay: true);
     expect(allDay.firstDay, DateTime(2026, 9, 18));

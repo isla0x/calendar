@@ -579,7 +579,7 @@ class _DaySheet extends StatelessWidget {
     final p = Pal.of(context);
     final day = store.selected;
     final evs = store.shownOn(day);
-    final filter = store.tagFilter;
+    final filter = store.tagFiltering ? store.tagFilters.join(' #') : null;
     final isPast = day.isBefore(store.today);
     final isToday = sameDay(day, store.today);
     final holiday = store.holidayOn(day);

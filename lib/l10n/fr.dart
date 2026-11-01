@@ -479,4 +479,7 @@ const Map<String, String> kFr = <String, String>{
   '아직 메모가 없어요.\n하루에 한두 줄, 잊고 싶지 않은 걸 적어 두세요.': 'Pas encore de note.\nNotez une ou deux lignes par jour pour ne rien oublier.',
   '찾는 메모가 없어요': 'Aucune note trouvée',
   '눌러서 완료 표시 · 길게 누르면 고치기 · 왼쪽으로 밀어서 지우기': 'Toucher pour terminer · Appui long pour modifier · Glisser à gauche pour supprimer',
+  '여러 개를 골라 한꺼번에 볼 수 있어요': 'Choisissez-en plusieurs pour les voir ensemble',
+  '태그 {0}': 'Tags {0}',
+  '고른 태그의 일정만 보는 중': 'Seuls les événements avec ces tags sont affichés',
 };

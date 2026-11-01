@@ -479,4 +479,7 @@ const Map<String, String> kEn = <String, String>{
   '아직 메모가 없어요.\n하루에 한두 줄, 잊고 싶지 않은 걸 적어 두세요.': 'No notes yet.\nJot down a line or two a day about what you don\'t want to forget.',
   '찾는 메모가 없어요': 'No matching notes',
   '눌러서 완료 표시 · 길게 누르면 고치기 · 왼쪽으로 밀어서 지우기': 'Tap to mark done · Long-press to edit · Swipe left to delete',
+  '여러 개를 골라 한꺼번에 볼 수 있어요': 'Pick several to see them together',
+  '태그 {0}': 'Tags {0}',
+  '고른 태그의 일정만 보는 중': 'Showing only events with these tags',
 };

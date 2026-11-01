@@ -30,19 +30,29 @@ class _TagFilterSheet extends StatelessWidget {
     final store = StoreScope.of(context);
     final p = Pal.of(context);
     final tags = store.knownTags();
-    final cur = store.tagFilter;
-
-    void pick(String? t) {
-      store.setTagFilter(t);
-      Navigator.of(context).pop();
-    }
+    final cur = store.tagFilters;
 
     return SheetFrame(
       title: tl('태그로 보기'),
-      subtitle: tl('고른 태그가 붙은 일정만 또렷하게 보여요'),
-      footer: cur == null
-          ? null
-          : BigButton(label: tl('전체 보기'), quiet: true, onTap: () => pick(null)),
+      subtitle: tl('여러 개를 골라 한꺼번에 볼 수 있어요'),
+      footer: Row(
+        children: [
+          if (cur.isNotEmpty) ...[
+            Expanded(
+              flex: 2,
+              child: BigButton(label: tl('전체 보기'), quiet: true, onTap: () {
+                store.setTagFilters(const <String>[]);
+                Navigator.of(context).pop();
+              }),
+            ),
+            const SizedBox(width: 10),
+          ],
+          Expanded(
+            flex: 3,
+            child: BigButton(label: tl('완료'), onTap: () => Navigator.of(context).pop()),
+          ),
+        ],
+      ),
       child: tags.isEmpty
           ? Padding(
               padding: const EdgeInsets.only(bottom: 4),
@@ -56,7 +66,13 @@ class _TagFilterSheet extends StatelessWidget {
               runSpacing: 8,
               children: [
                 for (final t in tags)
-                  TagPill(tag: t, on: cur == t, height: 38, onTap: () => pick(t)),
+                  TagPill(
+                    tag: t,
+                    on: cur.contains(t),
+                    height: 38,
+                    trailing: cur.contains(t) ? Icons.check_rounded : null,
+                    onTap: () => store.toggleTagFilter(t),
+                  ),
               ],
             ),
     );
