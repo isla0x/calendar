@@ -19,6 +19,7 @@ import 'todos.dart';
 import 'travel.dart';
 import 'widget_sync.dart';
 import 'package:home_widget/home_widget.dart';
+import 'ui/more_pages.dart' show showProSheet;
 import 'ui/nav.dart';
 import 'theme.dart';
 import 'ui/shell.dart';
@@ -123,6 +124,9 @@ class _YeobaekAppState extends State<YeobaekApp> with WidgetsBindingObserver {
           openTodos(ctx);
         case 'projects':
           openProjects(ctx);
+        case 'pro':
+          // 잠긴 Pro 위젯을 눌렀을 때: Pro 안내를 보여줘요 (이미 Pro 면 그대로 둬요)
+          if (!_store.pro.isPro) showProSheet(ctx);
         case 'today':
           _store.goToday();
       }

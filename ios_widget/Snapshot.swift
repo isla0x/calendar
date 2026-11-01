@@ -77,6 +77,8 @@ struct Snap: Codable {
     var days: [DayS]
     var todos: [TodoS]
     var projects: [ProjS]
+    /// 앱이 Pro 인지 (없으면 Pro 로 봐요 - 예전 자료가 남아 있어도 위젯이 갑자기 잠기지 않게)
+    var pro: Bool? = nil
 }
 
 // MARK: - 날짜 도우미
@@ -244,6 +246,13 @@ struct Entry: TimelineEntry {
     let date: Date
     let snap: Snap?
     let isSample: Bool
+
+    /// Pro 가 아닌데 Pro 위젯일 때 (갤러리 미리보기는 잠그지 않아요)
+    var locked: Bool {
+        if isSample { return false }
+        guard let snap else { return false }
+        return snap.pro == false
+    }
 }
 
 struct Provider: TimelineProvider {
@@ -328,6 +337,9 @@ enum Lx {
     static let table: [String: [String: String]] = [
         "en": [
             "여백": "Yeobaek",
+            "Pro 위젯": "Pro widget",
+            "눌러서 Pro 보기": "Tap to see Pro",
+            "Pro 로 열려요": "Unlock with Pro",
             "앱을 한 번 열면\n여기에 보여요": "Open the app once\nand it shows up here",
             "진행 중": "In progress",
             "오늘 남은 여유": "Free time left today",
@@ -380,6 +392,9 @@ enum Lx {
         ],
         "fr": [
             "여백": "Yeobaek",
+            "Pro 위젯": "Widget Pro",
+            "눌러서 Pro 보기": "Touchez pour voir Pro",
+            "Pro 로 열려요": "Avec Pro",
             "앱을 한 번 열면\n여기에 보여요": "Ouvrez l'app une fois\npour afficher ici",
             "진행 중": "En cours",
             "오늘 남은 여유": "Temps libre restant",
@@ -432,6 +447,9 @@ enum Lx {
         ],
         "zh": [
             "여백": "Yeobaek",
+            "Pro 위젯": "Pro 小组件",
+            "눌러서 Pro 보기": "点按查看 Pro",
+            "Pro 로 열려요": "Pro 可解锁",
             "앱을 한 번 열면\n여기에 보여요": "打开一次应用\n这里就会显示",
             "진행 중": "进行中",
             "오늘 남은 여유": "今天剩余空闲",
@@ -484,6 +502,9 @@ enum Lx {
         ],
         "ja": [
             "여백": "Yeobaek",
+            "Pro 위젯": "Pro ウィジェット",
+            "눌러서 Pro 보기": "タップして Pro を見る",
+            "Pro 로 열려요": "Pro で使えます",
             "앱을 한 번 열면\n여기에 보여요": "アプリを一度開くと\nここに表示されます",
             "진행 중": "進行中",
             "오늘 남은 여유": "今日の残り余裕",

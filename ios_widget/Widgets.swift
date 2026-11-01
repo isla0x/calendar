@@ -42,6 +42,25 @@ struct NeedApp: View {
     }
 }
 
+/// Pro 가 아닐 때 Pro 위젯 자리에 보이는 안내
+struct ProLocked: View {
+    let look: Look
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: "lock.fill")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(look.accent)
+            Text(tr("Pro 위젯"))
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(look.ink)
+            Text(tr("눌러서 Pro 보기"))
+                .font(.system(size: 12))
+                .foregroundColor(look.muted)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
 struct Chip: View {
     let look: Look
     let text: String
@@ -223,7 +242,9 @@ struct TimelineView2: View {
     var body: some View {
         let look = Look(dark: scheme == .dark)
         Group {
-            if let snap = entry.snap {
+            if entry.locked {
+                ProLocked(look: look)
+            } else if let snap = entry.snap {
                 let now = entry.date
                 let cal = Calendar.current
                 let title = tr("오늘 · {0}/{1} {2}", "\(cal.component(.month, from: now))", "\(cal.component(.day, from: now))", Lx.wdShort[max(0, min(6, cal.component(.weekday, from: now) - 1))])
@@ -257,7 +278,7 @@ struct TimelineView2: View {
         }
         .padding(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16))
         .widgetBG(look.bg)
-        .widgetURL(URL(string: "yeobaek://today"))
+        .widgetURL(URL(string: entry.locked ? "yeobaek://pro" : "yeobaek://today"))
     }
 
     @ViewBuilder
@@ -311,7 +332,9 @@ struct ProjectView: View {
     var body: some View {
         let look = Look(dark: scheme == .dark)
         Group {
-            if let snap = entry.snap, let p = snap.projects.first {
+            if entry.locked {
+                ProLocked(look: look)
+            } else if let snap = entry.snap, let p = snap.projects.first {
                 HStack(spacing: 16) {
                     ring(p: p, look: look)
                     VStack(alignment: .leading, spacing: 0) {
@@ -358,7 +381,7 @@ struct ProjectView: View {
         }
         .padding(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16))
         .widgetBG(look.bg)
-        .widgetURL(URL(string: "yeobaek://projects"))
+        .widgetURL(URL(string: entry.locked ? "yeobaek://pro" : "yeobaek://projects"))
     }
 
     func shortDate(_ ymd: String) -> String {
@@ -425,7 +448,9 @@ struct TodoView: View {
     var body: some View {
         let look = Look(dark: scheme == .dark)
         Group {
-            if let snap = entry.snap {
+            if entry.locked {
+                ProLocked(look: look)
+            } else if let snap = entry.snap {
                 let rows = ordered(snap.todos, now: entry.date)
                 let left = snap.todos.filter { !$0.done }.count
                 let unplaced = snap.todos.filter { !$0.done && $0.plan }.count
@@ -463,7 +488,7 @@ struct TodoView: View {
         }
         .padding(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16))
         .widgetBG(look.bg)
-        .widgetURL(URL(string: "yeobaek://todos"))
+        .widgetURL(URL(string: entry.locked ? "yeobaek://pro" : "yeobaek://todos"))
     }
 
     /// 오늘 자리가 있는 것 → 자리 없는 것 → 끝낸 것
@@ -531,7 +556,9 @@ struct WeekView2: View {
     var body: some View {
         let look = Look(dark: scheme == .dark)
         Group {
-            if let snap = entry.snap {
+            if entry.locked {
+                ProLocked(look: look)
+            } else if let snap = entry.snap {
                 let days = Array(snap.days.prefix(7))
                 let bestIdx = bestDay(days)
                 let winMin = max(60, (snap.dayEnd - snap.dayStart) * 60)
@@ -588,7 +615,7 @@ struct WeekView2: View {
         }
         .padding(EdgeInsets(top: 16, leading: 16, bottom: 14, trailing: 16))
         .widgetBG(look.bg)
-        .widgetURL(URL(string: "yeobaek://today"))
+        .widgetURL(URL(string: entry.locked ? "yeobaek://pro" : "yeobaek://today"))
     }
 
     func bestDay(_ days: [DayS]) -> Int? {
@@ -643,7 +670,20 @@ struct LockView: View {
 
     var body: some View {
         Group {
-            if let snap = entry.snap {
+            if entry.locked {
+                switch family {
+                case .accessoryCircular:
+                    Image(systemName: "lock.fill")
+                case .accessoryRectangular:
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(tr("Pro 위젯")).font(.system(size: 14, weight: .bold))
+                        Text(tr("Pro 로 열려요")).font(.system(size: 11))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                default:
+                    Text(tr("Pro 위젯"))
+                }
+            } else if let snap = entry.snap {
                 let now = entry.date
                 let left = snap.freeLeft(now: now)
                 let next = snap.upcoming(now: now, limit: 1).first
@@ -691,7 +731,7 @@ struct LockView: View {
             }
         }
         .widgetBG(.clear)
-        .widgetURL(URL(string: "yeobaek://today"))
+        .widgetURL(URL(string: entry.locked ? "yeobaek://pro" : "yeobaek://today"))
     }
 }
 

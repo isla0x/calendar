@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yeobaek/demo_repo.dart';
+import 'package:yeobaek/pro.dart';
 import 'package:yeobaek/store.dart';
 import 'package:yeobaek/todos.dart';
 import 'package:yeobaek/widget_sync.dart';
@@ -44,6 +45,21 @@ void main() {
     expect(sink.writes.length, 1);
     await store.saveTodo(Todo(id: 't2', title: '운동', minutes: 60));
     expect(sink.writes.length, 2);
+    sync.dispose();
+  });
+
+  test('위젯 자료에 Pro 여부가 들어 있고, 결제하면 새로 써요', () async {
+    final pro = ProState(FakeProBackend());
+    final store = CalendarStore(DemoRepo(clock: () => now), clock: () => now, pro: pro);
+    await store.init();
+    expect(buildWidgetSnapshot(store)['pro'], false);
+    final sink = MemoryWidgetSink();
+    final sync = WidgetSync(store, sink);
+    expect(sink.writes.length, 1);
+    expect((jsonDecode(sink.writes.last) as Map)['pro'], false);
+    await pro.buy();
+    expect(sink.writes.length, 2);
+    expect((jsonDecode(sink.writes.last) as Map)['pro'], true);
     sync.dispose();
   });
 }

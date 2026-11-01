@@ -173,7 +173,7 @@ Future<bool> showProSheet(BuildContext context) async {
         return SheetFrame(
           title: tl('여백 Pro'),
           action: const ProBadge(),
-          subtitle: tl('기록이 날아갈 걱정 없이 쓰고 싶은 분을 위한 기능이에요.'),
+          subtitle: tl('위젯을 마음껏 쓰고, 기록은 안전하게 보관하는 기능이에요.'),
           footer: Column(
             children: [
               BigButton(
@@ -232,7 +232,7 @@ Future<bool> showProSheet(BuildContext context) async {
                   TextSpan(
                     style: ts(ctx, 13, color: p.muted, height: 19 / 13),
                     children: [
-                      TextSpan(text: tl('일정 보기, 한 줄 입력, 비는 시간, 프로젝트, 할 일, 이동시간은 ')),
+                      TextSpan(text: tl('일정 보기, 한 줄 입력, 비는 시간, 프로젝트, 할 일, 이동시간, 오늘의 여백 위젯은 ')),
                       TextSpan(text: tl('계속 무료'), style: ts(ctx, 13, weight: FontWeight.w700, color: p.ink)),
                       TextSpan(text: tl('예요. 한 번만 결제하면 평생 쓸 수 있어요.')),
                     ],

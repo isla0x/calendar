@@ -111,6 +111,8 @@ Map<String, Object?> buildWidgetSnapshot(CalendarStore s) {
 
   return {
     'v': 1,
+    // 위젯이 Pro 위젯을 보여줄지 잠글지 정해요 (오늘의 여백 위젯은 항상 무료)
+    'pro': s.pro.isPro,
     'today': _ymd(today),
     'dayStart': CalendarStore.dayStartHour,
     'dayEnd': CalendarStore.dayEndHour,
@@ -157,6 +159,7 @@ class HomeWidgetSink implements WidgetSink {
 class WidgetSync {
   WidgetSync(this.store, this.sink) {
     store.addListener(_onChange);
+    store.pro.addListener(_onChange);
     _onChange();
   }
 
@@ -174,5 +177,8 @@ class WidgetSync {
     unawaited(sink.write(json));
   }
 
-  void dispose() => store.removeListener(_onChange);
+  void dispose() {
+    store.removeListener(_onChange);
+    store.pro.removeListener(_onChange);
+  }
 }
