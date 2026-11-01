@@ -579,10 +579,10 @@ class CalendarStore extends ChangeNotifier {
   void setTagFilter(String? tag) => setTagFilters(tag == null ? const <String>[] : <String>[tag]);
 
   void setTagFilters(List<String> tags) {
-    final next = <String>[
-      for (final t in tags)
-        if (!tags.sublist(0, tags.indexOf(t)).contains(t)) t,
-    ];
+    final next = <String>[];
+    for (final t in tags) {
+      if (!next.contains(t)) next.add(t);
+    }
     if (next.length == _tagFilter.length && next.every(_tagFilter.contains)) return;
     _tagFilter = next;
     notifyListeners();
